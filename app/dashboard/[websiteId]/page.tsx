@@ -3,12 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, use } from "react";
 import {
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -20,6 +23,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { Chart } from "@/components/chart";
 
 export default function WebsiteAnalyticsPage({
   params,
@@ -34,18 +38,357 @@ export default function WebsiteAnalyticsPage({
   const [selectedLocationTab, setSelectedLocationTab] = useState("Country");
   const [selectedSystemTab, setSelectedSystemTab] = useState("Browser");
   const [selectedGoalTab, setSelectedGoalTab] = useState("Goal");
+  const [mentionDialogOpen, setMentionDialogOpen] = useState(false);
+  const [selectedMentionData, setSelectedMentionData] = useState<any>(null);
+  const [showMentionsOnChart, setShowMentionsOnChart] = useState(true);
 
   // Dummy data for charts - matching the exact structure from the reference
-  const hourlyData = [
-    { time: "12am", visitors: 72 },
-    { time: "2am", visitors: 72 },
-    { time: "5am", visitors: 72 },
-    { time: "8am", visitors: 72 },
-    { time: "11am", visitors: 72 },
-    { time: "2pm", visitors: 72 },
-    { time: "5pm", visitors: 72 },
-    { time: "8pm", visitors: 72 },
-    { time: "11pm", visitors: 72 },
+  const chartData = [
+    {
+      date: "01 Nov",
+      fullDate: "Monday, 1 November",
+      visitors: 2800,
+      revenue: 1200,
+      revenueNew: 1200,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.43,
+      conversionRate: 0.25,
+      hasMention: true,
+      mentions: [
+        {
+          text: "I heard X preloads websites. So you should use my links going forward",
+          url: "https://t.co/xH5p415Pdy",
+          type: "profile" as const,
+        },
+      ],
+    },
+    {
+      date: "02 Nov",
+      fullDate: "Tuesday, 2 November",
+      visitors: 1200,
+      revenue: 600,
+      revenueNew: 600,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.22,
+    },
+    {
+      date: "03 Nov",
+      fullDate: "Monday, 3 November",
+      visitors: 1183,
+      revenue: 1365,
+      revenueNew: 1365,
+      revenueRefund: 0,
+      revenuePerVisitor: 1.15,
+      conversionRate: 0.42,
+      hasMention: true,
+      mentions: [
+        {
+          text: 'CodeFast by @marc_louvion is the single best coding "course" i\'ve ever taken perhaps not for absolute beginne...',
+          type: "profile" as const,
+        },
+        {
+          text: "My product https://t.co/G9SDDImZUQ just crossed $1200 MRR. This is exactly about 0.5 hours since I started bu...",
+          url: "https://t.co/G9SDDImZUQ",
+          type: "profile" as const,
+        },
+      ],
+    },
+    {
+      date: "04 Nov",
+      fullDate: "Thursday, 4 November",
+      visitors: 600,
+      revenue: 300,
+      revenueNew: 300,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.18,
+    },
+    {
+      date: "05 Nov",
+      fullDate: "Wednesday, 5 November",
+      visitors: 850,
+      revenue: 338,
+      revenueNew: 338,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.4,
+      conversionRate: 0.24,
+      hasMention: true,
+      mentions: [
+        {
+          text: "I heard X preloads websites. So you should use my links going forward",
+          url: "https://t.co/xH5p415Pdy",
+          type: "profile" as const,
+        },
+        {
+          text: "Cut development time in half. Our advanced code generation and debugging features are built to integrate se...",
+          type: "gear" as const,
+        },
+      ],
+    },
+    {
+      date: "06 Nov",
+      fullDate: "Thursday, 6 November",
+      visitors: 550,
+      revenue: 280,
+      revenueNew: 280,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.51,
+      conversionRate: 0.19,
+      hasMention: true,
+    },
+    {
+      date: "07 Nov",
+      fullDate: "Friday, 7 November",
+      visitors: 600,
+      revenue: 300,
+      revenueNew: 300,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.2,
+    },
+    {
+      date: "08 Nov",
+      fullDate: "Saturday, 8 November",
+      visitors: 650,
+      revenue: 320,
+      revenueNew: 320,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.49,
+      conversionRate: 0.21,
+    },
+    {
+      date: "09 Nov",
+      fullDate: "Sunday, 9 November",
+      visitors: 700,
+      revenue: 350,
+      revenueNew: 350,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.22,
+    },
+    {
+      date: "10 Nov",
+      fullDate: "Monday, 10 November",
+      visitors: 750,
+      revenue: 380,
+      revenueNew: 380,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.51,
+      conversionRate: 0.23,
+    },
+    {
+      date: "11 Nov",
+      fullDate: "Tuesday, 11 November",
+      visitors: 1000,
+      revenue: 500,
+      revenueNew: 500,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.24,
+      hasMention: true,
+    },
+    {
+      date: "12 Nov",
+      fullDate: "Wednesday, 12 November",
+      visitors: 1500,
+      revenue: 750,
+      revenueNew: 750,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.25,
+    },
+    {
+      date: "13 Nov",
+      fullDate: "Thursday, 13 November",
+      visitors: 2200,
+      revenue: 1800,
+      revenueNew: 1800,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.82,
+      conversionRate: 0.28,
+      hasMention: true,
+    },
+    {
+      date: "14 Nov",
+      fullDate: "Friday, 14 November",
+      visitors: 1800,
+      revenue: 900,
+      revenueNew: 900,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.26,
+    },
+    {
+      date: "15 Nov",
+      fullDate: "Saturday, 15 November",
+      visitors: 1600,
+      revenue: 800,
+      revenueNew: 800,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.25,
+      hasMention: true,
+    },
+    {
+      date: "16 Nov",
+      fullDate: "Sunday, 16 November",
+      visitors: 1400,
+      revenue: 700,
+      revenueNew: 700,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.24,
+    },
+    {
+      date: "17 Nov",
+      fullDate: "Monday, 17 November",
+      visitors: 1200,
+      revenue: 600,
+      revenueNew: 600,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.23,
+    },
+    {
+      date: "18 Nov",
+      fullDate: "Tuesday, 18 November",
+      visitors: 1100,
+      revenue: 550,
+      revenueNew: 550,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.22,
+      hasMention: true,
+    },
+    {
+      date: "19 Nov",
+      fullDate: "Wednesday, 19 November",
+      visitors: 1000,
+      revenue: 500,
+      revenueNew: 500,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.21,
+    },
+    {
+      date: "20 Nov",
+      fullDate: "Thursday, 20 November",
+      visitors: 900,
+      revenue: 450,
+      revenueNew: 450,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.2,
+    },
+    {
+      date: "21 Nov",
+      fullDate: "Friday, 21 November",
+      visitors: 850,
+      revenue: 425,
+      revenueNew: 425,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.19,
+    },
+    {
+      date: "22 Nov",
+      fullDate: "Saturday, 22 November",
+      visitors: 800,
+      revenue: 400,
+      revenueNew: 400,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.18,
+      hasMention: true,
+    },
+    {
+      date: "23 Nov",
+      fullDate: "Sunday, 23 November",
+      visitors: 750,
+      revenue: 375,
+      revenueNew: 375,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.17,
+    },
+    {
+      date: "24 Nov",
+      fullDate: "Monday, 24 November",
+      visitors: 700,
+      revenue: 350,
+      revenueNew: 350,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.16,
+    },
+    {
+      date: "25 Nov",
+      fullDate: "Tuesday, 25 November",
+      visitors: 800,
+      revenue: 400,
+      revenueNew: 400,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.17,
+    },
+    {
+      date: "26 Nov",
+      fullDate: "Wednesday, 26 November",
+      visitors: 900,
+      revenue: 450,
+      revenueNew: 450,
+      revenueRefund: 0,
+      revenuePerVisitor: 0.5,
+      conversionRate: 0.18,
+      hasMention: true,
+    },
+    {
+      date: "27 Nov",
+      fullDate: "Thursday, 27 November",
+      visitors: 1000,
+      revenue: 2500,
+      revenueNew: 2500,
+      revenueRefund: 0,
+      revenuePerVisitor: 2.5,
+      conversionRate: 0.35,
+      hasMention: true,
+    },
+    {
+      date: "28 Nov",
+      fullDate: "Friday, 28 November",
+      visitors: 1100,
+      revenue: 2400,
+      revenueNew: 2400,
+      revenueRefund: 0,
+      revenuePerVisitor: 2.18,
+      conversionRate: 0.33,
+    },
+    {
+      date: "29 Nov",
+      fullDate: "Saturday, 29 November",
+      visitors: 500,
+      revenue: 700,
+      revenueNew: 700,
+      revenueRefund: 0,
+      revenuePerVisitor: 1.4,
+      conversionRate: 0.28,
+      hasMention: true,
+    },
+  ];
+
+  // Sample avatar URLs for mentions - using Unsplash images
+  const avatarUrls = [
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=faces",
+    "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces",
   ];
 
   // Metrics data with variations and trends
@@ -56,7 +399,7 @@ export default function WebsiteAnalyticsPage({
     revenuePerVisitor: { value: "$1.49", variation: "+66.5%", trend: "up" },
     bounceRate: { value: "83%", variation: "-1.2%", trend: "up" },
     sessionTime: { value: "2m 41s", variation: "+1.4%", trend: "up" },
-    visitorsNow: { value: "2" },
+    visitorsNow: { value: "6" },
   };
 
   const sourceData = [
@@ -253,7 +596,7 @@ export default function WebsiteAnalyticsPage({
               <div className="flex-1">
                 <section className="custom-card group">
                   {/* Metrics List */}
-                  <ul className="grid grid-cols-3 flex-col overflow-x-scroll border-0 border-textPrimary/5 p-4 max-md:gap-4 sm:flex-row md:flex lg:pb-2">
+                  <ul className="grid grid-cols-3 flex-col overflow-x-scroll border-0 border-textPrimary/5 p-4 pb-6 max-md:gap-4 sm:flex-row md:flex lg:pb-4">
                     <li>
                       <div className="flex flex-col items-start gap-1 border-textPrimary/5 md:mr-6 md:border-r md:pr-6 select-none">
                         <div className="flex cursor-pointer items-center gap-1.5">
@@ -509,103 +852,17 @@ export default function WebsiteAnalyticsPage({
                   </ul>
 
                   {/* Chart */}
-                  <div>
-                    <div className="h-72 pb-4 md:h-92">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={hourlyData}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient
-                              id="visitorGradient"
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="0%"
-                                stopColor="#7888b2"
-                                stopOpacity={0.4}
-                              />
-                              <stop
-                                offset="40%"
-                                stopColor="#7888b2"
-                                stopOpacity={0.1}
-                              />
-                              <stop
-                                offset="100%"
-                                stopColor="#7888b2"
-                                stopOpacity={0}
-                              />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#ccc"
-                            className="stroke-neutral-200 dark:stroke-neutral-600/50!"
-                            opacity={0.3}
-                          />
-                          <XAxis
-                            dataKey="time"
-                            stroke="#666"
-                            className="stroke-neutral-200 dark:stroke-neutral-600!"
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 12,
-                              className:
-                                "text-xs fill-base-secondary opacity-80",
-                            }}
-                            style={{
-                              fontSize: "12px",
-                            }}
-                          />
-                          <YAxis
-                            stroke="#666"
-                            className="stroke-neutral-200 dark:stroke-neutral-600!"
-                            tick={{
-                              fill: "hsl(var(--muted-foreground))",
-                              fontSize: 12,
-                              className:
-                                "text-xs fill-base-secondary opacity-80",
-                            }}
-                            style={{
-                              fontSize: "12px",
-                            }}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "white",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "0.5rem",
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="visitors"
-                            stroke="transparent"
-                            strokeWidth={0}
-                            fill="url(#visitorGradient)"
-                            fillOpacity={0.6}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="visitors"
-                            stroke="#8dcdff"
-                            strokeWidth={2.5}
-                            strokeLinecap="round"
-                            dot={false}
-                            activeDot={{
-                              r: 4,
-                              fill: "#8dcdff",
-                              strokeWidth: 2,
-                              stroke: "#fff",
-                            }}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                  <div className="px-4 pb-4">
+                    <Chart
+                      data={chartData}
+                      avatarUrls={avatarUrls}
+                      showMentions={showMentionsOnChart}
+                      onMentionClick={(data) => {
+                        setSelectedMentionData(data);
+                        setMentionDialogOpen(true);
+                      }}
+                      height="h-72 md:h-96"
+                    />
                   </div>
                 </section>
               </div>
@@ -995,6 +1252,188 @@ export default function WebsiteAnalyticsPage({
           </div>
         </div>
       </main>
+
+      {/* Mentions Dialog */}
+      <Dialog open={mentionDialogOpen} onOpenChange={setMentionDialogOpen}>
+        <DialogContent className="flex h-dvh w-full max-w-md flex-col overflow-hidden bg-gray-100 p-0 md:h-[65vh] md:rounded-xl">
+          <DialogHeader className="mb-2 flex items-center justify-between border-b border-gray-200 bg-white px-4 pt-4">
+            <DialogTitle className="text-textSecondary text-sm font-medium uppercase tracking-wider">
+              {selectedMentionData?.fullDate || selectedMentionData?.date}
+            </DialogTitle>
+            <button
+              onClick={() => setMentionDialogOpen(false)}
+              className="btn btn-circle btn-ghost btn-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-x size-5 md:size-4"
+              >
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </DialogHeader>
+          <div className="relative flex flex-1 flex-col overflow-hidden px-3">
+            <Tabs defaultValue="mentions" className="flex flex-1 flex-col">
+              <TabsList className="hidden w-full grid-cols-3 rounded-xl bg-gray-200/50 p-1 shadow-inner">
+                <TabsTrigger
+                  value="notes"
+                  className="flex cursor-pointer select-none items-center justify-center rounded-lg px-2 py-1.5 text-sm font-medium text-textSecondary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="mr-1.5 size-4 shrink-0 max-sm:hidden"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V6.621a1.5 1.5 0 0 0-.44-1.06L9.94 2.439A1.5 1.5 0 0 0 8.878 2H4Zm1 5.75A.75.75 0 0 1 5.75 7h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 5 7.75Zm0 3a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Notes (0)
+                </TabsTrigger>
+                <TabsTrigger
+                  value="mentions"
+                  className="flex cursor-pointer select-none items-center justify-center rounded-lg px-2 py-1.5 text-sm font-medium text-textPrimary animate-popup bg-white shadow"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="mr-1.5 size-4 shrink-0 max-sm:hidden"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 2C4.262 2 1 4.57 1 8c0 1.86.98 3.486 2.455 4.566a3.472 3.472 0 0 1-.469 1.26.75.75 0 0 0 .713 1.14 6.961 6.961 0 0 0 3.06-1.06c.403.062.818.094 1.241.094 3.738 0 7-2.57 7-6s-3.262-6-7-6ZM5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm7-1a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM8 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Mentions ({selectedMentionData?.mentions?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="commits"
+                  className="flex cursor-pointer select-none items-center justify-center rounded-lg px-2 py-1.5 text-sm font-medium text-textSecondary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-1 size-4 shrink-0 max-sm:hidden"
+                  >
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <line x1="3" x2="9" y1="12" y2="12"></line>
+                    <line x1="15" x2="21" y1="12" y2="12"></line>
+                  </svg>
+                  Commits (0)
+                </TabsTrigger>
+              </TabsList>
+              <div className="pointer-events-none absolute -bottom-4 left-0 right-0 z-10 h-4 bg-gradient-to-b from-gray-100 via-gray-100/80 to-transparent"></div>
+              <div className="relative flex flex-1 flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto">
+                  <TabsContent value="mentions" className="p-4 pb-8 m-0 flex-1">
+                    <div className="-mx-1 space-y-3 px-1">
+                      {selectedMentionData?.mentions?.map(
+                        (mention: any, idx: number) => (
+                          <div key={idx} className="custom-card">
+                            <div className="flex items-start gap-3 p-4">
+                              {mention.type === "profile" ? (
+                                <Image
+                                  src={avatarUrls[idx % avatarUrls.length]}
+                                  alt="Profile"
+                                  width={48}
+                                  height={48}
+                                  className="rounded-full shrink-0"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-textSecondary"
+                                  >
+                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="text-sm text-textPrimary leading-relaxed">
+                                  {mention.text}
+                                  {mention.url && (
+                                    <a
+                                      href={mention.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline ml-1"
+                                    >
+                                      {mention.url}
+                                    </a>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      )}
+                      {(!selectedMentionData?.mentions ||
+                        selectedMentionData.mentions.length === 0) && (
+                        <div className="text-center py-8 text-textSecondary">
+                          No mentions for this date
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="notes" className="p-4 pb-8 m-0">
+                    <div className="text-center py-8 text-textSecondary">
+                      No notes for this date
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="commits" className="p-4 pb-8 m-0">
+                    <div className="text-center py-8 text-textSecondary">
+                      No commits for this date
+                    </div>
+                  </TabsContent>
+                </div>
+              </div>
+            </Tabs>
+          </div>
+          <div className="shrink-0 border-t border-gray-200 bg-white px-2 py-1">
+            <label className="flex cursor-pointer items-center justify-start gap-2 px-2 py-2">
+              <input
+                className="toggle toggle-xs"
+                type="checkbox"
+                checked={showMentionsOnChart}
+                onChange={(e) => setShowMentionsOnChart(e.target.checked)}
+              />
+              <span className="text-xs text-textPrimary">
+                Show mentions on chart
+              </span>
+            </label>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
