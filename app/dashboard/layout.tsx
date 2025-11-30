@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/dashboard/UserMenu";
 
 export default function DashboardLayout({
   children,
@@ -51,24 +51,7 @@ export default function DashboardLayout({
               </span>
             </Link>
             <div className="flex flex-1 items-center justify-end gap-4">
-              <div className="relative">
-                <button
-                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-textPrimary hover:bg-gray-100 transition-colors"
-                  type="button"
-                >
-                  <Image
-                    src="https://lh3.googleusercontent.com/a/ACg8ocLjuOuMC2HRn46ofTAQ4rl296tX0qxLfCF4JCNDJT3DD_Qf4WaL=s96-c"
-                    alt="Adarsh Kumar Singh"
-                    className="size-6 shrink-0 rounded-full"
-                    width={24}
-                    height={24}
-                    unoptimized
-                  />
-                  <span className="capitalize text-textPrimary">
-                    Adarsh Kumar Singh
-                  </span>
-                </button>
-              </div>
+              <UserMenu />
             </div>
           </nav>
         </header>

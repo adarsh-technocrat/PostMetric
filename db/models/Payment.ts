@@ -1,0 +1,100 @@
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+export interface IPayment extends Document {
+  websiteId: mongoose.Types.ObjectId;
+  sessionId?: string;
+  visitorId?: string;
+
+  // Payment details
+  provider: "stripe" | "lemonsqueezy" | "polar" | "paddle" | "other";
+  providerPaymentId: string; // Payment ID from provider
+  amount: number; // In cents
+  currency: string;
+  status: "completed" | "refunded" | "failed";
+
+  // Customer info
+  customerEmail?: string;
+  customerId?: string;
+
+  // Metadata
+  metadata?: Record<string, any>;
+
+  timestamp: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const PaymentSchema = new Schema<IPayment>(
+  {
+    websiteId: {
+      type: Schema.Types.ObjectId,
+      ref: "Website",
+      required: true,
+      index: true,
+    },
+    sessionId: {
+      type: String,
+      index: true,
+    },
+    visitorId: {
+      type: String,
+      index: true,
+    },
+    provider: {
+      type: String,
+      enum: ["stripe", "lemonsqueezy", "polar", "paddle", "other"],
+      required: true,
+      index: true,
+    },
+    providerPaymentId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      required: true,
+      default: "usd",
+    },
+    status: {
+      type: String,
+      enum: ["completed", "refunded", "failed"],
+      required: true,
+      index: true,
+    },
+    customerEmail: {
+      type: String,
+      index: true,
+    },
+    customerId: {
+      type: String,
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
+    },
+    timestamp: {
+      type: Date,
+      required: true,
+      index: true,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Compound indexes
+PaymentSchema.index({ websiteId: 1, timestamp: -1 });
+PaymentSchema.index({ websiteId: 1, status: 1, timestamp: -1 });
+PaymentSchema.index({ provider: 1, providerPaymentId: 1 }, { unique: true });
+
+// Prevent model re-compilation during hot reload in development
+const Payment: Model<IPayment> =
+  mongoose.models.Payment || mongoose.model<IPayment>("Payment", PaymentSchema);
+
+export default Payment;

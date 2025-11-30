@@ -1190,67 +1190,6 @@ export default function WebsiteAnalyticsPage({
             </section>
           </div>
         </div>
-
-        {/* Warning Banner */}
-        <div className="fixed bottom-2 left-2 z-50 max-sm:right-2 sm:bottom-4 sm:left-4">
-          <div className="flex max-w-full flex-row items-start gap-3 rounded-box border p-4 text-sm shadow-lg sm:max-w-md border-yellow-200 bg-yellow-50 text-yellow-800">
-            <div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="size-5 text-yellow-400"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-            </div>
-            <div className="grow">
-              <p className="mb-1.5 flex items-baseline gap-2 font-medium">
-                Awaiting the first event...
-                <span className="loading loading-spinner w-3"></span>
-              </p>
-              <ol className="list-inside list-decimal text-yellow-700">
-                <li>
-                  Install the script using{" "}
-                  <Link
-                    href={`/dashboard/${websiteId}/settings?tab=general`}
-                    className="link hover:text-yellow-900"
-                  >
-                    the tracking code
-                  </Link>
-                </li>
-                <li>
-                  Visit{" "}
-                  <a
-                    href="https://uxmagic.ai/?ref=seemorethanmmr"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="link hover:text-yellow-900"
-                  >
-                    uxmagic.ai
-                  </a>{" "}
-                  to register the first event yourself
-                </li>
-                <li>Refresh your dashboard</li>
-                <li>
-                  Still not working?{" "}
-                  <a
-                    href="mailto:support@seemorethanmmr.com?subject=Dashboard not working for uxmagic.ai"
-                    className="link hover:text-yellow-900"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Contact support
-                  </a>
-                </li>
-              </ol>
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Mentions Dialog */}
