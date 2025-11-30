@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         hostname: "pbs.twimg.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "image.mux.com",
+        pathname: "/**",
+      },
     ],
   },
 };

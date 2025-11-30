@@ -9,10 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#1D9BF0",
+        primary: "#E16540",
+        secondary: "#282828",
         accent: "#E16540",
         background: "#FBFAF9",
-        textPrimary: "#536471",
+        textPrimary: "#282828",
+        textSecondary: "#9CA3AF",
+        borderColor: "#CCCCCC",
       },
       fontFamily: {
         sans: [

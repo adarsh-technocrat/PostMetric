@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -9,13 +10,15 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Image
                 src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon.3a869d3d.png&w=64&q=75"
-                alt="SeeMyMMR Logo"
+                alt="seeMoreThanMMR Logo"
                 width={32}
                 height={32}
                 className="w-8 h-8"
                 unoptimized
               />
-              <span className="text-xl font-bold text-gray-900">SeeMyMMR</span>
+              <span className="text-xl font-bold text-gray-900">
+                seeMoreThanMMR
+              </span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a
@@ -44,15 +47,18 @@ export default function Home() {
               </a>
             </div>
             <div className="flex items-center gap-4">
-              <a
-                href="#"
+              <Link
+                href="/login"
                 className="text-textPrimary hover:text-gray-900 text-sm"
               >
                 Sign in
-              </a>
-              <button className="bg-[#E16540] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#d15a38] transition-colors shadow-[0_1px_1px_0_rgba(0,0,0,0.06),0_0_0_1px_rgba(225,101,64,0.157),0_8px_16px_-8px_rgba(225,101,64,0.64),0_-1px_2px_0_rgba(181,81,51,0.48)_inset]">
+              </Link>
+              <Link
+                href="/login"
+                className="bg-[#E16540] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#d15a38] transition-colors shadow-[0_1px_1px_0_rgba(0,0,0,0.06),0_0_0_1px_rgba(225,101,64,0.157),0_8px_16px_-8px_rgba(225,101,64,0.64),0_-1px_2px_0_rgba(181,81,51,0.48)_inset]"
+              >
                 Get started
-              </button>
+              </Link>
             </div>
           </div>
         </nav>
@@ -142,8 +148,8 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="w-full space-y-1">
-                    <button
-                      type="submit"
+                    <Link
+                      href="/login"
                       className="w-full bg-[#E16540] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-[#d15a38] transition-colors shadow-[0_1px_1px_0_rgba(0,0,0,0.06),0_0_0_1px_rgba(225,101,64,0.157),0_8px_16px_-8px_rgba(225,101,64,0.64),0_-1px_2px_0_rgba(181,81,51,0.48)_inset] flex items-center justify-center gap-2"
                     >
                       <span>Add my website</span>
@@ -160,7 +166,7 @@ export default function Home() {
                           d="M13 7l5 5m0 0l-5 5m5-5H6"
                         />
                       </svg>
-                    </button>
+                    </Link>
                     <div className="text-center text-sm text-textPrimary opacity-80">
                       Free 14-day trial • No credit card required
                     </div>
@@ -196,7 +202,7 @@ export default function Home() {
                   </div>
                   <div className="text-base text-textPrimary">
                     <span className="font-medium text-gray-900">200+</span>{" "}
-                    entrepreneurs trust SeeMyMMR
+                    entrepreneurs trust seeMoreThanMMR
                   </div>
                 </div>
               </div>
@@ -226,14 +232,16 @@ export default function Home() {
                     <span className="text-textPrimary opacity-50">
                       https://
                     </span>
-                    <span className="text-gray-900">app.seemymmr.com</span>
+                    <span className="text-gray-900">
+                      app.seemorethanmmr.com
+                    </span>
                   </div>
                 </div>
 
                 <div className="w-full bg-background">
                   <Image
                     src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fdemo.8f89df2b.jpg&w=1080&q=100"
-                    alt="SeeMyMMR Dashboard Demo"
+                    alt="seeMoreThanMMR Dashboard Demo"
                     width={1080}
                     height={600}
                     className="w-full h-auto"
@@ -392,7 +400,7 @@ export default function Home() {
               Loved by entrepreneurs
             </h2>
             <p className="text-lg text-textPrimary">
-              See what makers are saying about SeeMyMMR
+              See what makers are saying about seeMoreThanMMR
             </p>
           </div>
 
@@ -410,7 +418,7 @@ export default function Home() {
                 handle: "@sarahchen",
                 avatar:
                   "https://datafa.st/_next/image?url=https%3A%2F%2Fpbs.twimg.com%2Fprofile_images%2F1905054657971728384%2FM9JF7NHU_normal.jpg&w=96&q=100",
-                text: "SeeMyMMR helped me identify which marketing channels were actually profitable. Game changer!",
+                text: "seeMoreThanMMR helped me identify which marketing channels were actually profitable. Game changer!",
               },
               {
                 name: "Alex Rivera",
@@ -456,9 +464,12 @@ export default function Home() {
             <p className="text-xl mb-8 opacity-90">
               Start tracking what matters in less than 5 minutes
             </p>
-            <button className="bg-white text-[#E16540] px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 transition-colors shadow-lg">
+            <Link
+              href="/login"
+              className="inline-block bg-white text-[#E16540] px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 transition-colors shadow-lg"
+            >
               Get started for free
-            </button>
+            </Link>
             <p className="mt-4 text-sm opacity-80">
               Free 14-day trial • No credit card required
             </p>
@@ -622,16 +633,18 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-4 md:mb-0">
               <Image
                 src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon.3a869d3d.png&w=64&q=75"
-                alt="SeeMyMMR Logo"
+                alt="seeMoreThanMMR Logo"
                 width={24}
                 height={24}
                 className="w-6 h-6"
                 unoptimized
               />
-              <span className="font-semibold text-gray-900">SeeMyMMR</span>
+              <span className="font-semibold text-gray-900">
+                seeMoreThanMMR
+              </span>
             </div>
             <div className="text-sm text-textPrimary">
-              © 2024 SeeMyMMR. All rights reserved.
+              © 2024 seeMoreThanMMR. All rights reserved.
             </div>
           </div>
         </div>
