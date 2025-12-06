@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWebsitesByUserId, createWebsite } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
+import {
+  sanitizeWebsiteForFrontend,
+  sanitizeWebsitesForFrontend,
+} from "@/utils/database/website-sanitize";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +14,9 @@ export async function GET(request: NextRequest) {
     }
     const websites = await getWebsitesByUserId(userId);
 
-    return NextResponse.json({ websites }, { status: 200 });
+    const sanitizedWebsites = sanitizeWebsitesForFrontend(websites);
+
+    return NextResponse.json({ websites: sanitizedWebsites }, { status: 200 });
   } catch (error) {
     console.error("Error fetching websites:", error);
     return NextResponse.json(
@@ -54,7 +60,9 @@ export async function POST(request: NextRequest) {
       settings,
     });
 
-    return NextResponse.json({ website }, { status: 201 });
+    const sanitizedWebsite = sanitizeWebsiteForFrontend(website);
+
+    return NextResponse.json({ website: sanitizedWebsite }, { status: 201 });
   } catch (error) {
     console.error("Error creating website:", error);
     return NextResponse.json(

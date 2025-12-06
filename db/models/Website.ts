@@ -32,7 +32,7 @@ export interface IWebsite extends Document {
     primaryGoalId?: mongoose.Types.ObjectId; // #1 KPI goal
   };
   paymentProviders?: {
-    stripe?: { webhookSecret: string };
+    stripe?: { apiKey?: string; webhookSecret?: string };
     lemonSqueezy?: { webhookSecret: string };
     polar?: { webhookSecret: string };
     paddle?: { webhookSecret: string };
@@ -153,6 +153,7 @@ const WebsiteSchema = new Schema<IWebsite>(
     },
     paymentProviders: {
       stripe: {
+        apiKey: String,
         webhookSecret: String,
       },
       lemonSqueezy: {

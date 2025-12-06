@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -17,6 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PAYMENT_PROVIDERS = [
   {
@@ -177,7 +189,11 @@ interface RevenueSettingsProps {
       };
     };
     paymentProviders?: {
-      stripe?: { apiKey?: string; webhookSecret?: string };
+      stripe?: {
+        apiKey?: string;
+        webhookSecret?: string;
+        connected?: boolean;
+      };
     };
   } | null;
   websiteId: string;
@@ -193,6 +209,7 @@ export function RevenueSettings({
   const [stripeApiKey, setStripeApiKey] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
   useEffect(() => {
     if (website) {
@@ -211,6 +228,7 @@ export function RevenueSettings({
         },
         body: JSON.stringify({
           paymentProviders: {
+            ...website?.paymentProviders,
             stripe: {
               apiKey: stripeApiKey,
             },
@@ -227,6 +245,38 @@ export function RevenueSettings({
       setLoading(false);
     }
   };
+
+  const handleDisconnectStripe = async () => {
+    setLoading(true);
+    try {
+      // Remove stripe from paymentProviders by setting it to null
+      const updatedPaymentProviders = { ...website?.paymentProviders };
+      if (updatedPaymentProviders.stripe) {
+        delete updatedPaymentProviders.stripe;
+      }
+
+      const response = await fetch(`/api/websites/${websiteId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentProviders: updatedPaymentProviders,
+        }),
+      });
+      if (response.ok) {
+        onUpdate();
+        setShowDisconnectDialog(false);
+      }
+    } catch (error) {
+      console.error("Error disconnecting Stripe:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check connection status from the backend flag (API key is not sent to frontend)
+  const isStripeConnected = !!website?.paymentProviders?.stripe?.connected;
 
   const handleSaveCurrency = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,85 +340,165 @@ export function RevenueSettings({
             ))}
           </div>
 
-          {/* Stripe Connection Form */}
           {selectedProvider === "stripe" && (
             <div className="space-y-8 pt-6">
-              <div className="space-y-4">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 font-semibold text-textPrimary">
-                    <span className="w-4">1.</span>
-                    <span>Connect Stripe</span>
-                  </div>
-                  <div className="text-sm text-textSecondary leading-relaxed pl-5">
-                    Create a{" "}
-                    <a
-                      href="https://dashboard.stripe.com/apikeys/create?name=DataFast&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_customer_read&permissions%5B%5D=rak_payment_intent_read&permissions%5B%5D=rak_checkout_session_read&permissions%5B%5D=rak_invoice_read&permissions%5B%5D=rak_webhook_write"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group link text-base-content hover:text-primary inline-flex items-center gap-1"
-                    >
-                      restricted API key
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        className="inline size-3.5 -translate-x-px translate-y-px duration-200 group-hover:translate-x-0 group-hover:translate-y-0"
+              {isStripeConnected ? (
+                <div className="space-y-8 pt-6">
+                  <div className="relative flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-green-100 text-green-600">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className="size-5"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="mt-2 h-full w-0.5 bg-green-100" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <h2 className="custom-card-title flex items-center gap-1.5">
+                        Stripe connected
+                      </h2>
+                      <Button
+                        onClick={() => setShowDisconnectDialog(true)}
+                        className="btn btn-ghost btn-sm hover:bg-error/20 hover:text-error"
+                        disabled={loading}
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.22 11.78a.75.75 0 0 1 0-1.06L9.44 5.5H5.75a.75.75 0 0 1 0-1.5h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0V6.56l-5.22 5.22a.75.75 0 0 1-1.06 0Z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </a>{" "}
-                    (do not change any permissions) and paste the API key below:
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className="size-4"
+                        >
+                          <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                        </svg>
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="flex size-8 items-center justify-center rounded-full border-2 border-base-content/20 bg-base-100 text-base-content/40">
+                        <span className="text-sm font-semibold">2</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="space-y-0.5">
+                        <div className="custom-card-title flex items-center gap-1.5">
+                          <span className="w-4">2.</span>
+                          <span>Link with traffic</span>
+                        </div>
+                        <div className="text-base-secondary text-sm leading-relaxed">
+                          Make revenue-driven decisions by linking your revenue
+                          data with your traffic data.{" "}
+                          <span className="inline-flex flex-row items-center gap-1">
+                            <a
+                              href="/docs/revenue-attribution/get-started"
+                              className="peer link font-medium text-base-content hover:text-primary"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Get started here
+                            </a>{" "}
+                            (it takes 2 minutes).
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <form className="space-y-2 pl-5" onSubmit={handleConnectStripe}>
-                  <Input
-                    required
-                    autoComplete="off"
-                    placeholder="rk_live_******************"
-                    className="input input-sm input-bordered w-full placeholder:opacity-70"
-                    type="text"
-                    value={stripeApiKey}
-                    onChange={(e) => setStripeApiKey(e.target.value)}
-                  />
-                  <Button
-                    type="submit"
-                    className="btn btn-neutral btn-sm btn-block"
-                    disabled={loading}
-                  >
-                    Connect
-                  </Button>
-                </form>
-              </div>
-
-              <div className="space-y-4 opacity-50">
-                <div className="space-y-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 font-semibold text-textPrimary">
-                      <span className="w-4">2.</span>
-                      <span>Link with traffic</span>
-                    </div>
-                    <div className="text-sm text-textSecondary leading-relaxed pl-5">
-                      Make revenue-driven decisions by linking your revenue data
-                      with your traffic data.{" "}
-                      <span className="inline-flex flex-row items-center gap-1">
+              ) : (
+                // Not Connected State
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-textPrimary">
+                        <span className="w-4">1.</span>
+                        <span>Connect Stripe</span>
+                      </div>
+                      <div className="text-sm text-textSecondary leading-relaxed pl-5">
+                        Create a{" "}
                         <a
-                          href="/docs/revenue-attribution/get-started"
+                          href="https://dashboard.stripe.com/apikeys/create?name=DataFast&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_customer_read&permissions%5B%5D=rak_payment_intent_read&permissions%5B%5D=rak_checkout_session_read&permissions%5B%5D=rak_invoice_read&permissions%5B%5D=rak_webhook_write"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="peer link font-medium text-base-content hover:text-primary"
+                          className="group link text-base-content hover:text-primary inline-flex items-center gap-1"
                         >
-                          Get started here
+                          restricted API key
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="inline size-3.5 -translate-x-px translate-y-px duration-200 group-hover:translate-x-0 group-hover:translate-y-0"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.22 11.78a.75.75 0 0 1 0-1.06L9.44 5.5H5.75a.75.75 0 0 1 0-1.5h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0V6.56l-5.22 5.22a.75.75 0 0 1-1.06 0Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
                         </a>{" "}
-                        (it takes 2 minutes).
-                      </span>
+                        (do not change any permissions) and paste the API key
+                        below:
+                      </div>
+                    </div>
+                    <form
+                      className="space-y-2 pl-5"
+                      onSubmit={handleConnectStripe}
+                    >
+                      <Input
+                        required
+                        autoComplete="off"
+                        placeholder="rk_live_******************"
+                        className="input input-sm input-bordered w-full placeholder:opacity-70"
+                        type="text"
+                        value={stripeApiKey}
+                        onChange={(e) => setStripeApiKey(e.target.value)}
+                      />
+                      <Button
+                        type="submit"
+                        className="btn btn-neutral btn-sm btn-block"
+                        disabled={loading}
+                      >
+                        Connect
+                      </Button>
+                    </form>
+                  </div>
+
+                  <div className="space-y-4 opacity-50">
+                    <div className="space-y-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 font-semibold text-textPrimary">
+                          <span className="w-4">2.</span>
+                          <span>Link with traffic</span>
+                        </div>
+                        <div className="text-sm text-textSecondary leading-relaxed pl-5">
+                          Make revenue-driven decisions by linking your revenue
+                          data with your traffic data.{" "}
+                          <span className="inline-flex flex-row items-center gap-1">
+                            <a
+                              href="/docs/revenue-attribution/get-started"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="peer link font-medium text-base-content hover:text-primary"
+                            >
+                              Get started here
+                            </a>{" "}
+                            (it takes 2 minutes).
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -420,6 +550,73 @@ export function RevenueSettings({
           </CardContent>
         </form>
       </Card>
+
+      <AlertDialog
+        open={showDisconnectDialog}
+        onOpenChange={setShowDisconnectDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Are you sure you want to disconnect your Stripe account?
+            </AlertDialogTitle>
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className="mt-0.5 size-5 shrink-0 text-destructive"
+                >
+                  <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                </svg>
+                <span className="text-sm text-foreground">
+                  It will delete all Stripe data for this website.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className="mt-0.5 size-5 shrink-0 text-destructive"
+                >
+                  <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                </svg>
+                <span className="text-sm text-foreground">
+                  Revenue attribution for upcoming payments won&apos;t work.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="mt-0.5 size-5 shrink-0 text-green-600"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-sm text-foreground">
+                  Previous revenue attribution data will remain.
+                </span>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDisconnectStripe}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

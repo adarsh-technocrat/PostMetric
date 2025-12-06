@@ -104,8 +104,8 @@ interface AnalyticsState {
   lastFetched: string | null;
   // Current filters
   currentWebsiteId: string | null;
-  currentStartDate: Date | null;
-  currentEndDate: Date | null;
+  currentStartDate: string | null; // ISO string for serialization
+  currentEndDate: string | null; // ISO string for serialization
   currentGranularity: "hourly" | "daily" | "weekly" | "monthly";
 }
 
@@ -216,10 +216,10 @@ const analyticsSlice = createSlice({
         // Store breakdowns
         state.breakdowns = action.payload.breakdowns || null;
 
-        // Store current filters
+        // Store current filters (convert Date objects to ISO strings for serialization)
         state.currentWebsiteId = action.meta.arg.websiteId;
-        state.currentStartDate = action.meta.arg.startDate;
-        state.currentEndDate = action.meta.arg.endDate;
+        state.currentStartDate = action.meta.arg.startDate.toISOString();
+        state.currentEndDate = action.meta.arg.endDate.toISOString();
         state.currentGranularity = action.meta.arg.granularity || "daily";
       })
       .addCase(fetchAnalytics.rejected, (state, action) => {
