@@ -2,19 +2,16 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IPayment extends Document {
   websiteId: mongoose.Types.ObjectId;
-  sessionId?: string;
-  visitorId?: string;
-
-  // Payment details
   provider: "stripe" | "lemonsqueezy" | "polar" | "paddle" | "other";
-  providerPaymentId: string; // Payment ID from provider
-  amount: number; // In cents
+  providerPaymentId: string;
+  amount: number;
   currency: string;
   status: "completed" | "refunded" | "failed";
 
-  // Customer info
   customerEmail?: string;
   customerId?: string;
+  sessionId?: string;
+  visitorId?: string;
 
   // Metadata
   metadata?: Record<string, any>;

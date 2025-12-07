@@ -12,7 +12,7 @@ export function WaitingForEventsBanner({
   domain,
 }: WaitingForEventsBannerProps) {
   const hasEvents = chartData.some((point) => point.visitors > 0);
-  const shouldShowBanner = !loading && chartData.length > 0 && !hasEvents;
+  const shouldShowBanner = !loading && !hasEvents;
 
   if (!shouldShowBanner) {
     return null;

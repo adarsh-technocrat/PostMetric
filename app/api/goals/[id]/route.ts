@@ -15,7 +15,6 @@ export async function GET(
       return NextResponse.json({ error: "Goal not found" }, { status: 404 });
     }
 
-    // Verify ownership through website
     const website = await getWebsiteById(goal.websiteId.toString());
     if (!website) {
       return NextResponse.json({ error: "Website not found" }, { status: 404 });

@@ -6,9 +6,6 @@ import { Types } from "mongoose";
 
 export type Granularity = "hourly" | "daily" | "weekly" | "monthly";
 
-/**
- * Get date truncation unit for MongoDB
- */
 function getDateTruncUnit(granularity: Granularity): string {
   switch (granularity) {
     case "hourly":

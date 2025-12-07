@@ -50,33 +50,28 @@ const ApiKeySchema = new Schema<IApiKey>(
   }
 );
 
-// Generate a new API key
 ApiKeySchema.statics.generate = function (
   websiteId: string,
   userId: string,
   name: string
 ) {
   const randomBytes = crypto.randomBytes(32);
-  const key = `df_${randomBytes.toString("hex")}`;
-  const keyPrefix = key.substring(0, 11); // "df_" + 8 chars
+  const key = `pm_${randomBytes.toString("hex")}`;
+  const keyPrefix = key.substring(0, 11); // "pm_" + 8 chars
 
-  // Hash the key for storage
   const hashedKey = crypto.createHash("sha256").update(key).digest("hex");
 
   return {
-    key, // Return plain key only once
+    key,
     keyPrefix,
-    hashedKey, // Store this in DB
+    hashedKey,
   };
 };
 
-// Verify an API key
 ApiKeySchema.statics.verify = async function (apiKey: string) {
   const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
   return this.findOne({ key: hashedKey });
 };
-
-// Prevent model re-compilation during hot reload in development
 const ApiKey: Model<IApiKey> =
   mongoose.models.ApiKey || mongoose.model<IApiKey>("ApiKey", ApiKeySchema);
 

@@ -5,7 +5,6 @@ import { Resend } from "resend";
 import connectDB from "@/db";
 import User from "@/db/models/User";
 import { MongooseAdapter } from "./adapter";
-import type { Adapter } from "next-auth/adapters";
 import { getTrialEndDate } from "@/lib/config";
 
 const getResend = () => {
@@ -17,7 +16,6 @@ const getResend = () => {
 };
 
 export const authOptions: NextAuthOptions = {
-  // @ts-ignore - pnpm dependency resolution issue with next-auth types
   adapter: MongooseAdapter(),
   providers: [
     GoogleProvider({
