@@ -2,6 +2,7 @@ import { Adapter, AdapterUser, AdapterAccount } from "next-auth/adapters";
 import connectDB from "@/db";
 import User from "@/db/models/User";
 import VerificationToken from "@/db/models/VerificationToken";
+import { getTrialEndDate } from "@/lib/config";
 
 export function MongooseAdapter(): Adapter {
   return {
@@ -14,7 +15,7 @@ export function MongooseAdapter(): Adapter {
         subscription: {
           plan: "free",
           status: "trial",
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+          trialEndsAt: getTrialEndDate(),
         },
       });
       await newUser.save();

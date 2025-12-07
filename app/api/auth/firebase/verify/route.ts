@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase/admin";
 import connectDB from "@/db";
 import User from "@/db/models/User";
+import { getTrialEndDate } from "@/lib/config";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
           subscription: {
             plan: "free",
             status: "trial",
-            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+            trialEndsAt: getTrialEndDate(),
           },
         },
       },

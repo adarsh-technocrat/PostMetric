@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase/client";
 import { useState, Suspense } from "react";
+import { formatTrialPeriodHyphenated } from "@/lib/config";
 
 function LoginForm() {
   const router = useRouter();
@@ -90,7 +91,7 @@ function LoginForm() {
                 >
                   create an account
                 </Link>{" "}
-                to start your 14-day free trial.
+                to start your {formatTrialPeriodHyphenated()} free trial.
               </span>
             </div>
           </div>

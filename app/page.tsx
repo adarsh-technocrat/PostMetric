@@ -12,6 +12,7 @@ import {
   DollarSignIcon,
   LiveDemoIcon,
 } from "@/components/icons";
+import { formatTrialPeriodHyphenated } from "@/lib/config";
 
 export default function Home() {
   const [domain, setDomain] = useState("");
@@ -49,7 +50,9 @@ export default function Home() {
                 Pricing
               </a>
               <a
-                href="#"
+                href="https://docs.postmetric.io"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-textPrimary hover:text-gray-900 text-sm"
               >
                 Docs
@@ -174,7 +177,8 @@ export default function Home() {
                       <ArrowRightIcon className="w-4 h-4" />
                     </Link>
                     <div className="text-center text-sm text-textPrimary opacity-80">
-                      Free 14-day trial • No credit card required
+                      Free {formatTrialPeriodHyphenated()} trial • No credit
+                      card required
                     </div>
                   </div>
                 </form>
@@ -434,7 +438,8 @@ export default function Home() {
               Get started for free
             </Link>
             <p className="mt-4 text-sm opacity-80">
-              Free 14-day trial • No credit card required
+              Free {formatTrialPeriodHyphenated()} trial • No credit card
+              required
             </p>
           </div>
         </section>
@@ -485,7 +490,9 @@ export default function Home() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="#"
+                    href="https://docs.postmetric.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-textPrimary hover:text-gray-900 text-sm"
                   >
                     Documentation

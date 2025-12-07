@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatTrialPeriod } from "@/lib/config";
 
 export default function BillingPage() {
   const [eventsRange, setEventsRange] = useState(9);
@@ -681,8 +682,9 @@ export default function BillingPage() {
                   <AccordionContent className="px-4 pb-4 pt-0">
                     <div className="space-y-2 leading-relaxed text-muted-foreground">
                       <p>
-                        Yep! You can try DataFast for free for 14 days and you
-                        don&apos;t even need a credit card!
+                        Yep! You can try PostMetric for free for{" "}
+                        {formatTrialPeriod()} and you don&apos;t even need a
+                        credit card!
                       </p>
                     </div>
                   </AccordionContent>
