@@ -14,6 +14,7 @@ import { MetricsList } from "@/components/dashboard/analytics/MetricsList";
 import { BreakdownCard } from "@/components/dashboard/analytics/BreakdownCard";
 import { GoalsCard } from "@/components/dashboard/analytics/GoalsCard";
 import { MentionsDialog } from "@/components/dashboard/analytics/MentionsDialog";
+import { WaitingForEventsBanner } from "@/components/dashboard/analytics/WaitingForEventsBanner";
 import { Button } from "@/components/ui/button";
 import {
   useWebsiteAnalytics,
@@ -115,12 +116,15 @@ export default function WebsiteAnalyticsPage({
           </div>
         </section>
 
-        {/* Analytics Grid */}
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Main Analytics Card - Full Width */}
           <div className="md:col-span-2">
             <div className="flex flex-col gap-4 lg:flex-row">
               <div className="flex-1">
+                <WaitingForEventsBanner
+                  chartData={chartData}
+                  loading={analytics.loading}
+                  domain={website?.domain}
+                />
                 <section className="custom-card group">
                   <MetricsList
                     visitors={metricsData.visitors}
