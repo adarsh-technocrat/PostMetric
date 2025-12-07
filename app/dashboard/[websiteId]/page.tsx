@@ -7,13 +7,13 @@ import {
   setShowRevenueOnChart,
 } from "@/store/slices/uiSlice";
 import { Chart } from "@/components/chart";
-import { WebsiteSelector } from "@/components/dashboard/WebsiteSelector";
-import { PeriodSelector } from "@/components/dashboard/PeriodSelector";
-import { GranularitySelector } from "@/components/dashboard/GranularitySelector";
-import { MetricsList } from "@/components/dashboard/MetricsList";
-import { BreakdownCard } from "@/components/dashboard/BreakdownCard";
-import { GoalsCard } from "@/components/dashboard/GoalsCard";
-import { MentionsDialog } from "@/components/dashboard/MentionsDialog";
+import { WebsiteSelector } from "@/components/dashboard/analytics/WebsiteSelector";
+import { PeriodSelector } from "@/components/dashboard/analytics/PeriodSelector";
+import { GranularitySelector } from "@/components/dashboard/analytics/GranularitySelector";
+import { MetricsList } from "@/components/dashboard/analytics/MetricsList";
+import { BreakdownCard } from "@/components/dashboard/analytics/BreakdownCard";
+import { GoalsCard } from "@/components/dashboard/analytics/GoalsCard";
+import { MentionsDialog } from "@/components/dashboard/analytics/MentionsDialog";
 import { useWebsiteAnalytics } from "@/hooks/use-website-analytics";
 import { isValidObjectId } from "@/utils/validation";
 import { useRouter } from "next/navigation";

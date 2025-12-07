@@ -11,16 +11,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GeneralSettings } from "@/components/dashboard/GeneralSettings";
-import { RevenueSettings } from "@/components/dashboard/RevenueSettings";
-import { TeamSettings } from "@/components/dashboard/TeamSettings";
-import { SecuritySettings } from "@/components/dashboard/SecuritySettings";
-import { ExclusionsSettings } from "@/components/dashboard/ExclusionsSettings";
-import { APISettings } from "@/components/dashboard/APISettings";
-import { IntegrationsSettings } from "@/components/dashboard/IntegrationsSettings";
-import { ReportsSettings } from "@/components/dashboard/ReportsSettings";
-import { ImportSettings } from "@/components/dashboard/ImportSettings";
-import { WidgetsSettings } from "@/components/dashboard/WidgetsSettings";
+import { GeneralSettings } from "@/components/dashboard/settings/GeneralSettings";
+import { RevenueSettings } from "@/components/dashboard/settings/RevenueSettings";
+import { TeamSettings } from "@/components/dashboard/settings/TeamSettings";
+import { SecuritySettings } from "@/components/dashboard/settings/SecuritySettings";
+import { ExclusionsSettings } from "@/components/dashboard/settings/ExclusionsSettings";
+import { APISettings } from "@/components/dashboard/settings/APISettings";
+import { IntegrationsSettings } from "@/components/dashboard/settings/IntegrationsSettings";
+import { ReportsSettings } from "@/components/dashboard/settings/ReportsSettings";
+import { ImportSettings } from "@/components/dashboard/settings/ImportSettings";
+import { WidgetsSettings } from "@/components/dashboard/settings/WidgetsSettings";
 
 const SETTINGS_TABS = [
   { id: "general", label: "General", icon: "⚙️" },
