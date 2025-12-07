@@ -15,7 +15,10 @@ import { BreakdownCard } from "@/components/dashboard/analytics/BreakdownCard";
 import { GoalsCard } from "@/components/dashboard/analytics/GoalsCard";
 import { MentionsDialog } from "@/components/dashboard/analytics/MentionsDialog";
 import { Button } from "@/components/ui/button";
-import { useWebsiteAnalytics } from "@/hooks/use-website-analytics";
+import {
+  useWebsiteAnalytics,
+  type WebsiteSettings,
+} from "@/hooks/use-website-analytics";
 import { isValidObjectId } from "@/utils/validation";
 import { useRouter } from "next/navigation";
 
@@ -130,6 +133,9 @@ export default function WebsiteAnalyticsPage({
                     showRevenueOnChart={ui.showRevenueOnChart}
                     showMentionsOnChart={ui.showMentionsOnChart}
                     isConnected={isConnected}
+                    currency={
+                      (website?.settings as WebsiteSettings)?.currency || "USD"
+                    }
                     onShowRevenueChange={(checked) =>
                       dispatch(setShowRevenueOnChart(checked))
                     }
@@ -144,6 +150,10 @@ export default function WebsiteAnalyticsPage({
                       data={chartData}
                       showMentions={ui.showMentionsOnChart}
                       showRevenue={ui.showRevenueOnChart}
+                      currency={
+                        (website?.settings as WebsiteSettings)?.currency ||
+                        "USD"
+                      }
                       onMentionClick={(data) => {
                         setSelectedMentionData(data);
                         setMentionDialogOpen(true);
@@ -192,7 +202,6 @@ export default function WebsiteAnalyticsPage({
             chartType="bar"
           />
 
-          {/* Custom Event/Goal Card - Full Width */}
           <div className="md:col-span-2">
             <GoalsCard
               selectedTab={ui.selectedGoalTab}

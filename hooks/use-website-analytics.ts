@@ -14,9 +14,36 @@ import { fetchWebsiteById } from "@/store/slices/websitesSlice";
 import { fetchAnalytics } from "@/store/slices/analyticsSlice";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useRealtimeVisitors } from "@/hooks/use-realtime-visitors";
+import type { ChartDataPoint } from "@/components/chart";
 
 interface UseWebsiteAnalyticsProps {
   websiteId: string;
+}
+
+export interface WebsiteSettings {
+  currency?: string;
+  excludeIps?: string[];
+  excludeCountries?: string[];
+  excludeHostnames?: string[];
+  excludePaths?: string[];
+  hashPaths?: boolean;
+  trackScroll?: boolean;
+  trackUserIdentification?: boolean;
+  timezone?: string;
+  colorScheme?: string;
+  nickname?: string;
+  additionalDomains?: string[];
+  publicDashboard?: {
+    enabled: boolean;
+    shareId?: string;
+  };
+  attackMode?: {
+    enabled: boolean;
+    autoActivate: boolean;
+    threshold?: number;
+    activatedAt?: Date;
+  };
+  primaryGoalId?: string;
 }
 
 export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
@@ -29,7 +56,8 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     }
   );
   const [mentionDialogOpen, setMentionDialogOpen] = useState(false);
-  const [selectedMentionData, setSelectedMentionData] = useState<any>(null);
+  const [selectedMentionData, setSelectedMentionData] =
+    useState<ChartDataPoint | null>(null);
 
   const ui = useAppSelector((state) => state.ui) as {
     selectedPeriod: string;
@@ -48,6 +76,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     domain: string;
     name: string;
     iconUrl?: string;
+    settings?: WebsiteSettings;
   } | null;
 
   // Calculate the number of days for a period

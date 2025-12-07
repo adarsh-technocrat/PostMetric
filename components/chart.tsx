@@ -14,7 +14,13 @@ import {
 } from "recharts";
 import NumberFlow from "@number-flow/react";
 
-interface ChartDataPoint {
+export interface Mention {
+  text: string;
+  url?: string;
+  type: "profile" | "gear";
+}
+
+export interface ChartDataPoint {
   date: string;
   fullDate?: string;
   visitors: number;
@@ -24,11 +30,23 @@ interface ChartDataPoint {
   revenuePerVisitor?: number;
   conversionRate?: number;
   hasMention?: boolean;
-  mentions?: Array<{
-    text: string;
-    url?: string;
-    type: "profile" | "gear";
+  mentions?: Mention[];
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: ChartDataPoint;
+    value?: number;
+    name?: string;
   }>;
+}
+
+interface DotProps {
+  cx?: number;
+  cy?: number;
+  payload?: ChartDataPoint;
+  value?: number;
 }
 
 interface ChartProps {
@@ -36,6 +54,7 @@ interface ChartProps {
   avatarUrls?: string[];
   showMentions?: boolean;
   showRevenue?: boolean;
+  currency?: string;
   onMentionClick?: (data: ChartDataPoint) => void;
   height?: string;
 }
@@ -45,6 +64,7 @@ export function Chart({
   avatarUrls = [],
   showMentions = true,
   showRevenue = true,
+  currency = "USD",
   onMentionClick,
   height = "h-72 md:h-96",
 }: ChartProps) {
@@ -57,7 +77,7 @@ export function Chart({
     }
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length > 0) {
       const data = payload[0].payload as ChartDataPoint;
       return (
@@ -83,9 +103,11 @@ export function Chart({
                 <span className="font-semibold text-textPrimary">
                   <NumberFlow
                     value={data.revenue}
+                    locales="en-US"
                     format={{
                       style: "currency",
-                      currency: "USD",
+                      currency: currency,
+                      currencyDisplay: "symbol",
                       notation: "standard",
                     }}
                   />
@@ -112,9 +134,11 @@ export function Chart({
                   <span className="font-medium text-textPrimary">
                     <NumberFlow
                       value={data.revenueRefund}
+                      locales="en-US"
                       format={{
                         style: "currency",
-                        currency: "USD",
+                        currency: currency,
+                        currencyDisplay: "symbol",
                         notation: "standard",
                       }}
                     />
@@ -134,9 +158,11 @@ export function Chart({
                 <span className="font-medium text-textPrimary">
                   <NumberFlow
                     value={data.revenueNew || data.revenue}
+                    locales="en-US"
                     format={{
                       style: "currency",
-                      currency: "USD",
+                      currency: currency,
+                      currencyDisplay: "symbol",
                       notation: "standard",
                     }}
                   />
@@ -149,9 +175,11 @@ export function Chart({
                 <span className="font-semibold text-textPrimary">
                   <NumberFlow
                     value={data.revenuePerVisitor}
+                    locales="en-US"
                     format={{
                       style: "currency",
-                      currency: "USD",
+                      currency: currency,
+                      currencyDisplay: "symbol",
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     }}
@@ -176,7 +204,7 @@ export function Chart({
             )}
             {data.mentions && data.mentions.length > 0 && (
               <div className="border-t border-gray-100 pt-2 mt-2 space-y-2">
-                {data.mentions.map((mention: any, idx: number) => (
+                {data.mentions.map((mention: Mention, idx: number) => (
                   <div
                     key={idx}
                     className="flex items-start gap-2 text-textSecondary text-xs"
@@ -302,8 +330,14 @@ export function Chart({
                 fontSize: "11px",
               }}
               tickFormatter={(value) => {
-                if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-                return `$${value}`;
+                const formatter = new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: currency,
+                  currencyDisplay: "symbol",
+                  notation: value >= 1000 ? "compact" : "standard",
+                  maximumFractionDigits: value >= 1000 ? 1 : 0,
+                });
+                return formatter.format(value);
               }}
               tickMargin={8}
               domain={[0, "dataMax"]}
@@ -335,14 +369,16 @@ export function Chart({
             stroke="#8dcdff"
             strokeWidth={2.5}
             strokeLinecap="round"
-            dot={(props: any) => {
+            dot={(props: DotProps) => {
               const { cx, cy, payload } = props;
               if (payload?.hasMention && cx && cy && showMentionsOnChart) {
                 const avatarIndex = data.findIndex(
                   (d) => d.date === payload.date
                 );
                 const profileMentions = payload.mentions
-                  ? payload.mentions.filter((m: any) => m.type === "profile")
+                  ? payload.mentions.filter(
+                      (m: Mention) => m.type === "profile"
+                    )
                   : [];
 
                 return (
@@ -361,7 +397,7 @@ export function Chart({
                     {profileMentions.length > 0
                       ? profileMentions
                           .slice(0, 3)
-                          .map((mention: any, idx: number) => {
+                          .map((mention: Mention, idx: number) => {
                             // Grouped overlapping avatars - offset each one slightly
                             const offsetX = idx * -6; // Overlap by 6px
                             const offsetY = 0;

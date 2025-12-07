@@ -22,6 +22,7 @@ interface MetricsListProps {
   showRevenueOnChart: boolean;
   showMentionsOnChart: boolean;
   isConnected: boolean;
+  currency?: string;
   onShowRevenueChange: (checked: boolean) => void;
   onShowMentionsChange: (checked: boolean) => void;
 }
@@ -37,6 +38,7 @@ export function MetricsList({
   showRevenueOnChart,
   showMentionsOnChart,
   isConnected,
+  currency = "USD",
   onShowRevenueChange,
   onShowMentionsChange,
 }: MetricsListProps) {
@@ -93,9 +95,11 @@ export function MetricsList({
             <div className="whitespace-nowrap text-xl font-bold md:text-[1.65rem] md:leading-9 text-textPrimary">
               <NumberFlow
                 value={parseFormattedNumber(revenue.value)}
+                locales="en-US"
                 format={{
                   style: "currency",
-                  currency: "USD",
+                  currency: currency,
+                  currencyDisplay: "symbol",
                   notation: "compact",
                   trailingZeroDisplay: "stripIfInteger",
                 }}
@@ -157,9 +161,11 @@ export function MetricsList({
               <div className="flex items-baseline gap-2">
                 <NumberFlow
                   value={parseFormattedNumber(revenuePerVisitor.value)}
+                  locales="en-US"
                   format={{
                     style: "currency",
-                    currency: "USD",
+                    currency: currency,
+                    currencyDisplay: "symbol",
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   }}
