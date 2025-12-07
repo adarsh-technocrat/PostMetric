@@ -38,11 +38,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const idToken = await firebaseUser.getIdToken();
+          const idToken = await firebaseUser.getIdToken(false);
           const isSecure = window.location.protocol === "https:";
-          document.cookie = `firebaseToken=${idToken}; path=/; max-age=${
-            30 * 24 * 60 * 60
-          }; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+          const cookieMaxAge = 30 * 24 * 60 * 60;
+          document.cookie = `firebaseToken=${idToken}; path=/; max-age=${cookieMaxAge}; SameSite=Lax${
+            isSecure ? "; Secure" : ""
+          }`;
+
+          const cachedUser = localStorage.getItem("firebaseUser");
+          if (cachedUser) {
+            try {
+              const parsedUser = JSON.parse(cachedUser);
+              if (parsedUser && parsedUser.email === firebaseUser.email) {
+                setUser(firebaseUser);
+              }
+            } catch (e) {
+              localStorage.removeItem("firebaseUser");
+            }
+          }
 
           const response = await fetch("/api/auth/firebase/verify", {
             method: "POST",
@@ -57,10 +70,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem("firebaseUser", JSON.stringify(data.user));
             setUser(firebaseUser);
           } else {
-            await firebaseSignOut(auth);
-            document.cookie = "firebaseToken=; path=/; max-age=0";
-            localStorage.removeItem("firebaseUser");
-            setUser(null);
+            if (response.status === 401) {
+              await firebaseSignOut(auth);
+              document.cookie = "firebaseToken=; path=/; max-age=0";
+              localStorage.removeItem("firebaseUser");
+              setUser(null);
+            } else if (cachedUser) {
+              try {
+                const parsedUser = JSON.parse(cachedUser);
+                if (parsedUser && parsedUser.email === firebaseUser.email) {
+                  setUser(firebaseUser);
+                } else {
+                  localStorage.removeItem("firebaseUser");
+                }
+              } catch (e) {
+                localStorage.removeItem("firebaseUser");
+              }
+            }
           }
         } catch (error) {
           console.error("Error verifying token:", error);
@@ -90,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Error refreshing token:", error);
         }
       }
-    }, 50 * 60 * 1000);
+    }, 55 * 60 * 1000);
 
     return () => {
       unsubscribe();
