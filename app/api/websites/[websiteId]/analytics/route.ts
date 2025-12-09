@@ -296,13 +296,41 @@ function processDataIntoBuckets(
   const customersMap = new Map<string, { customers: number; sales: number }>();
   const goalsMap = new Map<string, number>();
 
+  // Helper function to create a normalized key based on granularity
+  const createKey = (date: Date, granularity: Granularity): string => {
+    const d = new Date(date);
+    // Normalize to start of period based on granularity
+    switch (granularity) {
+      case "hourly":
+        d.setMinutes(0, 0, 0);
+        break;
+      case "daily":
+        d.setHours(0, 0, 0, 0);
+        break;
+      case "weekly":
+        d.setHours(0, 0, 0, 0);
+        const day = d.getDay();
+        d.setDate(d.getDate() - day);
+        break;
+      case "monthly":
+        d.setDate(1);
+        d.setHours(0, 0, 0, 0);
+        break;
+    }
+    return d.toISOString();
+  };
+
   visitors.forEach((item) => {
-    const key = item.date.toISOString();
+    // Ensure date is a Date object
+    const date = item.date instanceof Date ? item.date : new Date(item.date);
+    const key = createKey(date, granularity);
     visitorsMap.set(key, item.visitors);
   });
 
   revenue.forEach((item) => {
-    const key = item.date.toISOString();
+    // Ensure date is a Date object
+    const date = item.date instanceof Date ? item.date : new Date(item.date);
+    const key = createKey(date, granularity);
     revenueMap.set(key, {
       revenue: item.revenue,
       revenueNew: item.revenueNew,
@@ -311,7 +339,9 @@ function processDataIntoBuckets(
   });
 
   customersAndSales.forEach((item) => {
-    const key = item.date.toISOString();
+    // Ensure date is a Date object
+    const date = item.date instanceof Date ? item.date : new Date(item.date);
+    const key = createKey(date, granularity);
     customersMap.set(key, {
       customers: item.customers,
       sales: item.sales,
@@ -319,7 +349,9 @@ function processDataIntoBuckets(
   });
 
   goals.forEach((item) => {
-    const key = item.date.toISOString();
+    // Ensure date is a Date object
+    const date = item.date instanceof Date ? item.date : new Date(item.date);
+    const key = createKey(date, granularity);
     goalsMap.set(key, item.goalCount);
   });
 
@@ -336,12 +368,49 @@ function processDataIntoBuckets(
     goalCount: number | null;
   }> = [];
 
+  // Normalize start date to beginning of period based on granularity
   const current = new Date(startDate);
+  switch (granularity) {
+    case "hourly":
+      current.setMinutes(0, 0, 0);
+      break;
+    case "daily":
+      current.setHours(0, 0, 0, 0);
+      break;
+    case "weekly":
+      current.setHours(0, 0, 0, 0);
+      const startDay = current.getDay();
+      current.setDate(current.getDate() - startDay);
+      break;
+    case "monthly":
+      current.setDate(1);
+      current.setHours(0, 0, 0, 0);
+      break;
+  }
   const end = new Date(endDate);
 
   while (current <= end) {
     const bucketDate = new Date(current);
-    const key = bucketDate.toISOString();
+    // Normalize bucket date to start of period for key matching
+    const normalizedDate = new Date(bucketDate);
+    switch (granularity) {
+      case "hourly":
+        normalizedDate.setMinutes(0, 0, 0);
+        break;
+      case "daily":
+        normalizedDate.setHours(0, 0, 0, 0);
+        break;
+      case "weekly":
+        normalizedDate.setHours(0, 0, 0, 0);
+        const day = normalizedDate.getDay();
+        normalizedDate.setDate(normalizedDate.getDate() - day);
+        break;
+      case "monthly":
+        normalizedDate.setDate(1);
+        normalizedDate.setHours(0, 0, 0, 0);
+        break;
+    }
+    const key = normalizedDate.toISOString();
 
     // Get revenue data
     const revenueData = revenueMap.get(key);
@@ -356,12 +425,16 @@ function processDataIntoBuckets(
     const name = formatBucketName(bucketDate, granularity);
 
     // Format timestamp with timezone offset (+05:30 for IST)
-    // Create date at midnight in IST timezone
     const year = bucketDate.getFullYear();
     const month = String(bucketDate.getMonth() + 1).padStart(2, "0");
     const day = String(bucketDate.getDate()).padStart(2, "0");
-    // Format as: YYYY-MM-DDTHH:mm:ss+05:30 (IST offset)
-    const timestamp = `${year}-${month}-${day}T00:00:00+05:30`;
+    let timestamp: string;
+    if (granularity === "hourly") {
+      const hour = String(bucketDate.getHours()).padStart(2, "0");
+      timestamp = `${year}-${month}-${day}T${hour}:00:00+05:30`;
+    } else {
+      timestamp = `${year}-${month}-${day}T00:00:00+05:30`;
+    }
 
     buckets.push({
       name,

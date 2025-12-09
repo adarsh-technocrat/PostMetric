@@ -68,9 +68,7 @@ interface BreakdownData {
 }
 
 interface AnalyticsState {
-  // Chart data
   chartData: ChartDataPoint[];
-  // Metrics
   metrics: {
     visitors: string;
     revenue: string;
@@ -80,7 +78,6 @@ interface AnalyticsState {
     sessionTime: string;
     visitorsNow: string;
   } | null;
-  // Breakdowns
   breakdowns: {
     source: {
       channel: BreakdownData[];
@@ -103,14 +100,12 @@ interface AnalyticsState {
       device: BreakdownData[];
     };
   } | null;
-  // Loading and error states
   loading: boolean;
   error: string | null;
   lastFetched: string | null;
-  // Current filters
   currentWebsiteId: string | null;
-  currentStartDate: string | null; // ISO string for serialization
-  currentEndDate: string | null; // ISO string for serialization
+  currentStartDate: string | null;
+  currentEndDate: string | null;
   currentGranularity: "hourly" | "daily" | "weekly" | "monthly";
 }
 
@@ -155,13 +150,9 @@ const analyticsSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.lastFetched = new Date().toISOString();
-
-        // New API returns processedData array directly
         const processedData = action.payload.processedData || [];
 
-        // Convert processedData to chart format
         state.chartData = processedData.map((item: any) => {
-          const date = new Date(item.timestamp);
           return {
             date: item.name,
             fullDate: formatFullDate(item.timestamp),
