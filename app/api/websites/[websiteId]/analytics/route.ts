@@ -14,6 +14,7 @@ import {
 } from "@/utils/analytics/aggregations";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
+import { syncStripePayments } from "@/utils/integrations/stripe";
 
 export async function GET(
   request: NextRequest,
@@ -55,6 +56,41 @@ export async function GET(
       const dateRange = getDateRangeForPeriod(period);
       startDate = dateRange.startDate;
       endDate = dateRange.endDate;
+    }
+
+    // If period is "today" or "last24h", sync latest Stripe payments for today
+    // This ensures we have the most up-to-date revenue data when refreshing
+    const periodLower = period.toLowerCase();
+    const stripeApiKey = website.paymentProviders?.stripe?.apiKey;
+    const shouldSyncToday =
+      (periodLower === "today" ||
+        periodLower === "last24h" ||
+        periodLower === "last 24 hours") &&
+      stripeApiKey;
+
+    if (shouldSyncToday && stripeApiKey) {
+      // Sync today's Stripe payments before fetching analytics
+      // Use Promise.race with a timeout to avoid hanging if sync takes too long
+      try {
+        await Promise.race([
+          syncStripePayments(
+            websiteId,
+            stripeApiKey,
+            startDate, // Today's start
+            endDate // Today's end (current time)
+          ),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Sync timeout")), 10000)
+          ), // 10 second timeout
+        ]);
+      } catch (error: any) {
+        // Log error but continue with analytics fetch
+        // If sync fails or times out, we'll still show existing data
+        console.error(
+          "Error syncing Stripe payments on refresh:",
+          error.message
+        );
+      }
     }
 
     // Get all analytics data
