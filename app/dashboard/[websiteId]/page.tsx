@@ -6,7 +6,7 @@ import {
   setShowMentionsOnChart,
   setShowRevenueOnChart,
 } from "@/store/slices/uiSlice";
-import { Chart } from "@/components/chart";
+import { AnalyticsChart } from "@/components/chart";
 import { WebsiteSelector } from "@/components/dashboard/analytics/WebsiteSelector";
 import { PeriodSelector } from "@/components/dashboard/analytics/PeriodSelector";
 import { GranularitySelector } from "@/components/dashboard/analytics/GranularitySelector";
@@ -150,7 +150,7 @@ export default function WebsiteAnalyticsPage({
 
                   {/* Chart */}
                   <div className="px-4 pb-4">
-                    <Chart
+                    <AnalyticsChart
                       data={chartData}
                       showMentions={ui.showMentionsOnChart}
                       showRevenue={ui.showRevenueOnChart}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
   Area,
   Line,
@@ -49,7 +49,7 @@ interface DotProps {
   value?: number;
 }
 
-interface ChartProps {
+interface AnalyticsChartProps {
   data: ChartDataPoint[];
   avatarUrls?: string[];
   showMentions?: boolean;
@@ -59,7 +59,7 @@ interface ChartProps {
   height?: string;
 }
 
-export function Chart({
+function AnalyticsChartComponent({
   data,
   avatarUrls = [],
   showMentions = true,
@@ -67,7 +67,7 @@ export function Chart({
   currency = "USD",
   onMentionClick,
   height = "h-72 md:h-96",
-}: ChartProps) {
+}: AnalyticsChartProps) {
   const [showMentionsOnChart, setShowMentionsOnChart] = useState(showMentions);
 
   const handleMentionClick = (payload: ChartDataPoint, e: React.MouseEvent) => {
@@ -329,7 +329,7 @@ export function Chart({
         <ComposedChart
           data={data}
           margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-          barCategoryGap="0%"
+          barCategoryGap="10%"
         >
           <defs>
             <linearGradient id="visitorGradient" x1="0" y1="0" x2="0" y2="1">
@@ -358,8 +358,9 @@ export function Chart({
             style={{
               fontSize: "11px",
             }}
-            interval="preserveStartEnd"
+            interval={2}
             tickMargin={8}
+            minTickGap={50}
           />
           <YAxis
             yAxisId="left"
@@ -577,3 +578,5 @@ export function Chart({
     </div>
   );
 }
+
+export const AnalyticsChart = memo(AnalyticsChartComponent);
