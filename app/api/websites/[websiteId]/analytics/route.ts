@@ -667,22 +667,40 @@ function processDataIntoBuckets(
     const endYear = isToday ? nowTZ.year : endTZ.year;
     const endMonth = isToday ? nowTZ.month : endTZ.month;
     const endDay = isToday ? nowTZ.day : endTZ.day;
-    const endHour = endTZ.hour;
+    // For "today" with hourly granularity, show all 24 hours (0-23)
+    const endHour =
+      granularity === "hourly" && isToday
+        ? 23
+        : isToday
+        ? nowTZ.hour
+        : endTZ.hour;
 
-    const bucketEndTZ = getTimezoneComponents(bucketDateUTC, timezone);
-    if (
-      bucketEndTZ.year > endYear ||
-      (bucketEndTZ.year === endYear && bucketEndTZ.month > endMonth) ||
-      (bucketEndTZ.year === endYear &&
-        bucketEndTZ.month === endMonth &&
-        bucketEndTZ.day > endDay) ||
-      (granularity === "hourly" &&
-        bucketEndTZ.year === endYear &&
-        bucketEndTZ.month === endMonth &&
-        bucketEndTZ.day === endDay &&
-        bucketEndTZ.hour > endHour)
-    ) {
-      break;
+    // For hourly granularity, compare directly with currentHour to avoid timezone conversion issues
+    if (granularity === "hourly") {
+      if (
+        currentYear > endYear ||
+        (currentYear === endYear && currentMonth > endMonth) ||
+        (currentYear === endYear &&
+          currentMonth === endMonth &&
+          currentDay > endDay) ||
+        (currentYear === endYear &&
+          currentMonth === endMonth &&
+          currentDay === endDay &&
+          currentHour > endHour)
+      ) {
+        break;
+      }
+    } else {
+      const bucketEndTZ = getTimezoneComponents(bucketDateUTC, timezone);
+      if (
+        bucketEndTZ.year > endYear ||
+        (bucketEndTZ.year === endYear && bucketEndTZ.month > endMonth) ||
+        (bucketEndTZ.year === endYear &&
+          bucketEndTZ.month === endMonth &&
+          bucketEndTZ.day > endDay)
+      ) {
+        break;
+      }
     }
 
     const key = createKey(bucketDateUTC, granularity, timezone);
