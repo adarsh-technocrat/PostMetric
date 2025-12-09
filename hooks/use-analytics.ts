@@ -111,18 +111,20 @@ export function useAnalytics(
   useEffect(() => {
     if (!websiteId || options?.disableAutoFetch) return;
 
-    // Use custom date range if provided, otherwise use period-based range
-    const { startDate, endDate } = options?.customDateRange
-      ? options.customDateRange
-      : getDateRange(selectedPeriod);
     const granularity = getGranularity(selectedGranularity);
+    const customDateRange = options?.customDateRange
+      ? {
+          from: options.customDateRange.startDate,
+          to: options.customDateRange.endDate,
+        }
+      : undefined;
 
     dispatch(
       fetchAnalytics({
         websiteId,
-        startDate,
-        endDate,
+        period: selectedPeriod,
         granularity,
+        customDateRange,
       })
     );
   }, [
@@ -138,16 +140,19 @@ export function useAnalytics(
     ...analytics,
     refetch: () => {
       if (!websiteId) return;
-      const { startDate, endDate } = options?.customDateRange
-        ? options.customDateRange
-        : getDateRange(selectedPeriod);
       const granularity = getGranularity(selectedGranularity);
+      const customDateRange = options?.customDateRange
+        ? {
+            from: options.customDateRange.startDate,
+            to: options.customDateRange.endDate,
+          }
+        : undefined;
       dispatch(
         fetchAnalytics({
           websiteId,
-          startDate,
-          endDate,
+          period: selectedPeriod,
           granularity,
+          customDateRange,
         })
       );
     },

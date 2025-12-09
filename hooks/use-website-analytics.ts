@@ -312,19 +312,39 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
   useEffect(() => {
     if (!websiteId) return;
 
-    const { startDate, endDate } = currentDateRange;
     const granularity = ui.selectedGranularity.toLowerCase() as
       | "hourly"
       | "daily"
       | "weekly"
       | "monthly";
 
+    // If we have a custom date range (from offset or custom selection), use it
+    // Otherwise, use the period directly
+    let apiCustomDateRange: { from: Date; to: Date } | undefined;
+    let period = ui.selectedPeriod;
+
+    if (
+      ui.selectedPeriod === "Custom" &&
+      customDateRange?.from &&
+      customDateRange?.to
+    ) {
+      // Custom date range is already set
+      apiCustomDateRange = {
+        from: customDateRange.from,
+        to: customDateRange.to,
+      };
+    } else if (periodOffset !== 0) {
+      // Use offset to calculate custom date range
+      const { startDate, endDate } = currentDateRange;
+      apiCustomDateRange = { from: startDate, to: endDate };
+    }
+
     dispatch(
       fetchAnalytics({
         websiteId,
-        startDate,
-        endDate,
+        period,
         granularity,
+        customDateRange: apiCustomDateRange,
       })
     );
   }, [
@@ -333,6 +353,8 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     dispatch,
     currentDateRange,
     ui.selectedGranularity,
+    ui.selectedPeriod,
+    customDateRange,
   ]);
 
   // Auto-adjust granularity if current selection is not available

@@ -1,26 +1,31 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-// API service function
 export const fetchAnalytics = createAsyncThunk(
   "analytics/fetchAnalytics",
   async (
     {
       websiteId,
-      startDate,
-      endDate,
+      period,
       granularity = "daily",
+      customDateRange,
     }: {
       websiteId: string;
-      startDate: Date;
-      endDate: Date;
+      period: string;
       granularity?: "hourly" | "daily" | "weekly" | "monthly";
+      customDateRange?: { from: Date; to: Date };
     },
     { rejectWithValue }
   ) => {
     try {
+      let apiPeriod = period;
+      if (period === "Custom" && customDateRange?.from && customDateRange?.to) {
+        const fromStr = customDateRange.from.toISOString().split("T")[0];
+        const toStr = customDateRange.to.toISOString().split("T")[0];
+        apiPeriod = `custom:${fromStr}:${toStr}`;
+      }
+
       const params = new URLSearchParams({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        period: apiPeriod,
         granularity,
       });
 
@@ -33,7 +38,7 @@ export const fetchAnalytics = createAsyncThunk(
       }
 
       const data = await response.json();
-      return data;
+      return { ...data, period, granularity };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -151,79 +156,54 @@ const analyticsSlice = createSlice({
         state.error = null;
         state.lastFetched = new Date().toISOString();
 
-        // Merge visitors and revenue data into chart format
-        const visitors = action.payload.visitors || [];
-        const revenue = action.payload.revenue || [];
+        // New API returns processedData array directly
+        const processedData = action.payload.processedData || [];
 
-        // Create a map of dates for efficient lookup
-        const dateMap = new Map<string, ChartDataPoint>();
-
-        // Process visitors data
-        visitors.forEach((item: any) => {
-          const date = item.date || item._id;
-          if (!dateMap.has(date)) {
-            dateMap.set(date, {
-              date: formatDate(date),
-              fullDate: formatFullDate(date),
-              visitors: item.count || 0,
-              revenue: 0,
-              revenueNew: 0,
-              revenueRefund: 0,
-            });
-          } else {
-            const existing = dateMap.get(date)!;
-            existing.visitors = item.count || 0;
-          }
-        });
-
-        revenue.forEach((item: any) => {
-          const date = item.date || item._id;
-          const revenueDollars = (item.revenue || 0) / 100;
-          const revenueNewDollars =
-            (item.revenueNew || item.revenue || 0) / 100;
-          const revenueRefundDollars = (item.revenueRefund || 0) / 100;
-
-          if (!dateMap.has(date)) {
-            dateMap.set(date, {
-              date: formatDate(date),
-              fullDate: formatFullDate(date),
-              visitors: 0,
-              revenue: revenueDollars,
-              revenueNew: revenueNewDollars,
-              revenueRefund: revenueRefundDollars,
-            });
-          } else {
-            const existing = dateMap.get(date)!;
-            existing.revenue = revenueDollars;
-            existing.revenueNew = revenueNewDollars;
-            existing.revenueRefund = revenueRefundDollars;
-          }
-        });
-
-        // Convert map to array and sort by date
-        state.chartData = Array.from(dateMap.values())
-          .map((point) => ({
-            ...point,
+        // Convert processedData to chart format
+        state.chartData = processedData.map((item: any) => {
+          const date = new Date(item.timestamp);
+          return {
+            date: item.name,
+            fullDate: formatFullDate(item.timestamp),
+            visitors: item.visitors ?? 0,
+            revenue: (item.revenue ?? 0) + (item.renewalRevenue ?? 0), // Total revenue
+            revenueNew: item.revenue ?? 0,
+            revenueRefund: item.refundedRevenue ?? 0,
             revenuePerVisitor:
-              point.visitors > 0 ? point.revenue / point.visitors : 0,
+              (item.visitors ?? 0) > 0
+                ? ((item.revenue ?? 0) + (item.renewalRevenue ?? 0)) /
+                  (item.visitors ?? 1)
+                : 0,
             conversionRate: 0, // Will be calculated if needed
-          }))
-          .sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateA.getTime() - dateB.getTime();
-          });
+          };
+        });
 
-        // Store metrics
-        state.metrics = action.payload.metrics || null;
+        // Store metrics from totals
+        state.metrics = {
+          visitors: formatNumber(action.payload.totalVisitors || 0),
+          revenue: formatCurrency((action.payload.totalRevenue || 0) * 100), // Convert to cents
+          conversionRate: action.payload.conversionRate
+            ? `${action.payload.conversionRate.toFixed(2)}%`
+            : "0%",
+          revenuePerVisitor: action.payload.revenuePerVisitor
+            ? formatCurrency((action.payload.revenuePerVisitor || 0) * 100)
+            : "$0.00",
+          bounceRate: action.payload.bounceRate
+            ? `${action.payload.bounceRate.toFixed(0)}%`
+            : "0%",
+          sessionTime: action.payload.sessionDuration
+            ? formatDuration(action.payload.sessionDuration)
+            : "0m 0s",
+          visitorsNow: "0", // TODO: Get from real-time if available
+        };
 
-        // Store breakdowns
-        state.breakdowns = action.payload.breakdowns || null;
+        // Store breakdowns (not in new API response, set to null for now)
+        state.breakdowns = null;
 
-        // Store current filters (convert Date objects to ISO strings for serialization)
+        // Store current filters
         state.currentWebsiteId = action.meta.arg.websiteId;
-        state.currentStartDate = action.meta.arg.startDate.toISOString();
-        state.currentEndDate = action.meta.arg.endDate.toISOString();
+        state.currentStartDate = null; // Period-based, no specific dates
+        state.currentEndDate = null;
         state.currentGranularity = action.meta.arg.granularity || "daily";
       })
       .addCase(fetchAnalytics.rejected, (state, action) => {
@@ -233,14 +213,6 @@ const analyticsSlice = createSlice({
   },
 });
 
-// Helper functions
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const day = date.getDate();
-  const month = date.toLocaleString("default", { month: "short" });
-  return `${day} ${month}`;
-}
-
 function formatFullDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", {
@@ -249,6 +221,33 @@ function formatFullDate(dateStr: string): string {
     month: "long",
     day: "numeric",
   });
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + "M";
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + "k";
+  }
+  return num.toString();
+}
+
+function formatCurrency(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1000000) {
+    return "$" + (dollars / 1000000).toFixed(1) + "M";
+  }
+  if (dollars >= 1000) {
+    return "$" + (dollars / 1000).toFixed(1) + "k";
+  }
+  return "$" + dollars.toFixed(2);
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}m ${secs}s`;
 }
 
 export const { clearAnalytics, setGranularity } = analyticsSlice.actions;
