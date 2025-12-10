@@ -12,9 +12,13 @@ import {
   ResponsiveContainer,
   ComposedChart,
   ReferenceLine,
+  BarProps,
 } from "recharts";
 import NumberFlow from "@number-flow/react";
-import { getCurrentTimeIndex } from "@/utils/analytics/chart";
+import {
+  getCurrentTimeIndex,
+  formatDateDisplay,
+} from "@/utils/analytics/chart";
 import { NotesIcon } from "@/components/icons";
 
 export interface Mention {
@@ -26,9 +30,11 @@ export interface Mention {
 export interface ChartDataPoint {
   date: string;
   fullDate?: string;
+  timestamp?: string;
   visitors: number;
   revenue: number;
   revenueNew?: number;
+  revenueRenewal?: number;
   revenueRefund?: number;
   revenuePerVisitor?: number;
   conversionRate?: number;
@@ -68,6 +74,70 @@ interface ChartDotProps extends DotProps {
 
 interface ActiveDotProps extends DotProps {
   onClick?: (data: ChartDataPoint) => void;
+}
+
+// Custom bar shape for solid bars (New revenue, Renewal)
+function SolidBarShape(props: any) {
+  const { x, y, width, height, fill } = props;
+  if (!x || !y || !width || !height) return <g />;
+
+  const radius = 4;
+  const isPositive = height > 0;
+
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      fill={fill}
+      rx={isPositive ? radius : 0}
+      ry={isPositive ? radius : 0}
+      style={{ opacity: 0.8 }}
+    />
+  );
+}
+
+// Custom bar shape for dashed bars (Refunds)
+function DashedBarShape(props: any) {
+  const { x, y, width, height, fill } = props;
+  if (!x || !y || !width || !height) return <g />;
+
+  const radius = 4;
+  const isPositive = height > 0;
+  const borderWidth = 1.5;
+  const fillOpacity = 0.35;
+  const borderOpacity = 0.8;
+
+  return (
+    <g>
+      {/* Background fill with opacity */}
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        fillOpacity={fillOpacity}
+        rx={isPositive ? radius : 0}
+        ry={isPositive ? radius : 0}
+      />
+      {/* Dashed border */}
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="none"
+        stroke={fill}
+        strokeWidth={borderWidth}
+        strokeDasharray="4 2"
+        strokeOpacity={borderOpacity}
+        rx={isPositive ? radius : 0}
+        ry={isPositive ? radius : 0}
+      />
+    </g>
+  );
 }
 
 interface AnalyticsChartProps {
@@ -175,17 +245,52 @@ function AnalyticsChartComponent({
     };
   });
 
+  // Debug logs
+  console.log("[AnalyticsChart] showRevenue:", showRevenue);
+  console.log("[AnalyticsChart] Data sample:", forecastData.slice(0, 3));
+  console.log("[AnalyticsChart] Revenue data check:", {
+    hasRevenueNew: forecastData.some((d) => d.revenueNew && d.revenueNew > 0),
+    hasRevenueRenewal: forecastData.some(
+      (d) => d.revenueRenewal && d.revenueRenewal > 0
+    ),
+    hasRevenueRefund: forecastData.some(
+      (d) => d.revenueRefund && d.revenueRefund > 0
+    ),
+    revenueNewValues: forecastData
+      .map((d) => d.revenueNew)
+      .filter((v) => v && v > 0)
+      .slice(0, 5),
+    revenueRenewalValues: forecastData
+      .map((d) => d.revenueRenewal)
+      .filter((v) => v && v > 0)
+      .slice(0, 5),
+    revenueRefundValues: forecastData
+      .map((d) => d.revenueRefund)
+      .filter((v) => v && v > 0)
+      .slice(0, 5),
+  });
+
   const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length > 0) {
       const data = payload[0].payload as ChartDataPoint;
+
       return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[280px] max-w-[320px]">
           <div className="text-sm font-semibold text-textPrimary mb-3">
-            {data.fullDate || data.date}
+            {formatDateDisplay(data)}
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-textSecondary">Visitors</span>
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-3 h-3 rounded-sm"
+                  style={{
+                    backgroundColor: "#8dcdff",
+                  }}
+                ></div>
+                <span className="text-textSecondary">Visitors</span>
+              </div>
+
               <span className="font-semibold text-textPrimary">
                 <NumberFlow
                   value={data.visitors}
@@ -211,7 +316,7 @@ function AnalyticsChartComponent({
                   />
                 </span>
               </div>
-              {data.revenueRefund && data.revenueRefund > 0 && (
+              {data.revenueRefund != undefined && data.revenueRefund > 0 && (
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1">
                     <div
@@ -232,6 +337,31 @@ function AnalyticsChartComponent({
                   <span className="font-medium text-textPrimary">
                     <NumberFlow
                       value={data.revenueRefund}
+                      locales="en-US"
+                      format={{
+                        style: "currency",
+                        currency: currency,
+                        currencyDisplay: "symbol",
+                        notation: "standard",
+                      }}
+                    />
+                  </span>
+                </div>
+              )}
+              {data.revenueRenewal != undefined && data.revenueRenewal > 0 && (
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{
+                        backgroundColor: "#B87333",
+                      }}
+                    ></div>
+                    <span className="text-textSecondary">Renewal</span>
+                  </div>
+                  <span className="font-medium text-textPrimary">
+                    <NumberFlow
+                      value={data.revenueRenewal}
                       locales="en-US"
                       format={{
                         style: "currency",
@@ -394,8 +524,8 @@ function AnalyticsChartComponent({
             style={{
               fontSize: "11px",
             }}
-            interval={2}
-            tickMargin={8}
+            interval={1}
+            tickMargin={10}
             minTickGap={50}
           />
           <YAxis
@@ -458,17 +588,37 @@ function AnalyticsChartComponent({
             fill="url(#visitorGradient)"
             fillOpacity={0.6}
           />
+
           {showRevenue && (
             <Bar
               yAxisId="right"
-              dataKey="revenue"
-              fill="#E16540"
-              radius={[4, 4, 0, 0]}
-              opacity={0.8}
+              dataKey="revenueRenewal"
+              fill="#B87333"
+              stackId={"stack"}
+              shape={SolidBarShape}
               maxBarSize={30}
             />
           )}
-
+          {showRevenue && (
+            <Bar
+              yAxisId="right"
+              dataKey="revenueNew"
+              fill="#E16540"
+              stackId={"stack"}
+              shape={SolidBarShape}
+              maxBarSize={30}
+            />
+          )}
+          {showRevenue && (
+            <Bar
+              yAxisId="right"
+              dataKey="revenueRefund"
+              fill="#E16540"
+              stackId={"stack"}
+              shape={DashedBarShape}
+              maxBarSize={30}
+            />
+          )}
           <Line
             yAxisId="left"
             type="monotone"

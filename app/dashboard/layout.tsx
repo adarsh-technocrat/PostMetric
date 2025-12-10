@@ -52,9 +52,9 @@ export default async function DashboardLayout({
         </span>
       </Link>
 
-      <header className="bg-background border-b border-gray-100">
+      <header className="bg-background">
         <nav
-          className="mx-auto flex max-w-6xl items-center justify-between px-4 pb-10 pt-4 md:px-8"
+          className="mx-auto flex max-w-6xl items-center justify-between px-4 pb-4 pt-4 md:px-8"
           aria-label="Global"
         >
           <Link

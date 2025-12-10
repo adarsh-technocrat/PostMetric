@@ -48,6 +48,7 @@ export const fetchAnalytics = createAsyncThunk(
 interface ChartDataPoint {
   date: string;
   fullDate?: string;
+  timestamp?: string;
   visitors: number;
   revenue: number;
   revenueNew?: number;
@@ -156,9 +157,11 @@ const analyticsSlice = createSlice({
           return {
             date: item.name,
             fullDate: formatFullDate(item.timestamp),
+            timestamp: item.timestamp,
             visitors: item.visitors ?? 0,
             revenue: (item.revenue ?? 0) + (item.renewalRevenue ?? 0), // Total revenue
             revenueNew: item.revenue ?? 0,
+            revenueRenewal: item.renewalRevenue ?? 0,
             revenueRefund: item.refundedRevenue ?? 0,
             revenuePerVisitor:
               (item.visitors ?? 0) > 0

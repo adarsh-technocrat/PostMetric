@@ -1,5 +1,38 @@
 interface ChartDataPoint {
   date: string;
+  fullDate?: string;
+  timestamp?: string;
+}
+
+/**
+ * Format date display for tooltip: "Today [time]" if today, otherwise use fullDate
+ * @param data - Chart data point with date information
+ * @returns Formatted date string
+ */
+export function formatDateDisplay(data: {
+  date: string;
+  fullDate?: string;
+  timestamp?: string;
+}): string {
+  if (!data.timestamp) {
+    return data.fullDate || data.date;
+  }
+
+  const dataDate = new Date(data.timestamp);
+  const today = new Date();
+  const isToday =
+    dataDate.getFullYear() === today.getFullYear() &&
+    dataDate.getMonth() === today.getMonth() &&
+    dataDate.getDate() === today.getDate();
+
+  if (isToday) {
+    const hour = dataDate.getHours();
+    const hour12 = hour % 12 || 12;
+    const ampm = hour < 12 ? "AM" : "PM";
+    return `Today ${hour12} ${ampm}`;
+  }
+
+  return data.fullDate || data.date;
 }
 
 /**
