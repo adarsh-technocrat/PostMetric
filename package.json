@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "docs:dev": "cd docs && mintlify dev",
-    "docs:check": "cd docs && mintlify broken-links"
+    "docs:check": "cd docs && mintlify broken-links",
+    "dev:sync": "tsx scripts/dev-sync.ts",
+    "dev:sync:process": "tsx scripts/dev-sync.ts --process-only",
+    "dev:sync:create": "tsx scripts/dev-sync.ts --create-only"
   },
   "dependencies": {
     "@number-flow/react": "^0.5.10",
@@ -81,6 +84,7 @@
     "eslint-config-next": "16.0.7",
     "mintlify": "^4.2.219",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   }
 }

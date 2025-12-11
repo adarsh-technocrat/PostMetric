@@ -68,6 +68,12 @@ export async function GET(
     // 1. Payment providers are configured
     // 2. No recent sync was done in the last 15 minutes
     // 3. The period being viewed is recent (today, last 24h, last 7d, or custom within last 7 days)
+    //
+    // Sync Strategy:
+    // - We sync wider date ranges than requested to ensure no payments are missed
+    // - This accounts for timezone differences, payment processing delays, and clock skew
+    // - Duplicate payments are automatically skipped by checking providerPaymentId
+    // - The sync runs in the background, so analytics return immediately with current data
     if (website.paymentProviders) {
       const isRecentPeriod =
         period.toLowerCase() === "today" ||
@@ -87,30 +93,35 @@ export async function GET(
         let syncRange: "today" | "last24h" | "last7d" | "custom";
 
         if (period.toLowerCase() === "today") {
-          syncStartDate = new Date(Date.now() - 2 * 60 * 60 * 1000); // Last 2 hours
+          // Sync last 48 hours to ensure we catch all of today's payments
+          // This accounts for timezone differences and payment processing delays
+          syncStartDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
           syncEndDate = new Date();
-          syncRange = "today";
+          syncRange = "last24h";
         } else if (
           period.toLowerCase() === "last24h" ||
           period.toLowerCase() === "last 24 hours"
         ) {
-          syncStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          // Sync last 24 hours + 2 hour buffer for processing delays
+          syncStartDate = new Date(Date.now() - 26 * 60 * 60 * 1000);
           syncEndDate = new Date();
           syncRange = "last24h";
         } else if (
           period.toLowerCase() === "last7d" ||
           period.toLowerCase() === "last 7 days"
         ) {
-          syncStartDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          // Sync last 7 days + 1 day buffer for timezone differences
+          syncStartDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
           syncEndDate = new Date();
           syncRange = "last7d";
         } else if (period.startsWith("custom:")) {
-          syncStartDate = startDate;
-          syncEndDate = endDate;
+          // For custom periods, sync the requested range + 24 hour buffer
+          syncStartDate = new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
+          syncEndDate = new Date(); // Always sync up to now
           syncRange = "custom";
         } else {
-          // For other periods, sync last 24 hours as a safe default
-          syncStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          // For other periods, sync last 48 hours as a safe default
+          syncStartDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
           syncEndDate = new Date();
           syncRange = "last24h";
         }

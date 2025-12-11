@@ -56,22 +56,24 @@ export async function POST(request: NextRequest) {
 
     switch (frequency) {
       case "hourly":
-        // Sync last 2 hours
-        startDate = new Date(endDate.getTime() - 2 * 60 * 60 * 1000);
+        // Sync last 24 hours with 2 hour buffer to catch any missed payments
+        // This ensures we don't miss payments due to timezone differences or delays
+        startDate = new Date(endDate.getTime() - 26 * 60 * 60 * 1000);
         syncRange = "last24h";
         break;
       case "every-6-hours":
-        // Sync last 24 hours
-        startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
+        // Sync last 48 hours to ensure comprehensive coverage
+        startDate = new Date(endDate.getTime() - 48 * 60 * 60 * 1000);
         syncRange = "last24h";
         break;
       case "daily":
-        // Sync last 7 days
-        startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // Sync last 7 days + 1 day buffer for timezone differences
+        startDate = new Date(endDate.getTime() - 8 * 24 * 60 * 60 * 1000);
         syncRange = "last7d";
         break;
       default:
-        startDate = new Date(endDate.getTime() - 2 * 60 * 60 * 1000);
+        // Default to 24 hours with buffer
+        startDate = new Date(endDate.getTime() - 26 * 60 * 60 * 1000);
         syncRange = "last24h";
     }
 
