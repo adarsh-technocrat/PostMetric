@@ -1,6 +1,9 @@
 import { enqueueSyncJob } from "./queue";
 import { getWebsiteById } from "@/utils/database/website";
 import type { SyncJobProvider, SyncRange } from "@/db/models/SyncJob";
+import connectDB from "@/db";
+import SyncJob from "@/db/models/SyncJob";
+import { Types } from "mongoose";
 
 /**
  * Register periodic sync jobs when a payment provider is added
@@ -47,15 +50,45 @@ export async function registerPaymentProviderSync(
       return; // Don't register if sync is disabled
     }
 
-    // Calculate date range based on frequency
-    const { startDate, endDate, syncRange } = getSyncDateRange(frequency);
+    // Check if this is the first sync (no completed sync jobs exist)
+    await connectDB();
+    const existingSync = await SyncJob.findOne({
+      websiteId: new Types.ObjectId(websiteId),
+      provider: "stripe",
+      status: "completed",
+    });
 
-    // Enqueue initial sync job
+    let startDate: Date;
+    let endDate: Date;
+    let syncRange: SyncRange;
+    let priority: number;
+
+    if (!existingSync) {
+      // First sync: Sync 2 years of historical data
+      // This ensures users get their complete payment history when they first add Stripe
+      endDate = new Date();
+      // Sync 3 years of historical data (can be adjusted to 2 years if needed)
+      startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+      syncRange = "custom";
+      priority = 90; // High priority for initial historical sync
+      console.log(
+        `First sync detected for website ${websiteId}, syncing 3 years of historical data`
+      );
+    } else {
+      // Regular periodic sync: Use frequency-based date range
+      const dateRange = getSyncDateRange(frequency);
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+      syncRange = dateRange.syncRange;
+      priority = 60; // Medium-high priority for periodic syncs
+    }
+
+    // Enqueue sync job
     await enqueueSyncJob({
       websiteId,
       provider,
       type: "periodic",
-      priority: 60, // Medium-high priority for periodic syncs
+      priority,
       startDate,
       endDate,
       syncRange,

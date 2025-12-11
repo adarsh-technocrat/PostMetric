@@ -4,18 +4,16 @@ import {
   getRevenueOverTime,
   getCustomersAndSalesOverTime,
   getGoalsOverTime,
-  getSourceBreakdown,
-  getPathBreakdown,
-  getLocationBreakdown,
-  getSystemBreakdown,
   getMetrics,
-  getVisitorsNow,
   type Granularity,
 } from "@/utils/analytics/aggregations";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
 import { enqueueSyncJob, hasRecentSync } from "@/utils/jobs/queue";
-import type { SyncJobProvider } from "@/db/models/SyncJob";
+import connectDB from "@/db";
+import PageView from "@/db/models/PageView";
+import Payment from "@/db/models/Payment";
+import { Types } from "mongoose";
 
 export async function GET(
   request: NextRequest,
@@ -57,9 +55,25 @@ export async function GET(
       startDate = new Date(startDateStr);
       endDate = new Date(endDateStr);
     } else {
-      const dateRange = getDateRangeForPeriod(period, timezone);
-      startDate = dateRange.startDate;
-      endDate = dateRange.endDate;
+      // For "All time", get the earliest data point from the database
+      if (
+        period.toLowerCase() === "all" ||
+        period.toLowerCase() === "all time"
+      ) {
+        const earliestDate = await getEarliestDataPoint(websiteId);
+        const dateRange = getDateRangeForPeriod(
+          period,
+          timezone,
+          website,
+          earliestDate
+        );
+        startDate = dateRange.startDate;
+        endDate = dateRange.endDate;
+      } else {
+        const dateRange = getDateRangeForPeriod(period, timezone, website);
+        startDate = dateRange.startDate;
+        endDate = dateRange.endDate;
+      }
     }
 
     // Smart sync: Trigger background sync on manual refresh if needed
@@ -155,7 +169,6 @@ export async function GET(
     // Analytics returns immediately from database
     // Sync jobs run in background and update data for next refresh
 
-    // Get all analytics data
     const [visitors, revenue, customersAndSales, goals, metrics] =
       await Promise.all([
         getVisitorsOverTime(websiteId, startDate, endDate, granularity),
@@ -170,7 +183,6 @@ export async function GET(
         getMetrics(websiteId, startDate, endDate),
       ]);
 
-    // Process data into time buckets
     const processedData = processDataIntoBuckets(
       visitors,
       revenue,
@@ -248,13 +260,57 @@ export async function GET(
 }
 
 /**
+ * Get the earliest data point (payment or pageview) for a website
+ */
+async function getEarliestDataPoint(websiteId: string): Promise<Date | null> {
+  await connectDB();
+  const websiteObjectId = new Types.ObjectId(websiteId);
+
+  // Get earliest payment
+  const earliestPayment = await Payment.findOne({
+    websiteId: websiteObjectId,
+  })
+    .sort({ timestamp: 1 })
+    .select("timestamp")
+    .lean();
+
+  // Get earliest pageview
+  const earliestPageView = await PageView.findOne({
+    websiteId: websiteObjectId,
+  })
+    .sort({ timestamp: 1 })
+    .select("timestamp")
+    .lean();
+
+  // Return the earliest of the two, or null if no data exists
+  const dates: Date[] = [];
+  if (earliestPayment?.timestamp) {
+    dates.push(new Date(earliestPayment.timestamp));
+  }
+  if (earliestPageView?.timestamp) {
+    dates.push(new Date(earliestPageView.timestamp));
+  }
+
+  if (dates.length === 0) {
+    return null;
+  }
+
+  const earliest = new Date(Math.min(...dates.map((d) => d.getTime())));
+  return earliest;
+}
+
+/**
  * Get date range based on period string
  * @param period - The period string (e.g., "today", "yesterday", etc.)
  * @param timezone - The timezone to use for date calculations (e.g., "Asia/Calcutta")
+ * @param website - Optional website object to use createdAt for "All time"
+ * @param earliestDataPoint - Optional earliest data point from database for "All time"
  */
 function getDateRangeForPeriod(
   period: string,
-  timezone: string = "UTC"
+  timezone: string = "UTC",
+  website?: { createdAt?: Date },
+  earliestDataPoint?: Date | null
 ): {
   startDate: Date;
   endDate: Date;
@@ -358,7 +414,28 @@ function getDateRangeForPeriod(
     case "all":
     case "all time":
       endDate = getEndOfDayInTimezone(now, timezone);
-      startDate = new Date(0); // Epoch start
+      // For "All time", show data from the earliest data point in the database
+      // This reflects the actual data available, not when the website was created
+      // (Users may have been running their business for years before using this platform)
+      const maxYearsBack = 5; // Limit to 5 years for performance
+      const maxDate = new Date(
+        now.getTime() - maxYearsBack * 365 * 24 * 60 * 60 * 1000
+      );
+
+      if (earliestDataPoint) {
+        // Use earliest data point from database, but limit to maxYearsBack
+        const earliest = new Date(earliestDataPoint);
+        startDate = earliest > maxDate ? earliest : maxDate;
+      } else {
+        // No data yet: Use maxYearsBack as fallback
+        startDate = maxDate;
+      }
+
+      // Ensure startDate is at the beginning of the month for monthly granularity
+      const startMonth = new Date(startDate);
+      startMonth.setDate(1);
+      startMonth.setHours(0, 0, 0, 0);
+      startDate = getStartOfDayInTimezone(startMonth, timezone);
       break;
     default:
       startDate = getStartOfDayInTimezone(now, timezone);
@@ -756,6 +833,13 @@ function processDataIntoBuckets(
           currentMonth === endMonth &&
           currentDay === endDay &&
           currentHour > endHour)
+      ) {
+        break;
+      }
+    } else if (granularity === "monthly") {
+      if (
+        currentYear > endYear ||
+        (currentYear === endYear && currentMonth > endMonth)
       ) {
         break;
       }

@@ -274,10 +274,13 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
       return ["Daily", "Weekly", "Monthly"];
     }
 
+    if (period === "All time") {
+      return ["Weekly", "Monthly"];
+    }
+
     if (
       period === "Last 12 months" ||
       period === "Year to date" ||
-      period === "All time" ||
       daysDiff > 90
     ) {
       return ["Weekly", "Monthly"];
@@ -312,6 +315,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
   useEffect(() => {
     if (!websiteId) return;
 
+    // Use the selected granularity (user can choose Weekly or Monthly for "All time")
     const granularity = ui.selectedGranularity.toLowerCase() as
       | "hourly"
       | "daily"
@@ -358,14 +362,21 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
   ]);
 
   // Auto-adjust granularity if current selection is not available
+  // This must run before the fetch effect to prevent duplicate calls
   useEffect(() => {
     if (
       availableGranularities.length > 0 &&
       !availableGranularities.includes(ui.selectedGranularity)
     ) {
+      // Use the first available granularity (for "All time" it will be "Weekly")
       dispatch(setSelectedGranularity(availableGranularities[0]));
     }
-  }, [availableGranularities, ui.selectedGranularity, dispatch]);
+  }, [
+    availableGranularities,
+    ui.selectedGranularity,
+    ui.selectedPeriod,
+    dispatch,
+  ]);
 
   // Period navigation handlers
   const handlePreviousPeriod = () => {
@@ -406,6 +417,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     if (period !== "Custom") {
       setCustomDateRange({ from: undefined, to: undefined });
     }
+    // Granularity will be auto-adjusted by the useEffect if needed
   };
 
   const canGoNext = periodOffset > 0;
