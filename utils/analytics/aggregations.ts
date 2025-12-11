@@ -104,11 +104,6 @@ export async function getRevenueOverTime(
             unit: unit,
           },
         },
-        revenue: {
-          $sum: {
-            $cond: [{ $eq: ["$refunded", false] }, "$amount", 0],
-          },
-        },
         revenueNew: {
           $sum: {
             $cond: [
@@ -116,6 +111,20 @@ export async function getRevenueOverTime(
                 $and: [
                   { $eq: ["$refunded", false] },
                   { $eq: ["$renewal", false] },
+                ],
+              },
+              "$amount",
+              0,
+            ],
+          },
+        },
+        renewalRevenue: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$refunded", false] },
+                  { $eq: ["$renewal", true] },
                 ],
               },
               "$amount",
@@ -133,8 +142,8 @@ export async function getRevenueOverTime(
     {
       $project: {
         date: "$_id",
-        revenue: 1,
         revenueNew: 1,
+        renewalRevenue: 1,
         revenueRefund: 1,
         _id: 0,
       },

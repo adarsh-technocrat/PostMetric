@@ -14,8 +14,10 @@ class StripePaymentSyncer {
   private websiteId: string;
   private websiteObjectId: Types.ObjectId;
   private stripe: Stripe;
+  private apiKey: string;
   private startDate: Date;
   private endDate: Date;
+  private readonly baseUrl = "https://api.stripe.com/v1/payment_intents";
 
   constructor(
     websiteId: string,
@@ -25,6 +27,7 @@ class StripePaymentSyncer {
   ) {
     this.websiteId = websiteId;
     this.websiteObjectId = new Types.ObjectId(websiteId);
+    this.apiKey = apiKey;
     this.stripe = new Stripe(apiKey, {
       apiVersion: "2025-11-17.clover",
     });
@@ -118,25 +121,44 @@ class StripePaymentSyncer {
     let startingAfter: string | undefined = undefined;
 
     while (hasMore) {
-      const params: Stripe.PaymentIntentListParams = {
-        limit: 100,
-        expand: ["data.invoice"],
-      };
+      const params = new URLSearchParams();
+      params.append("limit", "100");
+      params.append("expand[]", "data.invoice");
 
       if (startingAfter) {
-        params.starting_after = startingAfter;
+        params.append("starting_after", startingAfter);
       }
 
-      params.created = {};
-      params.created.gte = Math.floor(this.startDate.getTime() / 1000);
-      params.created.lte = Math.floor(this.endDate.getTime() / 1000);
+      params.append(
+        "created[gte]",
+        Math.floor(this.startDate.getTime() / 1000).toString()
+      );
+      params.append(
+        "created[lte]",
+        Math.floor(this.endDate.getTime() / 1000).toString()
+      );
 
-      const response = await this.stripe.paymentIntents.list(params);
+      const response = await fetch(`${this.baseUrl}?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${this.apiKey}:`).toString(
+            "base64"
+          )}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
 
-      paymentIntents.push(...response.data);
-      hasMore = response.has_more;
-      if (response.data.length > 0) {
-        startingAfter = response.data[response.data.length - 1].id;
+      if (!response.ok) {
+        throw new Error(
+          `Stripe API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      paymentIntents.push(...(data.data as Stripe.PaymentIntent[]));
+      hasMore = data.has_more;
+      if (data.data.length > 0) {
+        startingAfter = data.data[data.data.length - 1].id;
       }
     }
 
@@ -156,23 +178,48 @@ class StripePaymentSyncer {
       return "skipped";
     }
 
+    // When expand: ["data.invoice"] is used, invoice will be an object if expanded, or string/null if not
     const invoice = (paymentIntent as any).invoice as
       | Stripe.Invoice
       | string
       | null;
     let expandedInvoice: Stripe.Invoice | null = null;
 
-    if (invoice && typeof invoice === "string") {
-      try {
-        expandedInvoice = await this.stripe.invoices.retrieve(invoice);
-      } catch (error) {
-        console.warn(
-          `Could not retrieve invoice ${invoice} for payment intent ${paymentIntent.id}:`,
-          error
+    if (invoice) {
+      // Check if invoice is already expanded (object with id property)
+      if (typeof invoice === "object" && invoice !== null && "id" in invoice) {
+        expandedInvoice = invoice as Stripe.Invoice;
+        console.log(
+          `[DEBUG] Invoice expanded for payment intent ${
+            paymentIntent.id
+          }, billing_reason: ${expandedInvoice.billing_reason || "N/A"}`
         );
       }
-    } else if (invoice && typeof invoice === "object") {
-      expandedInvoice = invoice;
+      // If invoice is a string ID, retrieve the full invoice object
+      else if (typeof invoice === "string") {
+        console.log(
+          `[DEBUG] Invoice not expanded for payment intent ${paymentIntent.id}, retrieving invoice ${invoice}`
+        );
+        try {
+          expandedInvoice = await this.stripe.invoices.retrieve(invoice, {
+            expand: ["subscription"],
+          });
+          console.log(
+            `[DEBUG] Retrieved invoice ${invoice}, billing_reason: ${
+              expandedInvoice.billing_reason || "N/A"
+            }`
+          );
+        } catch (error) {
+          console.warn(
+            `Could not retrieve invoice ${invoice} for payment intent ${paymentIntent.id}:`,
+            error
+          );
+        }
+      }
+    } else {
+      console.log(
+        `[DEBUG] No invoice found for payment intent ${paymentIntent.id}`
+      );
     }
 
     let paymentType: "new" | "renewal" | "one-time" = "one-time";

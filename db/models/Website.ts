@@ -32,7 +32,16 @@ export interface IWebsite extends Document {
     primaryGoalId?: mongoose.Types.ObjectId; // #1 KPI goal
   };
   paymentProviders?: {
-    stripe?: { apiKey?: string; webhookSecret?: string };
+    stripe?: {
+      apiKey?: string;
+      webhookSecret?: string;
+      syncConfig?: {
+        enabled?: boolean;
+        frequency?: "hourly" | "every-6-hours" | "daily";
+        lastSyncAt?: Date;
+        nextSyncAt?: Date;
+      };
+    };
     lemonSqueezy?: { webhookSecret: string };
     polar?: { webhookSecret: string };
     paddle?: { webhookSecret: string };
@@ -155,6 +164,19 @@ const WebsiteSchema = new Schema<IWebsite>(
       stripe: {
         apiKey: String,
         webhookSecret: String,
+        syncConfig: {
+          enabled: {
+            type: Boolean,
+            default: true,
+          },
+          frequency: {
+            type: String,
+            enum: ["hourly", "every-6-hours", "daily"],
+            default: "hourly",
+          },
+          lastSyncAt: Date,
+          nextSyncAt: Date,
+        },
       },
       lemonSqueezy: {
         webhookSecret: String,

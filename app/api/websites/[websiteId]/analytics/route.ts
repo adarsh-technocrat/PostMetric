@@ -14,7 +14,6 @@ import {
 } from "@/utils/analytics/aggregations";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
-import { syncStripePayments } from "@/utils/integrations/stripe";
 
 export async function GET(
   request: NextRequest,
@@ -61,30 +60,8 @@ export async function GET(
       endDate = dateRange.endDate;
     }
 
-    // Sync Stripe payments for "today" or "last24h" periods
-    const periodLower = period.toLowerCase();
-    const stripeApiKey = website.paymentProviders?.stripe?.apiKey;
-    const shouldSyncToday =
-      (periodLower === "today" ||
-        periodLower === "last24h" ||
-        periodLower === "last 24 hours") &&
-      stripeApiKey;
-
-    if (shouldSyncToday && stripeApiKey) {
-      try {
-        await Promise.race([
-          syncStripePayments(websiteId, stripeApiKey, startDate, endDate),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Sync timeout")), 10000)
-          ),
-        ]);
-      } catch (error: any) {
-        console.error(
-          "Error syncing Stripe payments on refresh:",
-          error.message
-        );
-      }
-    }
+    // Note: Payment sync is now handled by background jobs
+    // No blocking sync here - analytics returns immediately from database
 
     // Get all analytics data
     const [visitors, revenue, customersAndSales, goals, metrics] =
@@ -468,8 +445,8 @@ function processDataIntoBuckets(
   visitors: Array<{ date: Date; visitors: number }>,
   revenue: Array<{
     date: Date;
-    revenue: number;
     revenueNew: number;
+    renewalRevenue: number;
     revenueRefund: number;
   }>,
   customersAndSales: Array<{ date: Date; customers: number; sales: number }>,
@@ -494,7 +471,7 @@ function processDataIntoBuckets(
   const visitorsMap = new Map<string, number>();
   const revenueMap = new Map<
     string,
-    { revenue: number; revenueNew: number; revenueRefund: number }
+    { revenueNew: number; renewalRevenue: number; revenueRefund: number }
   >();
   const customersMap = new Map<string, { customers: number; sales: number }>();
   const goalsMap = new Map<string, number>();
@@ -580,8 +557,8 @@ function processDataIntoBuckets(
     const date = item.date instanceof Date ? item.date : new Date(item.date);
     const key = createKey(date, granularity, timezone);
     revenueMap.set(key, {
-      revenue: item.revenue,
       revenueNew: item.revenueNew,
+      renewalRevenue: item.renewalRevenue,
       revenueRefund: item.revenueRefund,
     });
   });
@@ -707,9 +684,16 @@ function processDataIntoBuckets(
 
     // Get revenue data
     const revenueData = revenueMap.get(key);
+    // revenueNew: refunded: false, renewal: false
+    // renewalRevenue: refunded: false, renewal: true
+    // refundedRevenue: refunded: true, renewal: false
+    // All values are stored in cents, so divide by 100 to get dollars
     const newRevenue = revenueData ? revenueData.revenueNew / 100 : null;
     const renewalRevenue = revenueData
-      ? (revenueData.revenue - revenueData.revenueNew) / 100
+      ? revenueData.renewalRevenue / 100
+      : null;
+    const refundedRevenue = revenueData
+      ? revenueData.revenueRefund / 100
       : null;
 
     // Format name and timestamp in user's timezone
@@ -744,7 +728,7 @@ function processDataIntoBuckets(
       revenue: newRevenue,
       timestamp: timestamp,
       renewalRevenue: renewalRevenue,
-      refundedRevenue: revenueData ? revenueData.revenueRefund / 100 : null,
+      refundedRevenue: refundedRevenue,
       customers: customersMap.get(key)?.customers ?? null,
       sales: customersMap.get(key)?.sales ?? null,
       goalCount: goalsMap.get(key) ?? null,

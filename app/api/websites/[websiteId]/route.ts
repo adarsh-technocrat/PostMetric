@@ -8,7 +8,10 @@ import { getUserId } from "@/lib/get-session";
 import { isValidObjectId } from "@/utils/validation";
 import Stripe from "stripe";
 import { sanitizeWebsiteForFrontend } from "@/utils/database/website-sanitize";
-import { syncStripePayments } from "@/utils/integrations/stripe";
+import {
+  registerPaymentProviderSync,
+  unregisterPaymentProviderSync,
+} from "@/utils/jobs/register";
 
 export async function GET(
   request: NextRequest,
@@ -82,6 +85,11 @@ export async function PUT(
       paymentProviders?.stripe?.apiKey &&
       website.paymentProviders?.stripe?.apiKey !==
         paymentProviders.stripe.apiKey;
+
+    // Check if Stripe is being removed
+    const isStripeRemoved =
+      !paymentProviders?.stripe?.apiKey &&
+      website.paymentProviders?.stripe?.apiKey;
 
     if (paymentProviders?.stripe?.apiKey) {
       const apiKey = paymentProviders.stripe.apiKey.trim();
@@ -161,17 +169,22 @@ export async function PUT(
       paymentProviders,
     });
 
-    // Auto-sync Stripe payments in the background when a new key is added
-    if (isNewStripeKey && paymentProviders?.stripe?.apiKey) {
-      // Run sync in background (don't await - let it run async)
-      syncStripePayments(websiteId, paymentProviders.stripe.apiKey).catch(
-        (error) => {
-          console.error(
-            `Background Stripe sync failed for website ${websiteId}:`,
-            error
-          );
-          // Don't throw - this is a background operation
-        }
+    // Register/unregister background sync jobs when payment providers change
+    try {
+      // If Stripe is being removed, unregister sync jobs
+      if (isStripeRemoved) {
+        await unregisterPaymentProviderSync(websiteId, "stripe");
+      }
+
+      // If a new Stripe key is added, register periodic sync jobs
+      if (isNewStripeKey && paymentProviders?.stripe?.apiKey) {
+        await registerPaymentProviderSync(websiteId, "stripe");
+      }
+    } catch (error) {
+      // Log but don't fail the request - job registration is non-critical
+      console.error(
+        `Error registering/unregistering sync jobs for website ${websiteId}:`,
+        error
       );
     }
 
