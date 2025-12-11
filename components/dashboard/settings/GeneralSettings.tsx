@@ -202,7 +202,7 @@ export function GeneralSettings({
   };
 
   const trackingCode =
-    website?.trackingCode || websiteId || "dfid_" + websiteId?.slice(0, 20);
+    website?.trackingCode || websiteId || "pmid_" + websiteId?.slice(0, 20);
 
   return (
     <section className="space-y-4">
