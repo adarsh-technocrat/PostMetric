@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { type DateRange } from "react-day-picker";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -311,64 +311,212 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     }
   }, [websiteId, dispatch]);
 
-  // Fetch analytics when period offset changes
+  // Track what changed to prevent duplicate API calls
+  const lastPeriodRef = useRef(ui.selectedPeriod);
+  const lastGranularityRef = useRef(ui.selectedGranularity);
+  const isPeriodChangingRef = useRef(false);
+
+  // When period changes, set default granularity and fetch once
+  // This effect handles period/date range changes
   useEffect(() => {
     if (!websiteId) return;
 
-    // Use the selected granularity (user can choose Weekly or Monthly for "All time")
-    const granularity = ui.selectedGranularity.toLowerCase() as
-      | "hourly"
-      | "daily"
-      | "weekly"
-      | "monthly";
+    const periodChanged = lastPeriodRef.current !== ui.selectedPeriod;
 
-    // If we have a custom date range (from offset or custom selection), use it
-    // Otherwise, use the period directly
-    let apiCustomDateRange: { from: Date; to: Date } | undefined;
-    let period = ui.selectedPeriod;
+    // If period changed, set default granularity and fetch
+    if (periodChanged) {
+      isPeriodChangingRef.current = true;
 
-    if (
-      ui.selectedPeriod === "Custom" &&
-      customDateRange?.from &&
-      customDateRange?.to
-    ) {
-      // Custom date range is already set
-      apiCustomDateRange = {
-        from: customDateRange.from,
-        to: customDateRange.to,
-      };
-    } else if (periodOffset !== 0) {
-      // Use offset to calculate custom date range
-      const { startDate, endDate } = currentDateRange;
-      apiCustomDateRange = { from: startDate, to: endDate };
+      // Calculate default granularity inline (first available for this period)
+      // This avoids depending on availableGranularities which changes when period changes
+      const period = ui.selectedPeriod;
+      const daysDiff = currentDateRange
+        ? Math.ceil(
+            (currentDateRange.endDate.getTime() -
+              currentDateRange.startDate.getTime()) /
+              (1000 * 60 * 60 * 24)
+          )
+        : 0;
+
+      let defaultGranularity: "Hourly" | "Daily" | "Weekly" | "Monthly" =
+        "Daily";
+
+      if (
+        period === "Today" ||
+        period === "Yesterday" ||
+        period === "Last 24 hours"
+      ) {
+        defaultGranularity = "Hourly";
+      } else if (daysDiff <= 2) {
+        defaultGranularity = "Hourly";
+      } else if (
+        period === "Last 7 days" ||
+        period === "Week to date" ||
+        (daysDiff > 2 && daysDiff <= 7)
+      ) {
+        defaultGranularity = "Daily";
+      } else if (
+        period === "Last 30 days" ||
+        period === "Month to date" ||
+        (daysDiff > 7 && daysDiff <= 90)
+      ) {
+        defaultGranularity = "Daily";
+      } else if (period === "All time") {
+        defaultGranularity = "Weekly";
+      } else if (
+        period === "Last 12 months" ||
+        period === "Year to date" ||
+        daysDiff > 90
+      ) {
+        defaultGranularity = "Weekly";
+      }
+
+      // Check if current granularity is available using the same logic
+      const currentGranularityAvailable =
+        period === "Today" ||
+        period === "Yesterday" ||
+        period === "Last 24 hours"
+          ? ui.selectedGranularity === "Hourly"
+          : daysDiff <= 2
+          ? ui.selectedGranularity === "Hourly" ||
+            ui.selectedGranularity === "Daily"
+          : period === "Last 7 days" ||
+            period === "Week to date" ||
+            (daysDiff > 2 && daysDiff <= 7)
+          ? ui.selectedGranularity === "Daily" ||
+            ui.selectedGranularity === "Weekly"
+          : period === "Last 30 days" ||
+            period === "Month to date" ||
+            (daysDiff > 7 && daysDiff <= 90)
+          ? ui.selectedGranularity === "Daily" ||
+            ui.selectedGranularity === "Weekly" ||
+            ui.selectedGranularity === "Monthly"
+          : period === "All time"
+          ? ui.selectedGranularity === "Weekly" ||
+            ui.selectedGranularity === "Monthly"
+          : period === "Last 12 months" ||
+            period === "Year to date" ||
+            daysDiff > 90
+          ? ui.selectedGranularity === "Weekly" ||
+            ui.selectedGranularity === "Monthly"
+          : true; // Default: allow any granularity
+
+      // If current granularity is not available, set the default
+      if (!currentGranularityAvailable) {
+        dispatch(setSelectedGranularity(defaultGranularity));
+      }
+
+      // Use the effective granularity
+      const effectiveGranularity = currentGranularityAvailable
+        ? ui.selectedGranularity
+        : defaultGranularity;
+
+      const granularity = effectiveGranularity.toLowerCase() as
+        | "hourly"
+        | "daily"
+        | "weekly"
+        | "monthly";
+
+      // If we have a custom date range (from offset or custom selection), use it
+      // Otherwise, use the period directly
+      let apiCustomDateRange: { from: Date; to: Date } | undefined;
+      let periodForApi = ui.selectedPeriod;
+
+      if (
+        ui.selectedPeriod === "Custom" &&
+        customDateRange?.from &&
+        customDateRange?.to
+      ) {
+        // Custom date range is already set
+        apiCustomDateRange = {
+          from: customDateRange.from,
+          to: customDateRange.to,
+        };
+      } else if (periodOffset !== 0) {
+        // Use offset to calculate custom date range
+        const { startDate, endDate } = currentDateRange;
+        apiCustomDateRange = { from: startDate, to: endDate };
+      }
+
+      // Fetch analytics once with default granularity
+      dispatch(
+        fetchAnalytics({
+          websiteId,
+          period: periodForApi,
+          granularity,
+          customDateRange: apiCustomDateRange,
+        })
+      );
+
+      // Update refs
+      lastPeriodRef.current = ui.selectedPeriod;
+      lastGranularityRef.current = effectiveGranularity;
+      isPeriodChangingRef.current = false;
+      return;
     }
 
-    dispatch(
-      fetchAnalytics({
-        websiteId,
-        period,
-        granularity,
-        customDateRange: apiCustomDateRange,
-      })
-    );
+    // If only date range changed (offset or custom), fetch with current granularity
+    const dateRangeChanged =
+      periodOffset !== 0 ||
+      (ui.selectedPeriod === "Custom" &&
+        customDateRange?.from &&
+        customDateRange?.to);
+
+    if (dateRangeChanged && !periodChanged) {
+      const granularity = ui.selectedGranularity.toLowerCase() as
+        | "hourly"
+        | "daily"
+        | "weekly"
+        | "monthly";
+
+      let apiCustomDateRange: { from: Date; to: Date } | undefined;
+      let periodForApi = ui.selectedPeriod;
+
+      if (
+        ui.selectedPeriod === "Custom" &&
+        customDateRange?.from &&
+        customDateRange?.to
+      ) {
+        apiCustomDateRange = {
+          from: customDateRange.from,
+          to: customDateRange.to,
+        };
+      } else if (periodOffset !== 0) {
+        const { startDate, endDate } = currentDateRange;
+        apiCustomDateRange = { from: startDate, to: endDate };
+      }
+
+      dispatch(
+        fetchAnalytics({
+          websiteId,
+          period: periodForApi,
+          granularity,
+          customDateRange: apiCustomDateRange,
+        })
+      );
+    }
   }, [
     websiteId,
     periodOffset,
     dispatch,
     currentDateRange,
-    ui.selectedGranularity,
     ui.selectedPeriod,
     customDateRange,
+    // Note: availableGranularities removed from deps to prevent double calls
+    // We calculate default granularity inline instead
   ]);
 
-  // Auto-adjust granularity if current selection is not available
-  // This must run before the fetch effect to prevent duplicate calls
+  // Auto-adjust granularity if current selection is not available (when period hasn't changed)
+  // This only updates the UI, doesn't trigger fetch
   useEffect(() => {
+    // Skip if period is changing (handled in the effect above)
+    if (isPeriodChangingRef.current) return;
+
     if (
       availableGranularities.length > 0 &&
       !availableGranularities.includes(ui.selectedGranularity)
     ) {
-      // Use the first available granularity (for "All time" it will be "Weekly")
+      // Use the first available granularity
       dispatch(setSelectedGranularity(availableGranularities[0]));
     }
   }, [
@@ -376,6 +524,74 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     ui.selectedGranularity,
     ui.selectedPeriod,
     dispatch,
+  ]);
+
+  // Fetch analytics when user explicitly changes granularity (period hasn't changed)
+  useEffect(() => {
+    if (!websiteId) return;
+
+    // Skip if period is changing (handled in the effect above)
+    if (isPeriodChangingRef.current) {
+      return;
+    }
+
+    // Skip if period changed (that's handled by the period change effect)
+    // This check ensures we don't fetch when period change triggers granularity change
+    if (lastPeriodRef.current !== ui.selectedPeriod) {
+      return;
+    }
+
+    const granularityChanged =
+      lastGranularityRef.current !== ui.selectedGranularity;
+
+    // Only fetch if granularity changed (user-initiated) and it's valid
+    if (
+      granularityChanged &&
+      availableGranularities.includes(ui.selectedGranularity)
+    ) {
+      const granularity = ui.selectedGranularity.toLowerCase() as
+        | "hourly"
+        | "daily"
+        | "weekly"
+        | "monthly";
+
+      let apiCustomDateRange: { from: Date; to: Date } | undefined;
+      let period = ui.selectedPeriod;
+
+      if (
+        ui.selectedPeriod === "Custom" &&
+        customDateRange?.from &&
+        customDateRange?.to
+      ) {
+        apiCustomDateRange = {
+          from: customDateRange.from,
+          to: customDateRange.to,
+        };
+      } else if (periodOffset !== 0) {
+        const { startDate, endDate } = currentDateRange;
+        apiCustomDateRange = { from: startDate, to: endDate };
+      }
+
+      dispatch(
+        fetchAnalytics({
+          websiteId,
+          period,
+          granularity,
+          customDateRange: apiCustomDateRange,
+        })
+      );
+
+      lastGranularityRef.current = ui.selectedGranularity;
+    }
+  }, [
+    websiteId,
+    periodOffset,
+    dispatch,
+    currentDateRange,
+    ui.selectedPeriod,
+    customDateRange,
+    availableGranularities,
+    ui.selectedGranularity,
   ]);
 
   // Period navigation handlers
