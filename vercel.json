@@ -1,21 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/sync-payments?frequency=hourly",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/sync-payments?frequency=every-6-hours",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/sync-payments?frequency=daily",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/jobs/process",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "crons": []
 }
 
