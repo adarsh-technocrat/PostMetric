@@ -18,12 +18,30 @@ import {
 } from "@/utils/tracking/geolocation";
 import { parseUTMParams, extractReferrerDomain } from "@/utils/tracking/utm";
 import { shouldExcludeVisit } from "@/utils/tracking/validation";
+import { getWebsiteByTrackingCode } from "@/utils/database/website";
+import {
+  checkTrafficSpike,
+  applyAttackModeProtections,
+} from "@/utils/security/attack-mode";
 
 // 1x1 transparent pixel
 const PIXEL = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
 );
+
+export async function OPTIONS(request: NextRequest) {
+  // Handle CORS preflight
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
 
 export async function GET(request: NextRequest) {
   return handleTrack(request, "GET");
@@ -53,9 +71,6 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     }
 
     // Find website by tracking code (with additional domain support)
-    const { getWebsiteByTrackingCode } = await import(
-      "@/utils/database/website"
-    );
     // Get hostname early for domain validation
     let hostnameForValidation =
       request.nextUrl.searchParams.get("hostname") || "unknown";
@@ -117,6 +132,22 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       }
     }
 
+    // Sanitize and validate inputs
+    // Limit path length to prevent DoS
+    if (path.length > 2048) {
+      path = path.substring(0, 2048);
+    }
+    // Remove null bytes and dangerous characters
+    path = path.replace(/\0/g, "").replace(/[\x00-\x1F\x7F]/g, "");
+
+    // Limit title length
+    if (title && title.length > 500) {
+      title = title.substring(0, 500);
+    }
+    if (title) {
+      title = title.replace(/\0/g, "").replace(/[\x00-\x1F\x7F]/g, "");
+    }
+
     // Parse UTM parameters from referrer or URL
     const referrerUrl = referrer || request.nextUrl.href;
     const utmParams = parseUTMParams(referrerUrl);
@@ -129,10 +160,6 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     const location = await getLocationFromIP(ip);
 
     // Check attack mode protections
-    const { checkTrafficSpike, applyAttackModeProtections } = await import(
-      "@/utils/security/attack-mode"
-    );
-
     // Check for traffic spike and activate attack mode if needed
     await checkTrafficSpike(website._id.toString());
 
@@ -220,12 +247,20 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     });
     await pageView.save();
 
-    // Prepare response with cookies
+    // Prepare response with cookies and security headers
     const response = new NextResponse(PIXEL, {
       status: 200,
       headers: {
         "Content-Type": "image/gif",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Cache-Control": "no-cache, no-store, must-revalidate, private",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        // CORS headers for cross-origin tracking
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
         "Set-Cookie": [
           createVisitorIdCookie(visitorId),
           createSessionIdCookie(sessionId),

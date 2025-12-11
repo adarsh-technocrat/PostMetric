@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
-import { enqueueSyncJob } from "@/utils/jobs/queue";
-import type { SyncJobProvider } from "@/db/models/SyncJob";
+import { enqueueSyncJob, calculateNextSyncDate } from "@/utils/jobs/queue";
 
 /**
  * POST /api/cron/sync-payments
@@ -109,9 +108,6 @@ export async function POST(request: NextRequest) {
 
             // Update nextSyncAt if syncConfig exists
             if (syncConfig) {
-              const { calculateNextSyncDate } = await import(
-                "@/utils/jobs/queue"
-              );
               const nextSync = calculateNextSyncDate(
                 syncConfig.frequency || "hourly"
               );

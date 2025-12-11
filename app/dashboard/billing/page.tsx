@@ -359,8 +359,8 @@ export default function BillingPage() {
                     <div className="mt-auto space-y-2">
                       <Button
                         className="w-full"
-                        data-fast-goal="checkout_button_clicked"
-                        data-fast-goal-price-id="price_1PjYvqEIeBR5XIjfRwXlMnGp"
+                        data-postmetric-goal="checkout_button_clicked"
+                        data-postmetric-goal-price-id="price_1PjYvqEIeBR5XIjfRwXlMnGp"
                       >
                         Pick Starter plan
                       </Button>
@@ -560,8 +560,8 @@ export default function BillingPage() {
                     <div className="mt-auto space-y-2">
                       <Button
                         className="w-full"
-                        data-fast-goal="checkout_button_clicked"
-                        data-fast-goal-price-id="price_1SImzbEIeBR5XIjf7IqKjV6D"
+                        data-postmetric-goal="checkout_button_clicked"
+                        data-postmetric-goal-price-id="price_1SImzbEIeBR5XIjf7IqKjV6D"
                       >
                         Pick Growth plan
                       </Button>

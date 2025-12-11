@@ -73,7 +73,7 @@ export default function DashboardPage() {
       {/* Video Widget */}
       {showVideo && (
         <div className="group fixed bottom-4 left-4 z-50 animate-opacity duration-200 hover:scale-110 md:bottom-8 md:left-8">
-          <div data-fast-goal="open_onboarding_modal">
+          <div data-postmetric-goal="open_onboarding_modal">
             <Image
               src="https://d1aebdcemlt4l7.cloudfront.net/videos/widget.gif"
               alt="PostMetric Onboarding"

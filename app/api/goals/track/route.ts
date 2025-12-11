@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { trackGoalEvent } from "@/utils/database/goal";
+import { getWebsiteByTrackingCode } from "@/utils/database/website";
 
 /**
  * Track a goal event
@@ -17,9 +18,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get website by tracking code
-    const { getWebsiteByTrackingCode } = await import(
-      "@/utils/database/website"
-    );
     const website = await getWebsiteByTrackingCode(trackingCode);
 
     if (!website) {
@@ -31,12 +29,12 @@ export async function GET(request: NextRequest) {
     const visitorId =
       cookieHeader
         ?.split(";")
-        .find((c) => c.trim().startsWith("_df_vid="))
+        .find((c) => c.trim().startsWith("_pm_vid="))
         ?.split("=")[1] || undefined;
     const sessionId =
       cookieHeader
         ?.split(";")
-        .find((c) => c.trim().startsWith("_df_sid="))
+        .find((c) => c.trim().startsWith("_pm_sid="))
         ?.split("=")[1] || undefined;
 
     // Track the goal event
@@ -49,9 +47,35 @@ export async function GET(request: NextRequest) {
       value: value ? parseFloat(value) : undefined,
     });
 
-    return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
   } catch (error) {
     console.error("Error tracking goal:", error);
-    return new NextResponse(null, { status: 204 }); // Don't break client sites
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "X-Content-Type-Options": "nosniff",
+      },
+    }); // Don't break client sites
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  // Handle CORS preflight
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
 }

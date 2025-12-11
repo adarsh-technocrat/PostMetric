@@ -28,7 +28,7 @@ export function getVisitorIdFromCookie(
     return acc;
   }, {} as Record<string, string>);
 
-  return cookies["_df_vid"] || null;
+  return cookies["_pm_vid"] || null;
 }
 
 /**
@@ -45,19 +45,19 @@ export function getSessionIdFromCookie(
     return acc;
   }, {} as Record<string, string>);
 
-  return cookies["_df_sid"] || null;
+  return cookies["_pm_sid"] || null;
 }
 
 /**
  * Create cookie string for visitor ID
  */
 export function createVisitorIdCookie(visitorId: string): string {
-  return `_df_vid=${visitorId}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+  return `_pm_vid=${visitorId}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
 }
 
 /**
  * Create cookie string for session ID
  */
 export function createSessionIdCookie(sessionId: string): string {
-  return `_df_sid=${sessionId}; Path=/; Max-Age=1800; SameSite=Lax; Secure`; // 30 minutes
+  return `_pm_sid=${sessionId}; Path=/; Max-Age=1800; SameSite=Lax; Secure`; // 30 minutes
 }

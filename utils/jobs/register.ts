@@ -1,4 +1,4 @@
-import { enqueueSyncJob } from "./queue";
+import { enqueueSyncJob, cancelPendingJobs } from "./queue";
 import { getWebsiteById } from "@/utils/database/website";
 import type { SyncJobProvider, SyncRange } from "@/db/models/SyncJob";
 import connectDB from "@/db";
@@ -149,7 +149,6 @@ export async function unregisterPaymentProviderSync(
   websiteId: string,
   provider: SyncJobProvider
 ): Promise<void> {
-  const { cancelPendingJobs } = await import("./queue");
   await cancelPendingJobs(websiteId, provider);
   console.log(
     `Unregistered sync jobs for website ${websiteId}, provider ${provider}`

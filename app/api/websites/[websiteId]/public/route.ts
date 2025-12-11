@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
 import crypto from "crypto";
+import { getSession } from "@/lib/get-session";
 
 /**
  * GET /api/websites/[websiteId]/public
@@ -64,7 +65,6 @@ export async function POST(
 ) {
   try {
     const { websiteId } = await params;
-    const { getSession } = await import("@/lib/get-session");
     const session = await getSession();
 
     if (!session?.user?.id) {

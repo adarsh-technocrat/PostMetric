@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/get-session";
 import { getWebsiteById } from "@/utils/database/website";
-import { enqueueSyncJob, getRecentJobsForWebsite } from "@/utils/jobs/queue";
+import {
+  enqueueSyncJob,
+  getRecentJobsForWebsite,
+  getPendingJobsForWebsite,
+} from "@/utils/jobs/queue";
 import type { SyncJobProvider } from "@/db/models/SyncJob";
 
 export async function POST(
@@ -147,7 +151,6 @@ export async function GET(
     }
 
     // Get pending/processing jobs count
-    const { getPendingJobsForWebsite } = await import("@/utils/jobs/queue");
     const pendingJobs = await getPendingJobsForWebsite(websiteId);
 
     return NextResponse.json({
