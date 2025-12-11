@@ -261,6 +261,30 @@ function getDefaultPriority(type: SyncJobType): number {
 }
 
 /**
+ * Check if a recent sync was completed for a website/provider
+ * Returns true if a sync was completed within the specified time window (default: 15 minutes)
+ */
+export async function hasRecentSync(
+  websiteId: string,
+  provider: SyncJobProvider,
+  timeWindowMinutes: number = 15
+): Promise<boolean> {
+  await connectDB();
+
+  const cutoffTime = new Date();
+  cutoffTime.setMinutes(cutoffTime.getMinutes() - timeWindowMinutes);
+
+  const recentJob = await SyncJob.findOne({
+    websiteId: new Types.ObjectId(websiteId),
+    provider,
+    status: "completed",
+    completedAt: { $gte: cutoffTime },
+  }).sort({ completedAt: -1 });
+
+  return !!recentJob;
+}
+
+/**
  * Calculate next sync date based on frequency
  */
 export function calculateNextSyncDate(

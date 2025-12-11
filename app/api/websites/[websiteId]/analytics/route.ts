@@ -14,6 +14,8 @@ import {
 } from "@/utils/analytics/aggregations";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
+import { enqueueSyncJob, hasRecentSync } from "@/utils/jobs/queue";
+import type { SyncJobProvider } from "@/db/models/SyncJob";
 
 export async function GET(
   request: NextRequest,
@@ -60,8 +62,87 @@ export async function GET(
       endDate = dateRange.endDate;
     }
 
-    // Note: Payment sync is now handled by background jobs
-    // No blocking sync here - analytics returns immediately from database
+    // Smart sync: Trigger background sync on manual refresh if needed
+    // This ensures users always see up-to-date data when they refresh
+    // We only sync if:
+    // 1. Payment providers are configured
+    // 2. No recent sync was done in the last 15 minutes
+    // 3. The period being viewed is recent (today, last 24h, last 7d, or custom within last 7 days)
+    if (website.paymentProviders) {
+      const isRecentPeriod =
+        period.toLowerCase() === "today" ||
+        period.toLowerCase() === "last24h" ||
+        period.toLowerCase() === "last 24 hours" ||
+        period.toLowerCase() === "last7d" ||
+        period.toLowerCase() === "last 7 days" ||
+        period.toLowerCase() === "last30d" ||
+        period.toLowerCase() === "last 30 days" ||
+        (period.startsWith("custom:") &&
+          endDate.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      if (isRecentPeriod) {
+        // Determine sync date range based on period
+        let syncStartDate: Date;
+        let syncEndDate: Date;
+        let syncRange: "today" | "last24h" | "last7d" | "custom";
+
+        if (period.toLowerCase() === "today") {
+          syncStartDate = new Date(Date.now() - 2 * 60 * 60 * 1000); // Last 2 hours
+          syncEndDate = new Date();
+          syncRange = "today";
+        } else if (
+          period.toLowerCase() === "last24h" ||
+          period.toLowerCase() === "last 24 hours"
+        ) {
+          syncStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          syncEndDate = new Date();
+          syncRange = "last24h";
+        } else if (
+          period.toLowerCase() === "last7d" ||
+          period.toLowerCase() === "last 7 days"
+        ) {
+          syncStartDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          syncEndDate = new Date();
+          syncRange = "last7d";
+        } else if (period.startsWith("custom:")) {
+          syncStartDate = startDate;
+          syncEndDate = endDate;
+          syncRange = "custom";
+        } else {
+          // For other periods, sync last 24 hours as a safe default
+          syncStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          syncEndDate = new Date();
+          syncRange = "last24h";
+        }
+
+        // Check and trigger sync for Stripe (only provider with syncConfig support)
+        if (
+          website.paymentProviders?.stripe?.apiKey &&
+          website.paymentProviders.stripe.syncConfig?.enabled !== false
+        ) {
+          const recentSyncExists = await hasRecentSync(websiteId, "stripe", 15);
+
+          if (!recentSyncExists) {
+            try {
+              await enqueueSyncJob({
+                websiteId,
+                provider: "stripe",
+                type: "manual",
+                priority: 85, // High priority for refresh-triggered syncs
+                startDate: syncStartDate,
+                endDate: syncEndDate,
+                syncRange,
+              });
+            } catch (error) {
+              console.error("Failed to enqueue Stripe sync job:", error);
+            }
+          }
+        }
+      }
+    }
+
+    // Analytics returns immediately from database
+    // Sync jobs run in background and update data for next refresh
 
     // Get all analytics data
     const [visitors, revenue, customersAndSales, goals, metrics] =
