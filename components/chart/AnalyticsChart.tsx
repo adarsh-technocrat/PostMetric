@@ -12,7 +12,6 @@ import {
   ResponsiveContainer,
   ComposedChart,
 } from "recharts";
-import NumberFlow from "@number-flow/react";
 import {
   getCurrentTimeIndex,
   formatDateDisplay,
@@ -348,10 +347,7 @@ function AnalyticsChartComponent({
               </div>
 
               <span className="font-semibold text-textPrimary">
-                <NumberFlow
-                  value={data.visitors}
-                  format={{ notation: "standard" }}
-                />
+                {data.visitors?.toLocaleString("en-US") ?? "0"}
               </span>
             </div>
             <div className="border-t border-gray-100 pt-2 mt-2">
@@ -360,16 +356,11 @@ function AnalyticsChartComponent({
                   Revenue
                 </span>
                 <span className="font-semibold text-textPrimary">
-                  <NumberFlow
-                    value={data.revenue}
-                    locales="en-US"
-                    format={{
-                      style: "currency",
-                      currency: currency,
-                      currencyDisplay: "symbol",
-                      notation: "standard",
-                    }}
-                  />
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: currency,
+                    currencyDisplay: "symbol",
+                  }).format(data.revenue ?? 0)}
                 </span>
               </div>
               {data.revenueRefund != undefined && data.revenueRefund > 0 && (
@@ -391,16 +382,11 @@ function AnalyticsChartComponent({
                     <span className="text-textSecondary">Refunds</span>
                   </div>
                   <span className="font-medium text-textPrimary">
-                    <NumberFlow
-                      value={data.revenueRefund}
-                      locales="en-US"
-                      format={{
-                        style: "currency",
-                        currency: currency,
-                        currencyDisplay: "symbol",
-                        notation: "standard",
-                      }}
-                    />
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: currency,
+                      currencyDisplay: "symbol",
+                    }).format(data.revenueRefund ?? 0)}
                   </span>
                 </div>
               )}
@@ -417,16 +403,11 @@ function AnalyticsChartComponent({
                     <span className="text-textSecondary">Renewal</span>
                   </div>
                   <span className="font-medium text-textPrimary">
-                    <NumberFlow
-                      value={data.revenueRenewal}
-                      locales="en-US"
-                      format={{
-                        style: "currency",
-                        currency: currency,
-                        currencyDisplay: "symbol",
-                        notation: "standard",
-                      }}
-                    />
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: currency,
+                      currencyDisplay: "symbol",
+                    }).format(data.revenueRenewal ?? 0)}
                   </span>
                 </div>
               )}
@@ -442,16 +423,11 @@ function AnalyticsChartComponent({
                     <span className="text-textSecondary">New</span>
                   </div>
                   <span className="font-medium text-textPrimary">
-                    <NumberFlow
-                      value={data.revenueNew}
-                      locales="en-US"
-                      format={{
-                        style: "currency",
-                        currency: currency,
-                        currencyDisplay: "symbol",
-                        notation: "standard",
-                      }}
-                    />
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: currency,
+                      currencyDisplay: "symbol",
+                    }).format(data.revenueNew ?? 0)}
                   </span>
                 </div>
               )}
@@ -460,17 +436,13 @@ function AnalyticsChartComponent({
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                 <span className="text-textSecondary">Revenue/visitor</span>
                 <span className="font-semibold text-textPrimary">
-                  <NumberFlow
-                    value={data.revenuePerVisitor}
-                    locales="en-US"
-                    format={{
-                      style: "currency",
-                      currency: currency,
-                      currencyDisplay: "symbol",
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }}
-                  />
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: currency,
+                    currencyDisplay: "symbol",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(data.revenuePerVisitor ?? 0)}
                 </span>
               </div>
             )}
@@ -478,14 +450,11 @@ function AnalyticsChartComponent({
               <div className="flex items-center justify-between">
                 <span className="text-textSecondary">Conversion rate</span>
                 <span className="font-semibold text-textPrimary">
-                  <NumberFlow
-                    value={data.conversionRate * 100}
-                    format={{
-                      style: "percent",
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }}
-                  />
+                  {new Intl.NumberFormat("en-US", {
+                    style: "percent",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format((data.conversionRate ?? 0) / 100)}
                 </span>
               </div>
             )}
