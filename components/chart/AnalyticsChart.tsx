@@ -430,29 +430,31 @@ function AnalyticsChartComponent({
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <div
-                    className="w-3 h-3 rounded-sm"
-                    style={{
-                      backgroundColor: "#E16540",
-                    }}
-                  ></div>
-                  <span className="text-textSecondary">New</span>
+              {data.revenueNew != undefined && data.revenueNew > 0 && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{
+                        backgroundColor: "#E16540",
+                      }}
+                    ></div>
+                    <span className="text-textSecondary">New</span>
+                  </div>
+                  <span className="font-medium text-textPrimary">
+                    <NumberFlow
+                      value={data.revenueNew}
+                      locales="en-US"
+                      format={{
+                        style: "currency",
+                        currency: currency,
+                        currencyDisplay: "symbol",
+                        notation: "standard",
+                      }}
+                    />
+                  </span>
                 </div>
-                <span className="font-medium text-textPrimary">
-                  <NumberFlow
-                    value={data.revenueNew || data.revenue}
-                    locales="en-US"
-                    format={{
-                      style: "currency",
-                      currency: currency,
-                      currencyDisplay: "symbol",
-                      notation: "standard",
-                    }}
-                  />
-                </span>
-              </div>
+              )}
             </div>
             {data.revenuePerVisitor !== undefined && (
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
