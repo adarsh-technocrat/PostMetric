@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import {
   setShowMentionsOnChart,
@@ -16,6 +16,7 @@ import { GoalsCard } from "@/components/dashboard/analytics/GoalsCard";
 import { MentionsDialog } from "@/components/dashboard/analytics/MentionsDialog";
 import { WaitingForEventsBanner } from "@/components/dashboard/analytics/WaitingForEventsBanner";
 import { FloatingActionButtons } from "@/components/dashboard/analytics/FloatingActionButtons";
+import { RealtimeMapDialog } from "@/components/dashboard/analytics/RealtimeMapDialog";
 import { Button } from "@/components/ui/button";
 import {
   useWebsiteAnalytics,
@@ -33,6 +34,7 @@ export default function WebsiteAnalyticsPage({
   const router = useRouter();
   const dispatch = useAppDispatch();
   const locationCardRef = useRef<HTMLDivElement>(null);
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isValidObjectId(websiteId)) {
@@ -231,16 +233,16 @@ export default function WebsiteAnalyticsPage({
         }
       />
 
+      <RealtimeMapDialog
+        open={mapDialogOpen}
+        onOpenChange={setMapDialogOpen}
+        websiteId={websiteId}
+        websiteName={website?.name || "PostMetric"}
+      />
+
       <FloatingActionButtons
         onOpenMap={() => {
-          setSelectedLocationTab("Map");
-          // Scroll to location card
-          if (locationCardRef.current) {
-            locationCardRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-          }
+          setMapDialogOpen(true);
         }}
         onOpenInsights={() => {
           // Placeholder for insights feature

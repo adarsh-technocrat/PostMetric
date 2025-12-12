@@ -1,43 +1,126 @@
 /**
  * Get geolocation from IP address
- * For now, returns a default location
- * In production, integrate with MaxMind, IPStack, or similar service
+ * Supports multiple geolocation services:
+ * - IPStack (ipstack.com)
+ * - ipapi.co (free tier available)
+ * - MaxMind GeoIP2 (requires local database)
  */
 export interface LocationInfo {
   country: string;
   region?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /**
- * Get location from IP address
- * TODO: Integrate with geolocation service (MaxMind, IPStack, etc.)
+ * Get location from IP address using ipapi.co (free tier)
+ * Alternative services: IPStack, MaxMind GeoIP2, ip-api.com
  */
 export async function getLocationFromIP(ip: string): Promise<LocationInfo> {
-  // For development, return default
-  // In production, use a geolocation service
+  if (
+    ip === "0.0.0.0" ||
+    ip === "127.0.0.1" ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("172.16.")
+  ) {
+    return {
+      country: "Unknown",
+      region: undefined,
+      city: undefined,
+    };
+  }
 
-  // Example with IPStack (uncomment and configure):
-  /*
+  // Option 1: ipapi.co (free tier: 1000 requests/day, no API key required)
+  // API key is optional - use it for higher rate limits
+  const IPAPI_KEY = process.env.IPAPI_KEY;
+  try {
+    const url = IPAPI_KEY
+      ? `https://ipapi.co/${ip}/json/?key=${IPAPI_KEY}`
+      : `https://ipapi.co/${ip}/json/`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "PostMetric/1.0",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.error) {
+        console.error("ipapi.co error:", data.reason);
+      } else {
+        return {
+          country: data.country_code || "Unknown",
+          region: data.region,
+          city: data.city,
+          latitude: data.latitude,
+          longitude: data.longitude,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("ipapi.co geolocation error:", error);
+  }
+
+  // Option 2: IPStack (requires API key)
   const IPSTACK_API_KEY = process.env.IPSTACK_API_KEY;
   if (IPSTACK_API_KEY) {
     try {
       const response = await fetch(
-        `http://api.ipstack.com/${ip}?access_key=${IPSTACK_API_KEY}`
+        `http://api.ipstack.com/${ip}?access_key=${IPSTACK_API_KEY}`,
+        {
+          headers: {
+            "User-Agent": "PostMetric/1.0",
+          },
+        }
       );
-      const data = await response.json();
-      return {
-        country: data.country_code || "Unknown",
-        region: data.region_name,
-        city: data.city,
-      };
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error) {
+          console.error("IPStack error:", data.error.info);
+        } else {
+          return {
+            country: data.country_code || "Unknown",
+            region: data.region_name,
+            city: data.city,
+            latitude: data.latitude,
+            longitude: data.longitude,
+          };
+        }
+      }
     } catch (error) {
-      console.error("Geolocation error:", error);
+      console.error("IPStack geolocation error:", error);
     }
   }
-  */
 
-  // Fallback: return default
+  // Option 3: ip-api.com (free tier: 45 requests/minute)
+  try {
+    const response = await fetch(
+      `http://ip-api.com/json/${ip}?fields=status,message,countryCode,regionName,city,lat,lon`,
+      {
+        headers: {
+          "User-Agent": "PostMetric/1.0",
+        },
+      }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.status === "success") {
+        return {
+          country: data.countryCode || "Unknown",
+          region: data.regionName,
+          city: data.city,
+          latitude: data.lat,
+          longitude: data.lon,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("ip-api.com geolocation error:", error);
+  }
+
   return {
     country: "Unknown",
     region: undefined,
@@ -45,27 +128,18 @@ export async function getLocationFromIP(ip: string): Promise<LocationInfo> {
   };
 }
 
-/**
- * Extract IP address from request headers
- */
 export function getIPFromHeaders(headers: Headers): string {
-  // Check various headers for IP address
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {
-    // X-Forwarded-For can contain multiple IPs, take the first one
     return forwarded.split(",")[0].trim();
   }
-
   const realIP = headers.get("x-real-ip");
   if (realIP) {
     return realIP;
   }
-
-  const cfConnectingIP = headers.get("cf-connecting-ip"); // Cloudflare
+  const cfConnectingIP = headers.get("cf-connecting-ip");
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-
-  // Fallback
   return "0.0.0.0";
 }
