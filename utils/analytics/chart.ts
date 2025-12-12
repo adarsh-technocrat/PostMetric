@@ -18,15 +18,33 @@ export function formatDateDisplay(data: {
     return data.fullDate || data.date;
   }
 
+  // Parse timestamp and get UTC date components for comparison
   const dataDate = new Date(data.timestamp);
   const today = new Date();
+
+  // Compare UTC date parts to avoid timezone issues
+  const dataYear = dataDate.getUTCFullYear();
+  const dataMonth = dataDate.getUTCMonth();
+  const dataDay = dataDate.getUTCDate();
+  const todayYear = today.getUTCFullYear();
+  const todayMonth = today.getUTCMonth();
+  const todayDay = today.getUTCDate();
+
   const isToday =
-    dataDate.getFullYear() === today.getFullYear() &&
-    dataDate.getMonth() === today.getMonth() &&
-    dataDate.getDate() === today.getDate();
+    dataYear === todayYear && dataMonth === todayMonth && dataDay === todayDay;
 
   if (isToday) {
-    const hour = dataDate.getHours();
+    // Extract hour from timestamp string to get the correct hour
+    // Timestamp format: "2025-12-11T00:00:00+00:00" or "2025-12-11T05:00:00+00:00"
+    const hourMatch = data.timestamp.match(/T(\d{2}):/);
+    let hour = 0;
+    if (hourMatch) {
+      hour = parseInt(hourMatch[1], 10);
+    } else {
+      // Fallback to UTC hour if regex doesn't match
+      hour = dataDate.getUTCHours();
+    }
+
     const hour12 = hour % 12 || 12;
     const ampm = hour < 12 ? "AM" : "PM";
     return `Today ${hour12} ${ampm}`;

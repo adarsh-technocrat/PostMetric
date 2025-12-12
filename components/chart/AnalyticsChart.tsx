@@ -32,7 +32,7 @@ export interface ChartDataPoint {
   date: string;
   fullDate?: string;
   timestamp?: string;
-  visitors: number;
+  visitors: number | null;
   revenue: number;
   revenueNew?: number;
   revenueRenewal?: number;
@@ -313,7 +313,7 @@ function AnalyticsChartComponent({
     return [0, max * 0.25, max * 0.5, max * 0.75, max];
   };
 
-  const maxVisitors = Math.max(...data.map((d) => d.visitors), 0);
+  const maxVisitors = Math.max(...data.map((d) => d.visitors ?? 0), 0);
 
   const visitorTicks = calculateTicks(maxVisitors);
 
@@ -329,20 +329,48 @@ function AnalyticsChartComponent({
 
   const currentTimeIndex = getCurrentTimeIndex(data);
 
+  // Helper function to check if a data point is today
+  // Uses UTC date parts to avoid timezone issues
+  const isToday = (item: ChartDataPoint): boolean => {
+    if (!item.timestamp) return false;
+    const dataDate = new Date(item.timestamp);
+    const today = new Date();
+
+    // Compare UTC date parts to avoid timezone issues
+    return (
+      dataDate.getUTCFullYear() === today.getUTCFullYear() &&
+      dataDate.getUTCMonth() === today.getUTCMonth() &&
+      dataDate.getUTCDate() === today.getUTCDate()
+    );
+  };
+
   const forecastData: ForecastDataPoint[] = data.map((item, index) => {
-    const isForecast = currentTimeIndex !== null && index > currentTimeIndex;
+    const itemIsToday = isToday(item);
+    const isForecast =
+      currentTimeIndex !== null && index > currentTimeIndex && itemIsToday;
+
+    // For today: use real-time projection (only show up to current time index)
+    // For previous dates: always show the full visitor line (preserve null values)
+    let solidLineValue: number | null = null;
+    if (itemIsToday) {
+      // Today: only show up to current time index
+      solidLineValue =
+        currentTimeIndex !== null && index <= currentTimeIndex
+          ? item.visitors ?? null
+          : null;
+    } else {
+      // Previous dates: always show the visitor line (preserve null if no data)
+      solidLineValue = item.visitors ?? null;
+    }
+
     return {
       ...item,
       isForecast,
-      // Solid line value: index exists and index is less than or equal to currentTimeIndex
-      solidLineValue:
-        currentTimeIndex !== null && index <= currentTimeIndex
-          ? item.visitors
-          : null,
-      // Dashed line value: only for currentTimeIndex
+      solidLineValue,
+      // Dashed line value: only for currentTimeIndex (today only)
       dashedLineValue:
-        currentTimeIndex !== null && index === currentTimeIndex
-          ? item.visitors
+        currentTimeIndex !== null && index === currentTimeIndex && itemIsToday
+          ? item.visitors ?? null
           : null,
     };
   });
@@ -741,8 +769,26 @@ function ChartDot({
     }
   };
 
-  // Show dot at current time
-  if (currentTimeIndex !== null && index === currentTimeIndex && cx && cy) {
+  // Helper function to check if a data point is today
+  const isToday = (item: ChartDataPoint | undefined): boolean => {
+    if (!item?.timestamp) return false;
+    const dataDate = new Date(item.timestamp);
+    const today = new Date();
+    return (
+      dataDate.getFullYear() === today.getFullYear() &&
+      dataDate.getMonth() === today.getMonth() &&
+      dataDate.getDate() === today.getDate()
+    );
+  };
+
+  // Show dot at current time - only for today's data
+  if (
+    currentTimeIndex !== null &&
+    index === currentTimeIndex &&
+    cx &&
+    cy &&
+    isToday(payload)
+  ) {
     return (
       <g>
         <circle cx={cx} cy={cy} r={4} fill="#8dcdff" />
