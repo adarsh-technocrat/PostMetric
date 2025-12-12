@@ -25,7 +25,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Image
-                src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon.3a869d3d.png&w=64&q=75"
+                src="https://via.placeholder.com/32"
                 alt="PostMetric Logo"
                 width={32}
                 height={32}
@@ -98,7 +98,7 @@ export default function Home() {
                   className="inline-flex items-center gap-1 hover:underline"
                 >
                   <Image
-                    src="https://icons.duckduckgo.com/ip3/shipfa.st.ico"
+                    src="https://via.placeholder.com/16"
                     alt=""
                     width={16}
                     height={16}
@@ -113,7 +113,7 @@ export default function Home() {
                   className="inline-flex items-center gap-1 hover:underline"
                 >
                   <Image
-                    src="https://icons.duckduckgo.com/ip3/indiepa.ge.ico"
+                    src="https://via.placeholder.com/16"
                     alt=""
                     width={16}
                     height={16}
@@ -128,14 +128,14 @@ export default function Home() {
                   className="inline-flex items-center gap-1 hover:underline"
                 >
                   <Image
-                    src="https://icons.duckduckgo.com/ip3/marclou.com.ico"
+                    src="https://via.placeholder.com/16"
                     alt=""
                     width={16}
                     height={16}
                     className="w-4 h-4"
                     unoptimized
                   />
-                  <span>MarcLou</span>
+                  <span>Adarsh Kumar</span>
                 </a>
               </div>
 
@@ -186,21 +186,21 @@ export default function Home() {
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex -space-x-3">
                     {[
-                      "rj.b6037c6f.jpg",
-                      "serg.30bade2d.jpg",
-                      "adam.d9b0a2ec.jpg",
-                      "katt.b681a8ed.jpg",
-                      "wozu.45cffdf1.jpg",
-                      "kai.daee511e.png",
-                      "siya.ef0cc018.png",
-                      "osudev.6e88d616.jpg",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
+                      "https://via.placeholder.com/36",
                     ].map((img, idx) => (
                       <div
                         key={idx}
                         className="w-9 h-9 rounded-full border-2 border-white overflow-hidden"
                       >
                         <Image
-                          src={`https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F${img}&w=128&q=75`}
+                          src={img}
                           alt="User"
                           width={36}
                           height={36}
@@ -243,7 +243,7 @@ export default function Home() {
 
                 <div className="w-full bg-background">
                   <Image
-                    src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fdemo.8f89df2b.jpg&w=1080&q=100"
+                    src="https://via.placeholder.com/1080x600"
                     alt="PostMetric Dashboard Demo"
                     width={1080}
                     height={600}
@@ -256,7 +256,7 @@ export default function Home() {
 
             <div className="md:hidden">
               <Image
-                src="https://datafa.st/images/devices/mobile.png"
+                src="https://via.placeholder.com/400x800"
                 alt="Mobile Demo"
                 width={400}
                 height={800}
@@ -330,25 +330,25 @@ export default function Home() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
               {[
-                "icon-shopify.a664161d.png",
-                "icon-wix.34f61b06.png",
-                "icon-ghostcms.36b39cb0.png",
-                "icon-podia.b5977fc1.png",
-                "icon-gtm.d7fc830d.png",
-                "icon-caddy.8d202f7e.png",
-                "icon-php.858345a0.png",
-                "icon-django.1260bac6.png",
-                "icon-fastapi.adfa24d0.png",
-                "icon-expressjs.6e4a13ee.png",
-                "icon-vuejs.010f3bde.png",
-                "icon-lovable.618fffcb.png",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
+                "https://via.placeholder.com/48",
               ].map((icon, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-center p-6 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors"
                 >
                   <Image
-                    src={`https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F${icon}&w=256&q=75`}
+                    src={icon}
                     alt="Integration"
                     width={48}
                     height={48}
@@ -374,24 +374,21 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                name: "Marc Lou",
-                handle: "@marc_louvion",
-                avatar:
-                  "https://datafa.st/_next/image?url=https%3A%2F%2Fpbs.twimg.com%2Fprofile_images%2F1754025659180187649%2FAAG78n19_normal.jpg&w=96&q=100",
+                name: "Adarsh Kumar",
+                handle: "@adarshkumar909",
+                avatar: "https://x.com/adarshkumar909/photo",
                 text: "Finally an analytics tool that shows me what actually matters for my business. Love the simplicity!",
               },
               {
                 name: "Sarah Chen",
                 handle: "@sarahchen",
-                avatar:
-                  "https://datafa.st/_next/image?url=https%3A%2F%2Fpbs.twimg.com%2Fprofile_images%2F1905054657971728384%2FM9JF7NHU_normal.jpg&w=96&q=100",
+                avatar: "https://via.placeholder.com/40",
                 text: "PostMetric helped me identify which marketing channels were actually profitable. Game changer!",
               },
               {
                 name: "Alex Rivera",
                 handle: "@alexrivera",
-                avatar:
-                  "https://datafa.st/_next/image?url=https%3A%2F%2Fpbs.twimg.com%2Fprofile_images%2F1846285407077421056%2F-nESsbOX_normal.jpg&w=96&q=100",
+                avatar: "https://via.placeholder.com/40",
                 text: "The real-time tracking is incredible. I can see exactly when customers convert and from where.",
               },
             ].map((testimonial, idx) => (
@@ -602,7 +599,7 @@ export default function Home() {
           <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
               <Image
-                src="https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon.3a869d3d.png&w=64&q=75"
+                src="https://via.placeholder.com/24"
                 alt="PostMetric Logo"
                 width={24}
                 height={24}

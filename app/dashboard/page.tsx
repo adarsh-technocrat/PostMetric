@@ -71,7 +71,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Video Widget */}
-      {showVideo && (
+      {/* {showVideo && (
         <div className="group fixed bottom-4 left-4 z-50 animate-opacity duration-200 hover:scale-110 md:bottom-8 md:left-8">
           <div data-postmetric-goal="open_onboarding_modal">
             <Image
@@ -92,7 +92,7 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Chat Button */}
       <div className="fixed bottom-4 right-4 z-50 md:bottom-8 md:right-8">
