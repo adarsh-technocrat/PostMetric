@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   type Visitor,
+  type PaymentEvent,
   DEFAULT_COORDS,
   getVisitorCoordinates,
 } from "@/utils/realtime-map";
@@ -13,9 +14,7 @@ interface ViewState {
   pitch?: number;
 }
 
-const MAPBOX_TOKEN =
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-  "pk.eyJ1IjoibWFyY2xvdSIsImEiOiJjbThmaGFuaG4wZm4xMmpxdHFzdW5hOW0wIn0.1dJSv-8xLT8GxVPR7nEIuw";
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 const POLL_INTERVAL = 5000; // 5 seconds
 
@@ -26,6 +25,7 @@ interface UseRealtimeMapProps {
 
 export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [paymentEvents, setPaymentEvents] = useState<PaymentEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -34,17 +34,11 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
     latitude: 0, // Center on equator for centered globe
     zoom: 2.5, // Slightly zoomed in for better scale
     bearing: 0, // Start with north up
-    pitch: 45, // 45-degree pitch for 3D globe effect
+    pitch: 0,
   });
 
   const mapStyle = useMemo(() => {
-    if (typeof window === "undefined") return "mapbox://styles/mapbox/dark-v11";
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-    return prefersDark
-      ? "mapbox://styles/mapbox/dark-v11"
-      : "mapbox://styles/mapbox/light-v11";
+    return "mapbox://styles/adarsh433/clyzsaedz00fs01p6ap634sgi";
   }, []);
 
   const onViewportChange = useCallback((evt: { viewState: ViewState }) => {
@@ -112,6 +106,7 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
           // API now returns one entry per visitor (already grouped)
           // But we still deduplicate by visitorId/userId as a safety measure
           const visitorsList = data.visitors || [];
+          const paymentEventsList = data.paymentEvents || [];
 
           const visitorMap = new Map<string, Visitor>();
           visitorsList.forEach((visitor: Visitor) => {
@@ -130,6 +125,7 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
           const uniqueVisitors = Array.from(visitorMap.values());
 
           setVisitors(uniqueVisitors);
+          setPaymentEvents(paymentEventsList);
         } else {
           console.error("Failed to fetch visitors:", response.status);
         }
@@ -211,6 +207,7 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
 
   return {
     visitors,
+    paymentEvents,
     isLoading,
     isMapLoaded,
     progress,

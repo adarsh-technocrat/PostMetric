@@ -3,9 +3,30 @@ import Link from "next/link";
 interface LogoProps {
   className?: string;
   showText?: boolean;
+  textSize?: "sm" | "md" | "lg" | "xl" | "2xl";
+  iconSize?: "sm" | "md" | "lg";
 }
 
-export function Logo({ className = "", showText = true }: LogoProps) {
+export function Logo({
+  className = "",
+  showText = true,
+  textSize = "2xl",
+  iconSize = "lg",
+}: LogoProps) {
+  const textSizeClasses = {
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg",
+    xl: "text-xl",
+    "2xl": "text-2xl",
+  };
+
+  const iconSizeClasses = {
+    sm: "w-4 h-4",
+    md: "w-6 h-6",
+    lg: "w-8 h-8",
+  };
+
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`}>
       <div className="relative">
@@ -15,7 +36,7 @@ export function Logo({ className = "", showText = true }: LogoProps) {
           viewBox="0 0 32 32"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-8 h-8"
+          className={iconSizeClasses[iconSize]}
         >
           <rect
             x="2"
@@ -72,7 +93,9 @@ export function Logo({ className = "", showText = true }: LogoProps) {
         </svg>
       </div>
       {showText && (
-        <span className="text-2xl font-extrabold text-gray-900">
+        <span
+          className={`${textSizeClasses[textSize]} font-extrabold text-gray-900`}
+        >
           PostMetric
         </span>
       )}

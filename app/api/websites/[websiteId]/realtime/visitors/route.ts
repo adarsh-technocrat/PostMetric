@@ -4,6 +4,7 @@ import connectDB from "@/db";
 import Website from "@/db/models/Website";
 import Session from "@/db/models/Session";
 import PageView from "@/db/models/PageView";
+import Payment from "@/db/models/Payment";
 import { Types } from "mongoose";
 
 interface VisitorLocation {
@@ -146,7 +147,28 @@ export async function GET(
       }
     );
 
-    return NextResponse.json({ visitors });
+    // Get recent payment events (last 5 minutes, not refunded)
+    const recentPayments = await Payment.find({
+      websiteId: websiteObjectId,
+      timestamp: { $gte: fiveMinutesAgo },
+      refunded: false,
+    })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean();
+
+    const paymentEvents = recentPayments.map((payment) => ({
+      id: payment._id.toString(),
+      type: "payment" as const,
+      visitorId: payment.visitorId,
+      sessionId: payment.sessionId,
+      customerEmail: payment.customerEmail,
+      amount: payment.amount,
+      currency: payment.currency,
+      timestamp: payment.timestamp.toISOString(),
+    }));
+
+    return NextResponse.json({ visitors, paymentEvents });
   } catch (error: any) {
     console.error("Error fetching real-time visitors:", error);
     return NextResponse.json(

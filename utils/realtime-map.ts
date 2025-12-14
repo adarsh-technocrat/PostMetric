@@ -108,6 +108,19 @@ export interface Visitor {
   conversionScore?: number;
 }
 
+export interface PaymentEvent {
+  id: string;
+  type: "payment";
+  visitorId?: string;
+  sessionId?: string;
+  customerEmail?: string;
+  amount: number;
+  currency: string;
+  timestamp: string;
+}
+
+export type ActivityItem = Visitor | PaymentEvent;
+
 export function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
