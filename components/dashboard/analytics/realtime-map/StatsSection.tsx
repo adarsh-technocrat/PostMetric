@@ -57,7 +57,6 @@ export function StatsSection({ visitors, websiteName }: StatsSectionProps) {
     [visitors]
   );
 
-  // Get the most common referrer domain (excluding Direct)
   const topReferrer = useMemo(() => {
     const nonDirectReferrers = referrers.filter((r) => r.name !== "Direct");
     if (nonDirectReferrers.length === 0) return null;
@@ -185,6 +184,34 @@ export function StatsSection({ visitors, websiteName }: StatsSectionProps) {
                 />
                 <span className="text-xs capitalize">{device.name}</span>
                 <span className="text-xs opacity-60">({device.count})</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="my-0.5 py-0.5">
+            <div className="text-xs text-base-content/60">Browsers</div>
+          </div>
+          <div className="hide-scrollbar flex max-h-[54px] overflow-x-auto overflow-y-hidden overscroll-x-contain pb-0.5 pr-3 md:pb-1">
+            {browsers.map((browser) => (
+              <div
+                key={browser.name}
+                title={`${browser.name}: ${browser.count} visitor${
+                  browser.count !== 1 ? "s" : ""
+                }`}
+                className="my-0.5 mr-1 flex flex-none animate-opacity cursor-pointer select-none items-center gap-1 rounded px-1.5 py-0.5 transition-all duration-200 bg-base-300 hover:bg-primary/10"
+              >
+                <img
+                  src={getBrowserIcon(browser.name)}
+                  alt={browser.name}
+                  className="h-3 w-3 shrink-0"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                  }}
+                />
+                <span className="text-xs">{browser.name}</span>
+                <span className="text-xs opacity-60">({browser.count})</span>
               </div>
             ))}
           </div>
