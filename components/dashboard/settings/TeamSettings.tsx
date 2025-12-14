@@ -275,7 +275,10 @@ export function TeamSettings({
                             src={teamOwner.avatarUrl}
                             alt={teamOwner.name || teamOwner.email}
                           />
-                          <AvatarFallback>
+                          <AvatarFallback
+                            email={teamOwner.email}
+                            name={teamOwner.name}
+                          >
                             {teamOwner.name?.charAt(0).toUpperCase() ||
                               teamOwner.email.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -324,7 +327,10 @@ export function TeamSettings({
                               src={member.userId.avatarUrl}
                               alt={member.userId.name || member.userId.email}
                             />
-                            <AvatarFallback>
+                            <AvatarFallback
+                              email={member.userId.email}
+                              name={member.userId.name}
+                            >
                               {member.userId.name?.charAt(0).toUpperCase() ||
                                 member.userId.email.charAt(0).toUpperCase()}
                             </AvatarFallback>

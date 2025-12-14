@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { useEffect, useState } from "react";
+import { generateUserAvatar } from "@/lib/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,25 +91,27 @@ export function UserMenu() {
               referrerPolicy="no-referrer"
               onError={(e) => {
                 console.error("Image failed to load:", userData.image);
-                // Hide the image and show fallback instead
+                // Replace with DiceBear avatar on error
                 const target = e.currentTarget;
-                target.style.display = "none";
-                // Show fallback avatar
-                const fallback = target.nextElementSibling as HTMLElement;
-                if (fallback) {
-                  fallback.style.display = "flex";
-                }
+                const fallbackAvatar = generateUserAvatar(
+                  userData.email,
+                  userData.name,
+                  { size: 24 }
+                );
+                target.src = fallbackAvatar;
               }}
             />
-          ) : null}
-          <div
-            className="size-6 shrink-0 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium"
-            style={{ display: userData.image ? "none" : "flex" }}
-          >
-            {userData.name?.[0]?.toUpperCase() ||
-              userData.email?.[0]?.toUpperCase() ||
-              "U"}
-          </div>
+          ) : (
+            <img
+              src={generateUserAvatar(userData.email, userData.name, {
+                size: 24,
+              })}
+              alt={userData.name || "User"}
+              className="size-6 shrink-0 rounded-full"
+              width={24}
+              height={24}
+            />
+          )}
           <span className="capitalize text-textPrimary">
             {userData.name || userData.email}
           </span>

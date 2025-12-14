@@ -41,20 +41,8 @@ export function VisitorMarker({ visitor }: VisitorMarkerProps) {
           <img
             src={avatarUrl}
             alt={visitorName}
-            className="rounded-full ring-2 transition-all duration-100 bg-white shadow-lg ring-gray-200 size-14 object-cover"
+            className="rounded-full ring-2 transition-all duration-100 bg-white/80 shadow-lg ring-gray-200 size-14 object-cover"
             loading="lazy"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = `data:image/svg+xml;utf8,${encodeURIComponent(
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-                  <circle cx="50" cy="50" r="50" fill="#8dcdff" />
-                  <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="40" fill="white">${visitorName
-                    .charAt(0)
-                    .toUpperCase()}</text>
-                </svg>`
-              )}`;
-            }}
           />
         </div>
       </Marker>

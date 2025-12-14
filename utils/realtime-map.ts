@@ -207,6 +207,8 @@ export function getConversionLikelihood(score?: number): {
   return { percentage, color, position };
 }
 
+import { generateAvatar } from "@/lib/avatar";
+
 const avatarCache = new Map<string, string>();
 
 export function getAvatarUrl(visitorId: string, country?: string): string {
@@ -214,27 +216,10 @@ export function getAvatarUrl(visitorId: string, country?: string): string {
     return avatarCache.get(visitorId)!;
   }
 
-  let hash = 0;
-  for (let i = 0; i < visitorId.length; i++) {
-    const char = visitorId.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  const seed = Math.abs(hash) % 1000000;
-
-  const params = new URLSearchParams();
-  // Note: seed parameter may not be officially supported, but we'll try it
-  // If it doesn't work, we'll rely on caching
-  params.set("seed", seed.toString());
-  params.set("style", "circle");
-  params.set("width", "56");
-  params.set("height", "56");
-
-  if (country && country.length === 2) {
-    params.set("country", country.toUpperCase());
-  }
-
-  const avatarUrl = `https://avatar-kit-theta.vercel.app/api/avatar/random?${params.toString()}`;
+  const seed = country ? `${visitorId}-${country}` : visitorId;
+  const avatarUrl = generateAvatar(seed, {
+    size: 56,
+  });
 
   // Cache the URL for this visitor
   avatarCache.set(visitorId, avatarUrl);
@@ -258,14 +243,6 @@ export function createMarkerElement(visitor: Visitor): HTMLDivElement {
         alt="${visitorName}"
         class="rounded-full ring-1 transition-all duration-100 bg-base-200 shadow-lg ring-base-content/10 dark:ring-base-content/20 size-14 object-cover"
         loading="lazy"
-        onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,${encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-            <circle cx="50" cy="50" r="50" fill="#8dcdff" />
-            <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="40" fill="white">${visitorName
-              .charAt(0)
-              .toUpperCase()}</text>
-          </svg>`
-        )}'"
       />
       <div 
         class="absolute right-px top-px z-10 flex h-[13px] w-[13px] items-center justify-center rounded-full"
@@ -284,7 +261,7 @@ export function createMarkerElement(visitor: Visitor): HTMLDivElement {
 
 export function createPopupContent(visitor: Visitor): string {
   const visitorName = generateVisitorName(visitor.visitorId, visitor.userId);
-  const color = visitor.visitorId.slice(0, 6).padEnd(6, "0");
+  const avatarUrl = getAvatarUrl(visitor.visitorId, visitor.country);
   const scoreColor = getConversionScoreColor(visitor.conversionScore);
   const conversion = getConversionLikelihood(visitor.conversionScore);
   const duration = formatDuration(visitor.duration);
@@ -309,13 +286,9 @@ export function createPopupContent(visitor: Visitor): string {
   return `
     <div class="w-80 animate-opacityFast overflow-hidden rounded-xl border border-base-content/10 bg-base-100 p-3 text-sm shadow-2xl duration-100">
       <img 
-        src="data:image/svg+xml;utf8,${encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 704" fill="none">
-            <circle cx="352" cy="352" r="350" fill="#${color}" />
-          </svg>`
-        )}" 
+        src="${avatarUrl}"
         alt="${visitorName}"
-        class="absolute left-3 top-3 rounded-full bg-base-200 ring-1 ring-base-content/10 transition-all duration-100 size-14"
+        class="absolute left-3 top-3 rounded-full bg-base-200 ring-1 ring-base-content/10 transition-all duration-100 size-14 object-cover"
       />
       <div class="mb-3 pl-18">
         <div class="mb-1.5 space-y-0.5">
