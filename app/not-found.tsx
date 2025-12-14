@@ -98,15 +98,15 @@ export default function NotFound() {
         This page doesn't exist 😅
       </p>
       <div className="flex flex-wrap justify-center gap-4">
-        <Button asChild variant="default" size="sm">
+        <Button asChild variant="default" size="sm" className="gap-2">
           <Link href="/">
-            <Home className="h-5 w-5 mr-2" />
+            <Home className="h-5 w-5" />
             Home
           </Link>
         </Button>
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="ghost" size="sm" className="gap-2">
           <Link href="/dashboard">
-            <MessageCircle className="h-5 w-5 mr-2" />
+            <MessageCircle className="h-5 w-5" />
             Support
           </Link>
         </Button>
