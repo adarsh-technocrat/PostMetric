@@ -14,6 +14,7 @@ interface ActivityFeedProps {
   visitors: Visitor[];
   paymentEvents: PaymentEvent[];
   pageViewEvents: PageViewEvent[];
+  onVisitorClick?: (visitorId: string, userId?: string) => void;
 }
 
 function formatPaymentAmount(amount: number, currency: string = "usd"): string {
@@ -26,6 +27,7 @@ export function ActivityFeed({
   visitors,
   paymentEvents,
   pageViewEvents,
+  onVisitorClick,
 }: ActivityFeedProps) {
   // Memoize visitor names to ensure consistency across re-renders
   const visitorNames = useMemo(() => {
@@ -89,7 +91,12 @@ export function ActivityFeed({
               return (
                 <div
                   key={payment.id}
-                  className="flex items-start gap-1.5 py-1 text-xs animate-opacity cursor-default px-3 duration-100"
+                  className="flex items-start gap-1.5 py-1 text-xs animate-opacity cursor-pointer px-3 duration-100 hover:bg-gray-100"
+                  onClick={() => {
+                    if (payment.visitorId && onVisitorClick) {
+                      onVisitorClick(payment.visitorId);
+                    }
+                  }}
                 >
                   <div className="mt-0.5 shrink-0">
                     <CreditCard className="h-3.5 w-3.5 text-success" />
@@ -122,6 +129,11 @@ export function ActivityFeed({
               <div
                 key={pageView.id}
                 className="flex items-start gap-1.5 py-1 text-xs cursor-pointer px-3 duration-100 hover:bg-gray-100"
+                onClick={() => {
+                  if (onVisitorClick) {
+                    onVisitorClick(pageView.visitorId, pageView.userId);
+                  }
+                }}
               >
                 <div className="mt-0.5 shrink-0">
                   <Eye className="h-3.5 w-3.5 text-gray-600" />

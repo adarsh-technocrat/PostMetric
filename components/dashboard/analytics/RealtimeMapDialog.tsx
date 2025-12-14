@@ -45,6 +45,10 @@ export function RealtimeMapDialog({
     onViewportChange,
     mapStyle,
     mapboxToken,
+    isRotating,
+    toggleRotation,
+    focusedVisitorId,
+    focusOnVisitor,
   } = useRealtimeMap({
     open,
     websiteId,
@@ -145,10 +149,21 @@ export function RealtimeMapDialog({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
-                    title="Start auto-panning"
+                    className={`h-6 w-6 ${
+                      isRotating
+                        ? "!border-primary/10 !bg-primary/10 !text-primary"
+                        : ""
+                    }`}
+                    title={
+                      isRotating ? "Stop auto-panning" : "Start auto-panning"
+                    }
+                    onClick={toggleRotation}
                   >
-                    <RefreshCw className="h-3.5 w-3.5" />
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${
+                        isRotating ? "animate-spin" : ""
+                      }`}
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -181,12 +196,16 @@ export function RealtimeMapDialog({
                 attributionControl={false}
                 reuseMaps={true}
               >
-                {visitors.map((visitor) => (
-                  <VisitorMarker
-                    key={visitor.userId || visitor.visitorId}
-                    visitor={visitor}
-                  />
-                ))}
+                {visitors.map((visitor) => {
+                  const visitorKey = visitor.userId || visitor.visitorId;
+                  return (
+                    <VisitorMarker
+                      key={visitorKey}
+                      visitor={visitor}
+                      isFocused={focusedVisitorId === visitorKey}
+                    />
+                  );
+                })}
               </Map>
             )}
 
@@ -212,6 +231,7 @@ export function RealtimeMapDialog({
               visitors={visitors}
               paymentEvents={paymentEvents}
               pageViewEvents={pageViewEvents}
+              onVisitorClick={focusOnVisitor}
             />
           </div>
         </div>
