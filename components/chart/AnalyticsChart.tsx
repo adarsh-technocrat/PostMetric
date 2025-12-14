@@ -80,7 +80,8 @@ interface ActiveDotProps extends DotProps {
 // Custom bar shape for revenueNew (solid bars)
 function RevenueNewBarShape(props: any) {
   const { x, y, width, height, fill } = props;
-  if (!x || !y || !width || !height) return <g />;
+  if (!x || !y || !width || !height || isNaN(height) || !isFinite(height))
+    return <g />;
 
   const hasRadius = shouldHaveRadiusForNew(props);
   const radius = 4;
@@ -110,7 +111,8 @@ function RevenueNewBarShape(props: any) {
 // Custom bar shape for revenueRenewal (solid bars)
 function RevenueRenewalBarShape(props: any) {
   const { x, y, width, height, fill } = props;
-  if (!x || !y || !width || !height) return <g />;
+  if (!x || !y || !width || !height || isNaN(height) || !isFinite(height))
+    return <g />;
 
   const hasRadius = shouldHaveRadiusForRenewal(props);
   const radius = 4;
@@ -141,7 +143,8 @@ function RevenueRenewalBarShape(props: any) {
 // Custom bar shape for dashed bars (Refunds)
 function DashedBarShape(props: any) {
   const { x, y, width, height, fill } = props;
-  if (!x || !y || !width || !height) return <g />;
+  if (!x || !y || !width || !height || isNaN(height) || !isFinite(height))
+    return <g />;
 
   const borderWidth = 0.75;
   const fillOpacity = 0.35;
@@ -363,6 +366,15 @@ function AnalyticsChartComponent({
       solidLineValue = item.visitors ?? null;
     }
 
+    // Sanitize revenue values to prevent NaN
+    const sanitizeRevenue = (
+      value: number | undefined | null
+    ): number | undefined => {
+      if (value === null || value === undefined) return undefined;
+      const num = typeof value === "number" ? value : Number(value);
+      return !isNaN(num) && isFinite(num) ? num : undefined;
+    };
+
     return {
       ...item,
       isForecast,
@@ -372,6 +384,13 @@ function AnalyticsChartComponent({
         currentTimeIndex !== null && index === currentTimeIndex && itemIsToday
           ? item.visitors ?? null
           : null,
+      // Sanitize revenue values
+      revenueNew: sanitizeRevenue(item.revenueNew),
+      revenueRenewal: sanitizeRevenue(item.revenueRenewal),
+      revenueRefund: sanitizeRevenue(item.revenueRefund),
+      revenue: sanitizeRevenue(item.revenue) ?? 0,
+      revenuePerVisitor: sanitizeRevenue(item.revenuePerVisitor),
+      conversionRate: sanitizeRevenue(item.conversionRate),
     };
   });
 

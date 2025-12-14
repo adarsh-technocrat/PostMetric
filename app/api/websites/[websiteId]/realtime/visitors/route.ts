@@ -9,9 +9,12 @@ import { Types } from "mongoose";
 interface VisitorLocation {
   visitorId: string;
   sessionId: string;
+  userId?: string; // If user identification is enabled
   country: string;
   region?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
   device: string;
   browser: string;
   os: string;
@@ -82,34 +85,66 @@ export async function GET(
 
     const pathMap = new Map(latestPageViews.map((pv) => [pv._id, pv.path]));
 
-    // Format visitor data
-    const visitors: VisitorLocation[] = activeSessions.map((session) => {
-      // Generate a simple conversion score based on page views and duration
-      const conversionScore = Math.min(
-        100,
-        Math.round(
-          (session.pageViews * 10 + Math.min(session.duration / 60, 30) * 2) / 2
-        )
-      );
+    // Group sessions by visitor (prefer userId if available, otherwise visitorId)
+    // This ensures one entry per visitor, showing their most recent session
+    const visitorMap = new Map<string, (typeof activeSessions)[0]>();
 
-      return {
-        visitorId: session.visitorId,
-        sessionId: session.sessionId,
-        country: session.country,
-        region: session.region,
-        city: session.city,
-        device: session.device,
-        browser: session.browser,
-        os: session.os,
-        referrer: session.referrer,
-        referrerDomain: session.referrerDomain,
-        currentPath: pathMap.get(session.sessionId) || "/",
-        lastSeenAt: session.lastSeenAt.toISOString(),
-        pageViews: session.pageViews,
-        duration: session.duration,
-        conversionScore,
-      };
+    activeSessions.forEach((session) => {
+      // Use userId for grouping if available (for identified users),
+      // otherwise use visitorId (for anonymous visitors)
+      const groupKey = session.userId || session.visitorId;
+      const existing = visitorMap.get(groupKey);
+
+      // Keep the most recent session for each visitor
+      if (!existing || session.lastSeenAt > existing.lastSeenAt) {
+        visitorMap.set(groupKey, session);
+      }
     });
+
+    // Format visitor data (one per visitor)
+    const visitors: VisitorLocation[] = Array.from(visitorMap.values()).map(
+      (session) => {
+        // Generate a simple conversion score based on page views and duration
+        const conversionScore = Math.min(
+          100,
+          Math.round(
+            (session.pageViews * 10 + Math.min(session.duration / 60, 30) * 2) /
+              2
+          )
+        );
+
+        const currentPath = pathMap.get(session.sessionId) || "/";
+
+        // Log for debugging
+        console.log(`[Realtime] Visitor ${session.visitorId}:`, {
+          sessionId: session.sessionId,
+          currentPath,
+          pageViews: session.pageViews,
+          lastSeenAt: session.lastSeenAt.toISOString(),
+        });
+
+        return {
+          visitorId: session.visitorId,
+          sessionId: session.sessionId,
+          userId: session.userId,
+          country: session.country,
+          region: session.region,
+          city: session.city,
+          latitude: session.latitude,
+          longitude: session.longitude,
+          device: session.device,
+          browser: session.browser,
+          os: session.os,
+          referrer: session.referrer,
+          referrerDomain: session.referrerDomain,
+          currentPath,
+          lastSeenAt: session.lastSeenAt.toISOString(),
+          pageViews: session.pageViews,
+          duration: session.duration,
+          conversionScore,
+        };
+      }
+    );
 
     return NextResponse.json({ visitors });
   } catch (error: any) {

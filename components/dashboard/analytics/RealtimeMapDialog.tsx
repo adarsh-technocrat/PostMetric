@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Dialog,
@@ -16,7 +17,11 @@ import {
   generateVisitorName,
   getDeviceIcon,
   getBrowserIcon,
+  createPopupContent,
+  getAvatarUrl,
+  getConversionScoreColor,
   type Visitor,
+  getVisitorCoordinates,
 } from "@/utils/realtime-map";
 import { useRealtimeMap } from "@/hooks/use-realtime-map";
 
@@ -174,7 +179,7 @@ function ActivityFeed({ visitors }: { visitors: Visitor[] }) {
         <div className="space-y-1">
           {recentVisitors.map((visitor) => (
             <div
-              key={visitor.visitorId}
+              key={visitor.sessionId}
               className="flex items-start gap-1.5 py-1 text-xs cursor-pointer px-3 duration-100 hover:bg-zinc-600/20"
             >
               <div className="mt-0.5 shrink-0">
@@ -182,7 +187,7 @@ function ActivityFeed({ visitors }: { visitors: Visitor[] }) {
               </div>
               <div className="min-w-0 flex-1">
                 <span className="font-medium text-gray-100">
-                  {generateVisitorName(visitor.visitorId)}
+                  {generateVisitorName(visitor.visitorId, visitor.userId)}
                 </span>
                 <span> from </span>
                 <span className="inline-flex items-baseline gap-1 truncate font-medium text-gray-100">
@@ -199,7 +204,12 @@ function ActivityFeed({ visitors }: { visitors: Visitor[] }) {
                   </span>
                 </span>
                 <span> visited </span>
-                <span className="-mx-1 -my-0.5 ml-0 rounded bg-zinc-900/70 px-1 py-0.5 font-mono text-[11px]! font-medium text-gray-100 backdrop-blur-sm">
+                <span
+                  className="-mx-1 -my-0.5 ml-0 rounded bg-zinc-900/70 px-1 py-0.5 font-mono text-[11px]! font-medium text-gray-100 backdrop-blur-sm"
+                  title={`Path: ${visitor.currentPath || "/"} | Session: ${
+                    visitor.sessionId
+                  }`}
+                >
                   {visitor.currentPath || "/"}
                 </span>
                 <div className="mt-0 text-[10px] opacity-60">
@@ -214,18 +224,90 @@ function ActivityFeed({ visitors }: { visitors: Visitor[] }) {
   );
 }
 
+function VisitorMarker({ visitor }: { visitor: Visitor }) {
+  const [showPopup, setShowPopup] = useState(false);
+  const [lng, lat] = getVisitorCoordinates(visitor);
+  const visitorName = generateVisitorName(visitor.visitorId, visitor.userId);
+  const avatarUrl = getAvatarUrl(visitor.visitorId, visitor.country);
+  const scoreColor = getConversionScoreColor(visitor.conversionScore);
+
+  return (
+    <>
+      <Marker
+        longitude={lng}
+        latitude={lat}
+        anchor="bottom"
+        onClick={(e) => {
+          e.originalEvent.stopPropagation();
+          setShowPopup(true);
+        }}
+      >
+        <div className="relative cursor-pointer">
+          <div
+            className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-base-100 shadow-sm"
+            style={{ backgroundColor: scoreColor }}
+          />
+          <img
+            src={avatarUrl}
+            alt={visitorName}
+            className="rounded-full ring-1 transition-all duration-100 bg-base-200 shadow-lg ring-base-content/10 dark:ring-base-content/20 size-14 object-cover"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = `data:image/svg+xml;utf8,${encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+                  <circle cx="50" cy="50" r="50" fill="#8dcdff" />
+                  <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="40" fill="white">${visitorName
+                    .charAt(0)
+                    .toUpperCase()}</text>
+                </svg>`
+              )}`;
+            }}
+          />
+        </div>
+      </Marker>
+      {showPopup && (
+        <Popup
+          longitude={lng}
+          latitude={lat}
+          anchor="bottom"
+          onClose={() => setShowPopup(false)}
+          closeButton={true}
+          closeOnClick={true}
+          className="mapbox-popup-custom"
+          offset={25}
+        >
+          <div
+            dangerouslySetInnerHTML={{
+              __html: createPopupContent(visitor),
+            }}
+            className="min-w-[200px]"
+          />
+        </Popup>
+      )}
+    </>
+  );
+}
+
 export function RealtimeMapDialog({
   open,
   onOpenChange,
   websiteId,
   websiteName = "PostMetric",
 }: RealtimeMapDialogProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-
-  const { visitors, isLoading, isMapLoaded, progress } = useRealtimeMap({
+  const {
+    visitors,
+    isLoading,
+    isMapLoaded,
+    progress,
+    viewState,
+    onViewportChange,
+    mapStyle,
+    mapboxToken,
+  } = useRealtimeMap({
     open,
     websiteId,
-    mapContainer,
   });
 
   const handleClose = useCallback(() => {
@@ -291,10 +373,24 @@ export function RealtimeMapDialog({
               <StatsSection visitors={visitors} />
             </div>
 
-            <div
-              ref={mapContainer}
-              className="h-full w-full absolute inset-0"
-            />
+            {mapboxToken && (
+              <Map
+                {...viewState}
+                onMove={onViewportChange}
+                mapStyle={mapStyle}
+                mapboxAccessToken={mapboxToken}
+                style={{ width: "100%", height: "100%" }}
+                attributionControl={false}
+                reuseMaps={true}
+              >
+                {visitors.map((visitor) => (
+                  <VisitorMarker
+                    key={visitor.userId || visitor.visitorId}
+                    visitor={visitor}
+                  />
+                ))}
+              </Map>
+            )}
 
             {(!isMapLoaded || isLoading) && (
               <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-700/80 backdrop-blur-sm">

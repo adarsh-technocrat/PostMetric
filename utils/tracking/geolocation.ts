@@ -51,12 +51,21 @@ export async function getLocationFromIP(ip: string): Promise<LocationInfo> {
       if (data.error) {
         console.error("ipapi.co error:", data.reason);
       } else {
+        const lat =
+          typeof data.latitude === "number" && !isNaN(data.latitude)
+            ? data.latitude
+            : undefined;
+        const lon =
+          typeof data.longitude === "number" && !isNaN(data.longitude)
+            ? data.longitude
+            : undefined;
+
         return {
           country: data.country_code || "Unknown",
           region: data.region,
           city: data.city,
-          latitude: data.latitude,
-          longitude: data.longitude,
+          latitude: lat,
+          longitude: lon,
         };
       }
     }
@@ -81,12 +90,21 @@ export async function getLocationFromIP(ip: string): Promise<LocationInfo> {
         if (data.error) {
           console.error("IPStack error:", data.error.info);
         } else {
+          const lat =
+            typeof data.latitude === "number" && !isNaN(data.latitude)
+              ? data.latitude
+              : undefined;
+          const lon =
+            typeof data.longitude === "number" && !isNaN(data.longitude)
+              ? data.longitude
+              : undefined;
+
           return {
             country: data.country_code || "Unknown",
             region: data.region_name,
             city: data.city,
-            latitude: data.latitude,
-            longitude: data.longitude,
+            latitude: lat,
+            longitude: lon,
           };
         }
       }
@@ -108,12 +126,21 @@ export async function getLocationFromIP(ip: string): Promise<LocationInfo> {
     if (response.ok) {
       const data = await response.json();
       if (data.status === "success") {
+        const lat =
+          typeof data.lat === "number" && !isNaN(data.lat)
+            ? data.lat
+            : undefined;
+        const lon =
+          typeof data.lon === "number" && !isNaN(data.lon)
+            ? data.lon
+            : undefined;
+
         return {
           country: data.countryCode || "Unknown",
           region: data.regionName,
           city: data.city,
-          latitude: data.lat,
-          longitude: data.lon,
+          latitude: lat,
+          longitude: lon,
         };
       }
     }

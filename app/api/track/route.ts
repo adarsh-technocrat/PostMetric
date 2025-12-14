@@ -71,17 +71,23 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     }
 
     // Find website by tracking code (with additional domain support)
-    // Get hostname early for domain validation
-    let hostnameForValidation =
-      request.nextUrl.searchParams.get("hostname") || "unknown";
+    // Parse request body once for POST requests (can only read body once in Next.js)
+    let requestBody: any = null;
     if (method === "POST") {
       try {
-        const body = await request.json();
-        hostnameForValidation = body.hostname || hostnameForValidation;
+        requestBody = await request.json();
       } catch (e) {
         // Ignore JSON parse errors
+        requestBody = null;
       }
     }
+
+    // Get hostname early for domain validation
+    let hostnameForValidation =
+      request.nextUrl.searchParams.get("hostname") ||
+      requestBody?.hostname ||
+      "unknown";
+
     const website = await getWebsiteByTrackingCode(
       trackingCode,
       hostnameForValidation
@@ -103,25 +109,27 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     const referrer = headers.get("referer") || headers.get("referrer");
     const ip = getIPFromHeaders(headers);
 
-    // Parse request body for POST requests first (to get visitorId/sessionId if available)
-    let path = request.nextUrl.searchParams.get("path") || "/";
-    let title = request.nextUrl.searchParams.get("title") || undefined;
-    let hostname = hostnameForValidation; // Use the hostname we already extracted
-    let bodyVisitorId: string | null = null;
-    let bodySessionId: string | null = null;
+    // Extract path, title, and other data from query params or body
+    let path =
+      request.nextUrl.searchParams.get("path") || requestBody?.path || "/";
+    let title =
+      request.nextUrl.searchParams.get("title") ||
+      requestBody?.title ||
+      undefined;
+    let hostname = requestBody?.hostname || hostnameForValidation;
+    let bodyVisitorId: string | null = requestBody?.visitorId || null;
+    let bodySessionId: string | null = requestBody?.sessionId || null;
 
-    if (method === "POST") {
-      try {
-        const body = await request.json();
-        path = body.path || path;
-        title = body.title || title;
-        hostname = body.hostname || hostname;
-        bodyVisitorId = body.visitorId || null;
-        bodySessionId = body.sessionId || null;
-      } catch (e) {
-        // Ignore JSON parse errors
-      }
-    }
+    // Log path extraction for debugging
+    console.log(`[Tracking] Path extracted:`, {
+      method,
+      pathFromQuery: request.nextUrl.searchParams.get("path"),
+      pathFromBody: requestBody?.path,
+      finalPath: path,
+      hostname,
+      visitorId: bodyVisitorId,
+      sessionId: bodySessionId,
+    });
 
     // Get or generate visitor ID (prefer cookie, fallback to POST body, then generate)
     let visitorId = getVisitorIdFromCookie(cookieHeader);
@@ -167,8 +175,16 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     // Get device info
     const deviceInfo = parseUserAgent(userAgent);
 
-    // Get location (async, but we'll use default for now)
+    // Get location from IP address (IP-based geolocation is approximate, not exact GPS)
     const location = await getLocationFromIP(ip);
+
+    // Log if location data is missing (for debugging)
+
+    console.log(`[Tracking] Location for IP ${ip}:`, {
+      country: location.country,
+      city: location.city,
+      hasCoordinates: !!(location.latitude && location.longitude),
+    });
 
     // Check attack mode protections
     // Check for traffic spike and activate attack mode if needed
@@ -216,23 +232,43 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     });
 
     if (isNewSession || !session) {
-      // Create new session
-      session = new Session({
+      // Before creating a new session, check if there's an active session for this visitor
+      // This prevents duplicate sessions when cookies are lost but visitor is still active
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const existingActiveSession = await Session.findOne({
         websiteId: website._id,
-        sessionId,
         visitorId,
-        firstVisitAt: now,
-        referrer,
-        referrerDomain,
-        ...utmParams,
-        ...deviceInfo,
-        ...location,
-        pageViews: 1,
-        duration: 0,
-        bounce: true,
-        lastSeenAt: now,
-      });
-      await session.save();
+        lastSeenAt: { $gte: fiveMinutesAgo },
+      }).sort({ lastSeenAt: -1 });
+
+      if (existingActiveSession) {
+        // Reuse existing active session - keep its sessionId, just update it
+        // Update the sessionId cookie to match the existing session
+        sessionId = existingActiveSession.sessionId;
+        existingActiveSession.pageViews += 1;
+        existingActiveSession.bounce = false;
+        existingActiveSession.lastSeenAt = now;
+        await existingActiveSession.save();
+        session = existingActiveSession;
+      } else {
+        // Create new session
+        session = new Session({
+          websiteId: website._id,
+          sessionId,
+          visitorId,
+          firstVisitAt: now,
+          referrer,
+          referrerDomain,
+          ...utmParams,
+          ...deviceInfo,
+          ...location,
+          pageViews: 1,
+          duration: 0,
+          bounce: true,
+          lastSeenAt: now,
+        });
+        await session.save();
+      }
     } else {
       // Update existing session
       session.pageViews += 1;
@@ -258,6 +294,20 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     });
     await pageView.save();
 
+    // Log pageview creation for debugging
+    console.log(`[Tracking] PageView created:`, {
+      path,
+      visitorId,
+      sessionId,
+      hostname,
+      timestamp: now.toISOString(),
+    });
+
+    const protocol =
+      request.headers.get("x-forwarded-proto") ||
+      request.nextUrl.protocol.slice(0, -1); // Remove trailing ':'
+    const isSecure = protocol === "https";
+
     // Prepare response with cookies and security headers
     const response = new NextResponse(PIXEL, {
       status: 200,
@@ -273,8 +323,8 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
         "Set-Cookie": [
-          createVisitorIdCookie(visitorId),
-          createSessionIdCookie(sessionId),
+          createVisitorIdCookie(visitorId, isSecure),
+          createSessionIdCookie(sessionId, isSecure),
         ].join(", "),
       },
     });

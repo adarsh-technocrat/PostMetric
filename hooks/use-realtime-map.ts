@@ -1,36 +1,41 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import mapboxgl from "mapbox-gl";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   type Visitor,
   DEFAULT_COORDS,
-  getCountryCoordinates,
-  createMarkerElement,
-  createPopupContent,
+  getVisitorCoordinates,
 } from "@/utils/realtime-map";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+interface ViewState {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  bearing?: number;
+  pitch?: number;
+}
+
+const MAPBOX_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+  "pk.eyJ1IjoibWFyY2xvdSIsImEiOiJjbThmaGFuaG4wZm4xMmpxdHFzdW5hOW0wIn0.1dJSv-8xLT8GxVPR7nEIuw";
 
 const POLL_INTERVAL = 5000; // 5 seconds
-const INIT_MAP_DELAY = 100; // ms
 
 interface UseRealtimeMapProps {
   open: boolean;
   websiteId: string;
-  mapContainer: React.RefObject<HTMLDivElement | null>;
 }
 
-export function useRealtimeMap({
-  open,
-  websiteId,
-  mapContainer,
-}: UseRealtimeMapProps) {
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const resizeTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [viewState, setViewState] = useState<ViewState>({
+    longitude: 0, // Center on prime meridian
+    latitude: 0, // Center on equator for centered globe
+    zoom: 2.5, // Slightly zoomed in for better scale
+    bearing: 0, // Start with north up
+    pitch: 45, // 45-degree pitch for 3D globe effect
+  });
 
   const mapStyle = useMemo(() => {
     if (typeof window === "undefined") return "mapbox://styles/mapbox/dark-v11";
@@ -42,21 +47,16 @@ export function useRealtimeMap({
       : "mapbox://styles/mapbox/light-v11";
   }, []);
 
-  const handleResize = useCallback(() => {
-    if (resizeTimeoutRef.current) {
-      clearTimeout(resizeTimeoutRef.current);
-    }
-    resizeTimeoutRef.current = setTimeout(() => {
-      if (map.current) {
-        map.current.resize();
-      }
-    }, 150);
+  const onViewportChange = useCallback((evt: { viewState: ViewState }) => {
+    setViewState(evt.viewState);
   }, []);
 
   // Simulate progress for loading
   useEffect(() => {
     if (!open) {
       setProgress(0);
+      setIsMapLoaded(false);
+      setIsLoading(true);
       return;
     }
     if (isMapLoaded && !isLoading) {
@@ -74,90 +74,27 @@ export function useRealtimeMap({
     return () => clearInterval(interval);
   }, [open, isMapLoaded, isLoading]);
 
-  // Initialize map
+  // Mark map as loaded after a short delay when dialog opens
   useEffect(() => {
     if (!open) {
       setIsMapLoaded(false);
-      setProgress(0);
-      return;
-    }
-    if (!mapContainer.current || map.current) return;
-
-    if (!MAPBOX_TOKEN) {
-      console.error("Mapbox token is not configured");
       return;
     }
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    // Simulate map loading
+    const timer = setTimeout(() => {
+      setIsMapLoaded(true);
+      setProgress(95);
+    }, 500);
 
-    const initMap = () => {
-      if (!mapContainer.current || map.current) return;
+    return () => clearTimeout(timer);
+  }, [open]);
 
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: mapStyle,
-        center: DEFAULT_COORDS,
-        zoom: 2,
-        attributionControl: false,
-      });
-
-      map.current.on("load", () => {
-        map.current?.resize();
-        setIsMapLoaded(true);
-        setProgress(95); // Almost done when map loads
-      });
-
-      map.current.on("error", (e) => {
-        console.error("Mapbox error:", e);
-      });
-    };
-
-    const hasDimensions =
-      mapContainer.current.offsetWidth > 0 &&
-      mapContainer.current.offsetHeight > 0;
-
-    if (!hasDimensions) {
-      const timer = setTimeout(() => {
-        initMap();
-        window.addEventListener("resize", handleResize);
-      }, INIT_MAP_DELAY);
-
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener("resize", handleResize);
-        if (resizeTimeoutRef.current) {
-          clearTimeout(resizeTimeoutRef.current);
-        }
-        if (map.current) {
-          map.current.remove();
-          map.current = null;
-        }
-        setIsMapLoaded(false);
-      };
-    }
-
-    initMap();
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
-      }
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-      setIsMapLoaded(false);
-    };
-  }, [open, mapStyle, handleResize, mapContainer]);
-
-  // Fetch visitors - only start polling after map is loaded
+  // Fetch visitors
   useEffect(() => {
-    if (!open || !websiteId || !isMapLoaded) {
-      if (!open || !websiteId) {
-        setIsLoading(true);
-      }
+    if (!open || !websiteId) {
+      setIsLoading(true);
+      setVisitors([]);
       return;
     }
 
@@ -172,16 +109,41 @@ export function useRealtimeMap({
 
         if (response.ok) {
           const data = await response.json();
-          setVisitors(data.visitors || []);
+          // API now returns one entry per visitor (already grouped)
+          // But we still deduplicate by visitorId/userId as a safety measure
+          const visitorsList = data.visitors || [];
+
+          const visitorMap = new Map<string, Visitor>();
+          visitorsList.forEach((visitor: Visitor) => {
+            // Use userId for grouping if available, otherwise visitorId
+            const groupKey = visitor.userId || visitor.visitorId;
+            const existing = visitorMap.get(groupKey);
+            if (
+              !existing ||
+              new Date(visitor.lastSeenAt) > new Date(existing.lastSeenAt)
+            ) {
+              visitorMap.set(groupKey, visitor);
+            }
+          });
+
+          // Convert map back to array
+          const uniqueVisitors = Array.from(visitorMap.values());
+
+          setVisitors(uniqueVisitors);
+        } else {
+          console.error("Failed to fetch visitors:", response.status);
         }
         setIsLoading(false);
         setProgress(100); // Complete when visitors are loaded
       } catch (error) {
         console.error("Error fetching visitors:", error);
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
+    // Initial fetch
     fetchVisitors();
     const interval = setInterval(fetchVisitors, POLL_INTERVAL);
 
@@ -189,68 +151,72 @@ export function useRealtimeMap({
       isMounted = false;
       clearInterval(interval);
     };
-  }, [open, websiteId, isMapLoaded]);
+  }, [open, websiteId]);
 
-  // Update map markers
-  useEffect(() => {
-    if (!map.current || !visitors.length) {
-      // Clear markers if no visitors
-      if (map.current && visitors.length === 0) {
-        markers.current.forEach((marker) => marker.remove());
-        markers.current.clear();
-      }
-      return;
-    }
+  // Auto-rotate map (rotate around the globe) - DISABLED
+  // useEffect(() => {
+  //   if (!open || !isMapLoaded) return;
 
-    const updateMarkers = () => {
-      if (!map.current) return;
+  //   let rotationId: number;
+  //   let isPaused = false;
+  //   let lastInteractionTime = Date.now();
+  //   const ROTATION_SPEED = 0.05; // degrees per frame (slower rotation for smoother effect)
+  //   const PAUSE_DURATION = 3000; // 3 seconds
 
-      // Remove old markers
-      markers.current.forEach((marker) => marker.remove());
-      markers.current.clear();
+  //   const rotate = () => {
+  //     if (isPaused) {
+  //       rotationId = requestAnimationFrame(rotate);
+  //       return;
+  //     }
 
-      // Batch create markers
-      visitors.forEach((visitor) => {
-        const [lng, lat] = getCountryCoordinates(visitor.country);
-        const el = createMarkerElement(visitor);
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([lng, lat])
-          .addTo(map.current!);
+  //     setViewState((prev: ViewState) => ({
+  //       ...prev,
+  //       longitude: (prev.longitude + ROTATION_SPEED) % 360, // Rotate around the globe
+  //       bearing: prev.bearing || 0, // Keep bearing stable for globe rotation
+  //       pitch: prev.pitch || 45, // Maintain 3D pitch
+  //     }));
 
-        // Create popup with anchor to keep marker position fixed
-        const popup = new mapboxgl.Popup({
-          offset: 25,
-          closeButton: true,
-          closeOnClick: true,
-          className: "mapbox-popup-custom",
-          anchor: "bottom", // Anchor popup to bottom of marker to keep marker position fixed
-        }).setHTML(createPopupContent(visitor));
+  //     rotationId = requestAnimationFrame(rotate);
+  //   };
 
-        // Set popup on marker - this keeps the marker position intact
-        marker.setPopup(popup);
+  //   const handleInteraction = () => {
+  //     isPaused = true;
+  //     lastInteractionTime = Date.now();
 
-        markers.current.set(visitor.visitorId, marker);
-      });
-    };
+  //     const checkResume = () => {
+  //       if (Date.now() - lastInteractionTime >= PAUSE_DURATION) {
+  //         isPaused = false;
+  //       } else {
+  //         setTimeout(checkResume, 100);
+  //       }
+  //     };
 
-    if (!map.current.loaded()) {
-      const onLoad = () => {
-        updateMarkers();
-        map.current?.off("load", onLoad);
-      };
-      map.current.on("load", onLoad);
-      return () => {
-        map.current?.off("load", onLoad);
-      };
-    }
+  //     checkResume();
+  //   };
 
-    updateMarkers();
-  }, [visitors]);
+  //   rotationId = requestAnimationFrame(rotate);
+
+  //   // Pause on user interaction
+  //   window.addEventListener("mousedown", handleInteraction);
+  //   window.addEventListener("touchstart", handleInteraction);
+  //   window.addEventListener("wheel", handleInteraction);
+
+  //   return () => {
+  //     cancelAnimationFrame(rotationId);
+  //     window.removeEventListener("mousedown", handleInteraction);
+  //     window.removeEventListener("touchstart", handleInteraction);
+  //     window.removeEventListener("wheel", handleInteraction);
+  //   };
+  // }, [open, isMapLoaded]);
 
   return {
     visitors,
     isLoading,
     isMapLoaded,
     progress,
+    viewState,
+    onViewportChange,
+    mapStyle,
+    mapboxToken: MAPBOX_TOKEN,
   };
 }

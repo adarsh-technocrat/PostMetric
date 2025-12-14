@@ -40,12 +40,21 @@ export function BreakdownCard({
   chartType = "bar",
   colors = DEFAULT_COLORS,
 }: BreakdownCardProps) {
+  // Filter and sanitize data to prevent NaN values
+  const sanitizedData = data
+    .map((item) => ({
+      ...item,
+      value:
+        typeof item.value === "number" && !isNaN(item.value) ? item.value : 0,
+    }))
+    .filter((item) => item.value >= 0);
+
   const renderChart = () => {
     if (chartType === "pie") {
       return (
         <PieChart>
           <Pie
-            data={data}
+            data={sanitizedData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -56,7 +65,7 @@ export function BreakdownCard({
             fill="#8884d8"
             dataKey="value"
           >
-            {data.map((entry, index) => (
+            {sanitizedData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={colors[index % colors.length]}
@@ -70,7 +79,7 @@ export function BreakdownCard({
 
     if (chartType === "horizontalBar") {
       return (
-        <BarChart data={data} layout="vertical">
+        <BarChart data={sanitizedData} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" stroke="#ccc" opacity={0.3} />
           <XAxis type="number" stroke="#666" />
           <YAxis dataKey="name" type="category" stroke="#666" width={100} />
@@ -82,7 +91,7 @@ export function BreakdownCard({
 
     // Default vertical bar chart
     return (
-      <BarChart data={data}>
+      <BarChart data={sanitizedData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#ccc" opacity={0.3} />
         <XAxis
           dataKey="name"

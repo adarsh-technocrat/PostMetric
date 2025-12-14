@@ -51,13 +51,21 @@ export function getSessionIdFromCookie(
 /**
  * Create cookie string for visitor ID
  */
-export function createVisitorIdCookie(visitorId: string): string {
-  return `_pm_vid=${visitorId}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+export function createVisitorIdCookie(
+  visitorId: string,
+  isSecure: boolean = false
+): string {
+  const secureFlag = isSecure ? "; Secure" : "";
+  return `_pm_vid=${visitorId}; Path=/; Max-Age=31536000; SameSite=Lax${secureFlag}`;
 }
 
 /**
  * Create cookie string for session ID
  */
-export function createSessionIdCookie(sessionId: string): string {
-  return `_pm_sid=${sessionId}; Path=/; Max-Age=1800; SameSite=Lax; Secure`; // 30 minutes
+export function createSessionIdCookie(
+  sessionId: string,
+  isSecure: boolean = false
+): string {
+  const secureFlag = isSecure ? "; Secure" : "";
+  return `_pm_sid=${sessionId}; Path=/; Max-Age=1800; SameSite=Lax${secureFlag}`; // 30 minutes
 }

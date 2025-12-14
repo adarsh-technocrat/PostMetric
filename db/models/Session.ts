@@ -25,6 +25,8 @@ export interface ISession extends Document {
   country: string;
   region?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
 
   // Tracking
   pageViews: number;
@@ -120,6 +122,12 @@ const SessionSchema = new Schema<ISession>(
     },
     city: {
       type: String,
+    },
+    latitude: {
+      type: Number,
+    },
+    longitude: {
+      type: Number,
     },
     pageViews: {
       type: Number,

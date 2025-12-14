@@ -90,9 +90,12 @@ export const NOUNS = [
 export interface Visitor {
   visitorId: string;
   sessionId: string;
+  userId?: string; // If user identification is enabled
   country: string;
   region?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
   device: string;
   browser: string;
   os: string;
@@ -103,11 +106,6 @@ export interface Visitor {
   pageViews: number;
   duration: number;
   conversionScore?: number;
-}
-
-// Utility functions
-export function getCountryCoordinates(country: string): [number, number] {
-  return COUNTRY_COORDINATES[country.toUpperCase()] || DEFAULT_COORDS;
 }
 
 export function formatTimeAgo(dateString: string): string {
@@ -135,8 +133,12 @@ export function getConversionScoreColor(score?: number): string {
   return "rgb(209, 213, 219)";
 }
 
-export function generateVisitorName(visitorId: string): string {
-  const hash = visitorId
+export function generateVisitorName(
+  visitorId: string,
+  userId?: string
+): string {
+  const idToUse = userId || visitorId;
+  const hash = idToUse
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const adj = ADJECTIVES[hash % ADJECTIVES.length];
@@ -192,25 +194,65 @@ export function getConversionLikelihood(score?: number): {
   return { percentage, color, position };
 }
 
+const avatarCache = new Map<string, string>();
+
+export function getAvatarUrl(visitorId: string, country?: string): string {
+  if (avatarCache.has(visitorId)) {
+    return avatarCache.get(visitorId)!;
+  }
+
+  let hash = 0;
+  for (let i = 0; i < visitorId.length; i++) {
+    const char = visitorId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  const seed = Math.abs(hash) % 1000000;
+
+  const params = new URLSearchParams();
+  // Note: seed parameter may not be officially supported, but we'll try it
+  // If it doesn't work, we'll rely on caching
+  params.set("seed", seed.toString());
+  params.set("style", "circle");
+  params.set("width", "56");
+  params.set("height", "56");
+
+  if (country && country.length === 2) {
+    params.set("country", country.toUpperCase());
+  }
+
+  const avatarUrl = `https://avatar-kit-theta.vercel.app/api/avatar/random?${params.toString()}`;
+
+  // Cache the URL for this visitor
+  avatarCache.set(visitorId, avatarUrl);
+
+  return avatarUrl;
+}
+
 export function createMarkerElement(visitor: Visitor): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "marker-container";
   el.style.cursor = "pointer";
 
-  const color = visitor.visitorId.slice(0, 6).padEnd(6, "0");
   const scoreColor = getConversionScoreColor(visitor.conversionScore);
-  const visitorName = generateVisitorName(visitor.visitorId);
+  const visitorName = generateVisitorName(visitor.visitorId, visitor.userId);
+  const avatarUrl = getAvatarUrl(visitor.visitorId, visitor.country);
 
   el.innerHTML = `
     <div class="relative marker-inner">
       <img 
-        src="data:image/svg+xml;utf8,${encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 704" fill="none">
-            <circle cx="352" cy="352" r="350" fill="#${color}" />
-          </svg>`
-        )}" 
+        src="${avatarUrl}"
         alt="${visitorName}"
-        class="rounded-full ring-1 transition-all duration-100 bg-base-200 shadow-lg ring-base-content/10 dark:ring-base-content/20 size-14"
+        class="rounded-full ring-1 transition-all duration-100 bg-base-200 shadow-lg ring-base-content/10 dark:ring-base-content/20 size-14 object-cover"
+        loading="lazy"
+        onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,${encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="50" fill="#8dcdff" />
+            <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="40" fill="white">${visitorName
+              .charAt(0)
+              .toUpperCase()}</text>
+          </svg>`
+        )}'"
       />
       <div 
         class="absolute right-px top-px z-10 flex h-[13px] w-[13px] items-center justify-center rounded-full"
@@ -228,7 +270,7 @@ export function createMarkerElement(visitor: Visitor): HTMLDivElement {
 }
 
 export function createPopupContent(visitor: Visitor): string {
-  const visitorName = generateVisitorName(visitor.visitorId);
+  const visitorName = generateVisitorName(visitor.visitorId, visitor.userId);
   const color = visitor.visitorId.slice(0, 6).padEnd(6, "0");
   const scoreColor = getConversionScoreColor(visitor.conversionScore);
   const conversion = getConversionLikelihood(visitor.conversionScore);
@@ -416,4 +458,23 @@ export function getBrowserIcon(browser: string): string {
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
     </svg>`
   )}`;
+}
+
+export function getVisitorCoordinates(visitor: Visitor): [number, number] {
+  if (
+    visitor.latitude !== undefined &&
+    visitor.longitude !== undefined &&
+    !isNaN(visitor.latitude) &&
+    !isNaN(visitor.longitude)
+  ) {
+    return [visitor.longitude, visitor.latitude];
+  }
+
+  if (visitor.country && visitor.country !== "Unknown") {
+    const countryCoords = COUNTRY_COORDINATES[visitor.country.toUpperCase()];
+    if (countryCoords) {
+      return countryCoords;
+    }
+  }
+  return DEFAULT_COORDS;
 }
