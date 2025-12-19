@@ -1,6 +1,6 @@
 export function FeatureCards() {
   return (
-    <div className="flex flex-col lg:flex-row border-t border-stone-200 lg:divide-x divide-stone-200">
+    <div className="flex flex-col lg:flex-row border-t border-b border-stone-200 lg:divide-x divide-stone-200">
       <div className="flex flex-col border-b lg:border-b-0 lg:border-y-0 border-stone-200 flex-1">
         <div className="py-8 px-6 lg:px-10 flex flex-col gap-6">
           <div className="w-10 h-10 rounded bg-stone-100 flex items-center justify-center border border-stone-200 text-stone-700">
@@ -62,7 +62,7 @@ export function FeatureCards() {
         </div>
       </div>
 
-      <div className="flex flex-col border-b lg:border-b-0 lg:border-y-0 border-stone-200 flex-1">
+      <div className="flex flex-col border-b border-stone-200 flex-1">
         <div className="py-8 px-6 lg:px-10 flex flex-col gap-6">
           <div className="w-10 h-10 rounded bg-stone-100 flex items-center justify-center border border-stone-200 text-stone-700">
             <svg

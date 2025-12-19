@@ -16,15 +16,15 @@ export default function Home() {
     <div className="antialiased font-sans bg-stone-50">
       <div className="w-full flex flex-col items-center">
         <Navbar />
-        <div className="max-w-6xl w-full border-x border-stone-200 flex flex-col bg-transparent">
+        <div className="max-w-4xl w-full border-x border-stone-200 flex flex-col bg-transparent">
           <HeroSection />
           <DashboardPreview />
           <FeatureCards />
         </div>
-        <div className="max-w-6xl w-full border-x border-stone-200 bg-stone-50">
+        <div className="max-w-4xl w-full border-x border-stone-200 bg-stone-50">
           <IntegrationsSection />
         </div>
-        <div className="max-w-6xl w-full border-x border-stone-200 bg-transparent">
+        <div className="max-w-4xl w-full border-x border-stone-200 bg-transparent">
           <InsightsSection />
           <RevenueTrackingSection />
           <FeaturesGrid />
