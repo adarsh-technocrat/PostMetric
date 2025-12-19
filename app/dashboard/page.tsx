@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAllUserWebsites } from "@/store/slices/websitesSlice";
 import { WebsiteCard } from "@/components/dashboard/WebsiteCard";
-import { PlusIcon, XIcon, ChatIcon } from "@/components/icons";
+import { PlusIcon, XIcon } from "@/components/icons";
 
 export default function DashboardPage() {
   const [showVideo, setShowVideo] = useState(true);
@@ -26,8 +26,8 @@ export default function DashboardPage() {
 
   return (
     <>
-      <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 md:px-8 bg-background">
-        <section className="mb-6 mt-8 flex flex-col items-baseline justify-between gap-4 md:flex-row">
+      <main className="w-full max-w-4xl border-x border-stone-200 flex flex-col bg-transparent">
+        <section className="mb-6 mt-8 px-4 md:px-8 flex flex-col items-baseline justify-between gap-4 md:flex-row">
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/dashboard/new"
@@ -35,7 +35,7 @@ export default function DashboardPage() {
                 variant: "outline",
                 size: "sm",
                 className:
-                  "border-borderColor bg-white text-textPrimary hover:bg-gray-50",
+                  "border-stone-200 bg-white text-stone-800 hover:bg-stone-50",
               })}
             >
               <PlusIcon className="size-4" />
@@ -44,13 +44,13 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <div className="relative">
+        <div className="relative px-4 md:px-8 pb-32">
           {loading ? (
-            <div className="mt-8 text-center text-textSecondary">
+            <div className="mt-8 text-center text-stone-600">
               Loading websites...
             </div>
           ) : websites.length === 0 ? (
-            <div className="mt-8 text-center text-textSecondary">
+            <div className="mt-8 text-center text-stone-600">
               No websites found. Create your first website to get started.
             </div>
           ) : (
@@ -93,13 +93,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )} */}
-
-      {/* Chat Button */}
-      <div className="fixed bottom-4 right-4 z-50 md:bottom-8 md:right-8">
-        <button className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center shadow-lg transition-colors">
-          <ChatIcon className="w-6 h-6 text-white" />
-        </button>
-      </div>
     </>
   );
 }

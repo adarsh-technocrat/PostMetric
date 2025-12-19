@@ -54,7 +54,7 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
               />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-textPrimary">
+              <h3 className="text-base font-semibold text-stone-800">
                 {website.name}
               </h3>
               <div className="relative h-20">
@@ -151,8 +151,8 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
                 )}
               </div>
               <div className="flex items-center justify-start gap-2">
-                <p className="text-textSecondary text-sm">
-                  <span className="font-semibold text-textPrimary">
+                <p className="text-stone-600 text-sm">
+                  <span className="font-semibold text-stone-800">
                     <NumberFlow
                       value={totalVisitors}
                       format={{ notation: "standard" }}
