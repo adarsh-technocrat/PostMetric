@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Home, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <section className="relative flex h-screen w-full flex-col items-center justify-center gap-8 bg-base-100 p-10 text-base-content">
+    <section className="relative flex h-screen w-full flex-col items-center justify-center gap-8 bg-stone-50 p-10">
       <div className="rounded-xl p-6">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -94,22 +93,29 @@ export default function NotFound() {
           />
         </svg>
       </div>
-      <p className="text-lg font-semibold md:text-xl">
-        This page doesn't exist 😅
-      </p>
-      <div className="flex flex-wrap justify-center gap-4">
-        <Button asChild variant="embossed" size="sm" className="gap-2">
-          <Link href="/">
-            <Home className="h-5 w-5" />
-            Home
-          </Link>
-        </Button>
-        <Button asChild variant="embossed" size="sm" className="gap-2">
-          <Link href="/dashboard">
-            <MessageCircle className="h-5 w-5" />
-            Support
-          </Link>
-        </Button>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-stone-800 font-normal text-xl md:text-2xl font-cooper">
+          This page doesn't exist 😅
+        </p>
+        <p className="text-stone-500 font-normal text-sm text-center max-w-md">
+          The page you're looking for might have been moved or doesn't exist.
+        </p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link
+          href="/"
+          className="cursor-pointer box-border flex items-center justify-center gap-2 font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700 transition-all"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Link>
+        <Link
+          href="/dashboard"
+          className="cursor-pointer box-border flex items-center justify-center gap-2 font-semibold font-mono uppercase border border-stone-200 bg-white text-stone-700 px-6 py-3 rounded text-xs hover:bg-stone-50 transition-all"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Dashboard
+        </Link>
       </div>
     </section>
   );

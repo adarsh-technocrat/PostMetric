@@ -24,8 +24,8 @@ export default function DashboardPage() {
 
   return (
     <>
-      <main className="w-full max-w-4xl border-x border-stone-200 flex flex-col bg-transparent">
-        <section className="mb-6 mt-8 px-4 md:px-8 flex flex-col items-baseline justify-between gap-4 md:flex-row">
+      <main className="w-full max-w-7xl flex flex-col bg-transparent">
+        <section className="mb-6 mt-8 flex flex-col items-baseline justify-between gap-4 md:flex-row">
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/dashboard/new"

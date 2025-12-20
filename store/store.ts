@@ -23,8 +23,6 @@ export const getStore = () => {
   return storeInstance;
 };
 
-// Export store getter for backward compatibility
-// Use getStore() in Providers component instead
 export const store = getStore();
 
 export type RootState = ReturnType<ReturnType<typeof makeStore>["getState"]>;
