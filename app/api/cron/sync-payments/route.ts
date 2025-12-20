@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
-import { enqueueSyncJob, calculateNextSyncDate } from "@/utils/jobs/queue";
+import {
+  enqueueSyncJob,
+  calculateNextSyncDate,
+  dequeueSyncJob,
+  updateSyncJobStatus,
+  incrementJobRetry,
+} from "@/utils/jobs/queue";
+import { syncStripePayments } from "@/utils/integrations/stripe";
+import { getWebsiteById } from "@/utils/database/website";
 
 /**
  * POST /api/cron/sync-payments
@@ -125,12 +133,17 @@ export async function POST(request: NextRequest) {
       // TODO: Add other providers (LemonSqueezy, Polar, Paddle) when implemented
     }
 
+    // After creating sync jobs, also process pending jobs
+    const processedJobs = await processPendingJobs();
+
     return NextResponse.json({
       success: true,
       frequency,
       websitesProcessed: websites.length,
       jobsCreated: jobsCreated.length,
       jobs: jobsCreated,
+      processed: processedJobs.processed,
+      processedJobs: processedJobs.jobs,
     });
   } catch (error: any) {
     console.error("Error in cron sync-payments:", error);
@@ -141,6 +154,150 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Process pending sync jobs
+ */
+async function processPendingJobs(): Promise<{
+  processed: number;
+  jobs: Array<{ jobId: string; status: string; result?: any; error?: string }>;
+}> {
+  const processedJobs: Array<{
+    jobId: string;
+    status: string;
+    result?: any;
+    error?: string;
+  }> = [];
+
+  // Process up to 10 jobs at a time, 3 concurrently
+  const batchSize = 10;
+  const maxConcurrent = 3;
+  const jobPromises: Promise<{
+    jobId: string;
+    status: string;
+    result?: any;
+    error?: string;
+  }>[] = [];
+
+  // Dequeue jobs and create promises
+  for (let i = 0; i < batchSize; i++) {
+    const job = await dequeueSyncJob();
+
+    if (!job) {
+      break; // No more pending jobs
+    }
+
+    // Create promise for job processing
+    const jobPromise = processJob(job)
+      .then((result) => ({
+        jobId: job._id.toString(),
+        status: "completed",
+        result: result,
+      }))
+      .catch((error) => ({
+        jobId: job._id.toString(),
+        status: "failed",
+        error: error.message,
+      }));
+
+    jobPromises.push(jobPromise);
+
+    // Limit concurrent processing
+    if (jobPromises.length >= maxConcurrent) {
+      const results = await Promise.all(jobPromises);
+      processedJobs.push(...results);
+      jobPromises.length = 0; // Clear array for next batch
+    }
+  }
+
+  // Wait for remaining jobs
+  if (jobPromises.length > 0) {
+    const results = await Promise.all(jobPromises);
+    processedJobs.push(...results);
+  }
+
+  return {
+    processed: processedJobs.length,
+    jobs: processedJobs,
+  };
+}
+
+/**
+ * Process a single sync job
+ */
+async function processJob(job: any): Promise<{
+  synced: number;
+  skipped: number;
+  errors: number;
+}> {
+  try {
+    const website = await getWebsiteById(job.websiteId.toString());
+    if (!website) {
+      throw new Error(`Website not found: ${job.websiteId}`);
+    }
+
+    // Determine date range
+    const startDate =
+      job.startDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const endDate = job.endDate || new Date();
+
+    // Process based on provider
+    let result: { synced: number; skipped: number; errors: number };
+
+    switch (job.provider) {
+      case "stripe":
+        const stripeApiKey = website.paymentProviders?.stripe?.apiKey;
+        if (!stripeApiKey) {
+          throw new Error("Stripe API key not configured");
+        }
+        result = await syncStripePayments(
+          job.websiteId.toString(),
+          stripeApiKey,
+          startDate,
+          endDate
+        );
+        break;
+
+      case "lemonsqueezy":
+        // TODO: Implement LemonSqueezy sync
+        throw new Error("LemonSqueezy sync not yet implemented");
+
+      case "polar":
+        // TODO: Implement Polar sync
+        throw new Error("Polar sync not yet implemented");
+
+      case "paddle":
+        // TODO: Implement Paddle sync
+        throw new Error("Paddle sync not yet implemented");
+
+      default:
+        throw new Error(`Unsupported provider: ${job.provider}`);
+    }
+
+    // Update job status
+    await updateSyncJobStatus(job._id.toString(), "completed", result);
+
+    return result;
+  } catch (error: any) {
+    console.error(`Error processing job ${job._id}:`, error);
+
+    // Check if we should retry
+    if (job.retryCount < job.maxRetries) {
+      // Increment retry count and reset to pending
+      await incrementJobRetry(job._id.toString());
+      throw error; // Re-throw to be handled by caller
+    } else {
+      // Max retries reached, mark as failed
+      await updateSyncJobStatus(
+        job._id.toString(),
+        "failed",
+        undefined,
+        error.message
+      );
+      throw error;
+    }
   }
 }
 
