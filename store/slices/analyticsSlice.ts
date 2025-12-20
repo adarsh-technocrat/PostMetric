@@ -65,7 +65,14 @@ interface ChartDataPoint {
 
 interface BreakdownData {
   name: string;
-  value: number;
+  uv: number; // Unique visitors
+  revenue?: number; // Revenue in cents
+  image?: string; // Image URL (for system and location breakdowns)
+  flag?: string; // Flag emoji (for location breakdowns)
+  conversionRate?: number;
+  goalCount?: number;
+  goalConversionRate?: number;
+  hostname?: string; // For path breakdowns
 }
 
 interface AnalyticsState {
@@ -92,8 +99,9 @@ interface AnalyticsState {
       keyword: BreakdownData[];
     };
     path: {
-      page: BreakdownData[];
-      hostname: BreakdownData[];
+      pages: BreakdownData[];
+      hostnames: BreakdownData[];
+      entryPages: BreakdownData[];
     };
     location: {
       country: BreakdownData[];
@@ -205,12 +213,36 @@ const analyticsSlice = createSlice({
           refundedRevenue: action.payload.totalRefundedRevenue || 0,
         };
 
-        // Store breakdowns (not in new API response, set to null for now)
-        state.breakdowns = null;
+        if (action.payload.breakdowns) {
+          state.breakdowns = {
+            source: {
+              channel: action.payload.breakdowns.source?.channel || [],
+              referrer: action.payload.breakdowns.source?.referrer || [],
+              campaign: action.payload.breakdowns.source?.campaign || [],
+              keyword: action.payload.breakdowns.source?.keyword || [],
+            },
+            path: {
+              pages: action.payload.breakdowns.path?.pages || [],
+              hostnames: action.payload.breakdowns.path?.hostnames || [],
+              entryPages: action.payload.breakdowns.path?.entryPages || [],
+            },
+            location: {
+              country: action.payload.breakdowns.location?.country || [],
+              region: action.payload.breakdowns.location?.region || [],
+              city: action.payload.breakdowns.location?.city || [],
+            },
+            system: {
+              browser: action.payload.breakdowns.system?.browser || [],
+              os: action.payload.breakdowns.system?.os || [],
+              device: action.payload.breakdowns.system?.device || [],
+            },
+          };
+        } else {
+          state.breakdowns = null;
+        }
 
-        // Store current filters
         state.currentWebsiteId = action.meta.arg.websiteId;
-        state.currentStartDate = null; // Period-based, no specific dates
+        state.currentStartDate = null;
         state.currentEndDate = null;
         state.currentGranularity = action.meta.arg.granularity || "daily";
       })

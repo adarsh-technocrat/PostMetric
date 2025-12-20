@@ -13,10 +13,21 @@ import {
   Cell,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import { HorizontalStackedBarChart, MapChart } from "@/components/chart";
+import type { HorizontalStackedBarChartData } from "@/components/chart";
+import type { ChartConfig } from "@/components/ui/chart";
 
 interface BreakdownData {
   name: string;
-  value: number;
+  uv: number;
+  revenue?: number; // Revenue in cents
+  image?: string; // Image URL (for system and location breakdowns)
+  flag?: string; // Flag emoji (for location breakdowns - countries only)
+  conversionRate?: number; // Conversion rate
+  goalCount?: number; // Goal count
+  goalConversionRate?: number; // Goal conversion rate
+  hostname?: string; // For path breakdowns
+  countryCode?: string; // ISO 2-letter country code (for location breakdowns)
 }
 
 interface BreakdownCardProps {
@@ -31,6 +42,43 @@ interface BreakdownCardProps {
 
 const DEFAULT_COLORS = ["#8dcdff", "#7888b2", "#E16540", "#94a3b8", "#cbd5e1"];
 
+const generateStackedData = (
+  baseData: BreakdownData[]
+): HorizontalStackedBarChartData[] => {
+  return baseData.map((item) => {
+    const itemName = item.name || "Unknown";
+    const cleanName = itemName
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "")
+      .trim();
+
+    const iconUrl =
+      item.image ||
+      (cleanName.includes(".")
+        ? `https://icons.duckduckgo.com/ip3/${cleanName}.ico`
+        : undefined);
+
+    return {
+      name: itemName,
+      icon: iconUrl,
+      visitors: item.uv || 0,
+      revenue: item.revenue ? Math.round(item.revenue / 100) : 0, // Convert cents to dollars
+    };
+  });
+};
+
+const chartConfig: ChartConfig = {
+  visitors: {
+    label: "Visitors",
+    color: "#8dcdff",
+  },
+  revenue: {
+    label: "Revenue",
+    color: "#E16540",
+  },
+};
+
 export function BreakdownCard({
   title,
   tabs,
@@ -40,21 +88,33 @@ export function BreakdownCard({
   chartType = "bar",
   colors = DEFAULT_COLORS,
 }: BreakdownCardProps) {
-  // Filter and sanitize data to prevent NaN values
   const sanitizedData = data
     .map((item) => ({
       ...item,
-      value:
-        typeof item.value === "number" && !isNaN(item.value) ? item.value : 0,
+      uv: typeof item.uv === "number" && !isNaN(item.uv) ? item.uv : 0,
+      revenue:
+        typeof item.revenue === "number" && !isNaN(item.revenue)
+          ? item.revenue
+          : 0,
     }))
-    .filter((item) => item.value >= 0);
+    .filter((item) => item.uv >= 0);
 
   const renderChart = () => {
+    // Show map chart for Location breakdown when Map tab is selected
+    if (title === "Location" && selectedTab === "Map") {
+      return <MapChart data={sanitizedData} height="h-96" />;
+    }
+
     if (chartType === "pie") {
+      const pieData = sanitizedData.map((item) => ({
+        name: item.name || "Unknown",
+        value: item.uv || 0,
+      }));
+
       return (
         <PieChart>
           <Pie
-            data={sanitizedData}
+            data={pieData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -65,7 +125,7 @@ export function BreakdownCard({
             fill="#8884d8"
             dataKey="value"
           >
-            {sanitizedData.map((entry, index) => (
+            {pieData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={colors[index % colors.length]}
@@ -78,20 +138,33 @@ export function BreakdownCard({
     }
 
     if (chartType === "horizontalBar") {
+      const dataToUse =
+        sanitizedData.length > 0
+          ? sanitizedData
+          : [
+              { name: "Sample 1", uv: 100, revenue: 0 },
+              { name: "Sample 2", uv: 80, revenue: 0 },
+              { name: "Sample 3", uv: 60, revenue: 0 },
+            ];
+      const stackedData = generateStackedData(dataToUse);
       return (
-        <BarChart data={sanitizedData} layout="vertical">
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" opacity={0.3} />
-          <XAxis type="number" stroke="#666" />
-          <YAxis dataKey="name" type="category" stroke="#666" width={100} />
-          <Tooltip />
-          <Bar dataKey="value" fill="#8dcdff" />
-        </BarChart>
+        <HorizontalStackedBarChart
+          data={stackedData}
+          config={chartConfig}
+          height="h-96"
+          maxItems={10}
+          showCard={false}
+        />
       );
     }
 
-    // Default vertical bar chart
+    const barData = sanitizedData.map((item) => ({
+      name: item.name || "Unknown",
+      value: item.uv || 0,
+    }));
+
     return (
-      <BarChart data={sanitizedData}>
+      <BarChart data={barData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#ccc" opacity={0.3} />
         <XAxis
           dataKey="name"
@@ -154,9 +227,15 @@ export function BreakdownCard({
           </div>
         </div>
         <div className="relative h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart()}
-          </ResponsiveContainer>
+          {title === "Location" && selectedTab === "Map" ? (
+            renderChart()
+          ) : chartType === "horizontalBar" ? (
+            renderChart()
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {renderChart()}
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </section>

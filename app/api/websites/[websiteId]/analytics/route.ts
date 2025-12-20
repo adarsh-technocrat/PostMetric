@@ -5,6 +5,15 @@ import {
   getCustomersAndSalesOverTime,
   getGoalsOverTime,
   getMetrics,
+  getSourceBreakdown,
+  getPagesBreakdown,
+  getHostnamesBreakdown,
+  getEntryPagesBreakdown,
+  getLocationBreakdown,
+  getSystemBreakdown,
+  getChannelBreakdownWithReferrers,
+  getReferrersBreakdown,
+  getCampaignBreakdown,
   type Granularity,
 } from "@/utils/analytics/aggregations";
 import { getWebsiteById } from "@/utils/database/website";
@@ -169,19 +178,52 @@ export async function GET(
     // Analytics returns immediately from database
     // Sync jobs run in background and update data for next refresh
 
-    const [visitors, revenue, customersAndSales, goals, metrics] =
-      await Promise.all([
-        getVisitorsOverTime(websiteId, startDate, endDate, granularity),
-        getRevenueOverTime(websiteId, startDate, endDate, granularity),
-        getCustomersAndSalesOverTime(
-          websiteId,
-          startDate,
-          endDate,
-          granularity
-        ),
-        getGoalsOverTime(websiteId, startDate, endDate, granularity),
-        getMetrics(websiteId, startDate, endDate),
-      ]);
+    const [
+      visitors,
+      revenue,
+      customersAndSales,
+      goals,
+      metrics,
+      sourceChannel,
+      sourceReferrer,
+      sourceCampaign,
+      sourceKeyword,
+      pathPages,
+      pathHostnames,
+      pathEntryPages,
+      locationCountry,
+      locationRegion,
+      locationCity,
+      systemBrowser,
+      systemOS,
+      systemDevice,
+      channelsWithReferrers,
+    ] = await Promise.all([
+      getVisitorsOverTime(websiteId, startDate, endDate, granularity),
+      getRevenueOverTime(websiteId, startDate, endDate, granularity),
+      getCustomersAndSalesOverTime(websiteId, startDate, endDate, granularity),
+      getGoalsOverTime(websiteId, startDate, endDate, granularity),
+      getMetrics(websiteId, startDate, endDate),
+      // Source breakdowns
+      getSourceBreakdown(websiteId, startDate, endDate, "channel"),
+      getReferrersBreakdown(websiteId, startDate, endDate),
+      getCampaignBreakdown(websiteId, startDate, endDate),
+      getSourceBreakdown(websiteId, startDate, endDate, "keyword"),
+      // Path breakdowns
+      getPagesBreakdown(websiteId, startDate, endDate),
+      getHostnamesBreakdown(websiteId, startDate, endDate),
+      getEntryPagesBreakdown(websiteId, startDate, endDate),
+      // Location breakdowns
+      getLocationBreakdown(websiteId, startDate, endDate, "country"),
+      getLocationBreakdown(websiteId, startDate, endDate, "region"),
+      getLocationBreakdown(websiteId, startDate, endDate, "city"),
+      // System breakdowns
+      getSystemBreakdown(websiteId, startDate, endDate, "browser"),
+      getSystemBreakdown(websiteId, startDate, endDate, "os"),
+      getSystemBreakdown(websiteId, startDate, endDate, "device"),
+      // Channels with nested referrers
+      getChannelBreakdownWithReferrers(websiteId, startDate, endDate),
+    ]);
 
     const processedData = processDataIntoBuckets(
       visitors,
@@ -247,6 +289,30 @@ export async function GET(
       currency: "$",
       percentageChange,
       includeRenewalRevenue: true,
+      breakdowns: {
+        source: {
+          channel: sourceChannel || [],
+          referrer: sourceReferrer || [],
+          campaign: sourceCampaign || [],
+          keyword: sourceKeyword || [],
+          channels: channelsWithReferrers || [],
+        },
+        path: {
+          pages: pathPages || [],
+          hostnames: pathHostnames || [],
+          entryPages: pathEntryPages || [],
+        },
+        location: {
+          country: locationCountry || [],
+          region: locationRegion || [],
+          city: locationCity || [],
+        },
+        system: {
+          browser: systemBrowser || [],
+          os: systemOS || [],
+          device: systemDevice || [],
+        },
+      },
     };
 
     return NextResponse.json(response, { status: 200 });

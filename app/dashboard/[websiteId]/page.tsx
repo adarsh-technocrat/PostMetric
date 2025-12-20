@@ -182,7 +182,9 @@ export default function WebsiteAnalyticsPage({
             selectedTab={ui.selectedSourceTab}
             data={sourceData}
             onTabChange={setSelectedSourceTab}
-            chartType={ui.selectedSourceTab === "Channel" ? "pie" : "bar"}
+            chartType={
+              ui.selectedSourceTab === "Channel" ? "pie" : "horizontalBar"
+            }
           />
 
           <BreakdownCard
@@ -201,7 +203,9 @@ export default function WebsiteAnalyticsPage({
               selectedTab={ui.selectedLocationTab}
               data={locationData}
               onTabChange={setSelectedLocationTab}
-              chartType="bar"
+              chartType={
+                ui.selectedLocationTab === "Map" ? "bar" : "horizontalBar"
+              }
             />
           </div>
 
@@ -211,7 +215,7 @@ export default function WebsiteAnalyticsPage({
             selectedTab={ui.selectedSystemTab}
             data={systemData}
             onTabChange={setSelectedSystemTab}
-            chartType="bar"
+            chartType="horizontalBar"
           />
 
           <div className="md:col-span-2">

@@ -1,0 +1,258 @@
+"use client";
+
+import { useState } from "react";
+import { Bar, BarChart, XAxis, YAxis, LabelList } from "recharts";
+import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { Filter, ExternalLink, Link2 } from "lucide-react";
+
+export interface HorizontalStackedBarChartData {
+  name: string;
+  icon?: string | null;
+  url?: string | null;
+  [key: string]: string | number | null | undefined;
+}
+
+interface HorizontalStackedBarChartProps {
+  data: HorizontalStackedBarChartData[];
+  config: ChartConfig;
+  height?: string;
+  maxItems?: number;
+  showCard?: boolean;
+}
+
+export function HorizontalStackedBarChart({
+  data,
+  config,
+  height = "h-96",
+  maxItems = 10,
+  showCard = true,
+}: HorizontalStackedBarChartProps) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  // Get the data keys from config (excluding name, icon, url)
+  const dataKeys = Object.keys(config).filter(
+    (key) => key !== "name" && key !== "icon" && key !== "url"
+  );
+
+  // Limit data to maxItems
+  const displayData = data.slice(0, maxItems);
+
+  const getTotal = (item: HorizontalStackedBarChartData): number => {
+    return dataKeys.reduce((sum, key) => {
+      const value = item[key];
+      return sum + (typeof value === "number" ? value : 0);
+    }, 0);
+  };
+
+  const getIconUrl = (item: HorizontalStackedBarChartData): string | null => {
+    if (item.icon) return item.icon;
+
+    // Try to extract domain from name
+    const cleanName = item.name
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "")
+      .trim();
+
+    if (cleanName.includes(".")) {
+      return `https://icons.duckduckgo.com/ip3/${cleanName}.ico`;
+    }
+
+    return null;
+  };
+
+  // Determine bar color based on data key
+  // Visitor bars use the visitor line color from AnalyticsChart (#8dcdff)
+  // Revenue bars use the renewal bar color from AnalyticsChart (#E16540)
+  const getBarColor = (key: string): string => {
+    const lowerKey = key.toLowerCase();
+
+    // Check if it's a visitor-related metric
+    if (
+      lowerKey.includes("visitor") ||
+      lowerKey.includes("view") ||
+      lowerKey.includes("pageview") ||
+      lowerKey === "visitors"
+    ) {
+      return "#8dcdff"; // Visitor line color from AnalyticsChart (line 748)
+    }
+
+    // Check if it's a revenue-related metric
+    if (
+      lowerKey.includes("revenue") ||
+      lowerKey.includes("renewal") ||
+      lowerKey.includes("refund") ||
+      lowerKey.includes("payment") ||
+      lowerKey.includes("sales")
+    ) {
+      return "#E16540"; // Revenue renewal bar color from AnalyticsChart (line 728)
+    }
+
+    // Default to CSS variable if no match
+    return `var(--color-${key})`;
+  };
+
+  // Determine bar opacity based on data key
+  // Revenue bars use 0.6 opacity (same as renewal bars in AnalyticsChart)
+  // Visitor bars use full opacity (1.0)
+  const getBarOpacity = (key: string): number => {
+    const lowerKey = key.toLowerCase();
+
+    // Revenue-related metrics get reduced opacity (like renewal bars in AnalyticsChart)
+    if (
+      lowerKey.includes("revenue") ||
+      lowerKey.includes("renewal") ||
+      lowerKey.includes("refund") ||
+      lowerKey.includes("payment") ||
+      lowerKey.includes("sales")
+    ) {
+      return 0.6; // Same opacity as renewal bars in AnalyticsChart (RevenueRenewalBarShape, line 119)
+    }
+
+    return 1.0; // Full opacity for visitors and other metrics
+  };
+
+  const chartContent = (
+    <div className={`relative ${height}`}>
+      <div className="absolute right-4 top-0 flex h-full flex-col justify-around py-4 z-10">
+        {displayData.map((item, index) => {
+          const total = getTotal(item);
+          return (
+            <div
+              key={index}
+              className="relative flex items-center justify-end text-sm font-medium text-foreground"
+              style={{ height: `${100 / displayData.length}%` }}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {hoveredIndex === index && (
+                <div className="absolute right-14 z-10 flex items-center gap-1">
+                  {item.url && (
+                    <a
+                      className="flex h-7 w-7 items-center justify-center rounded bg-neutral-900/90 text-neutral-100 shadow-md ring-1 ring-white/20 backdrop-blur-sm duration-100 hover:bg-neutral-800 hover:ring-white/30"
+                      title={`Go to ${item.name}`}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="size-4 shrink-0" />
+                    </a>
+                  )}
+                  <button
+                    className="flex h-7 w-7 items-center justify-center rounded bg-neutral-900/90 text-neutral-100 shadow-md ring-1 ring-white/20 backdrop-blur-sm duration-100 hover:bg-neutral-800 hover:ring-white/30"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log(`Filter by ${item.name}`);
+                    }}
+                  >
+                    <Filter className="size-4 shrink-0" />
+                  </button>
+                </div>
+              )}
+              {total.toLocaleString()}
+            </div>
+          );
+        })}
+      </div>
+
+      <ChartContainer config={config} className={`h-full w-full ${height}`}>
+        <BarChart
+          data={displayData}
+          layout="vertical"
+          margin={{ top: 16, right: 60, bottom: 16, left: 16 }}
+          barCategoryGap="10%"
+        >
+          <XAxis type="number" hide />
+          <YAxis type="category" dataKey="name" hide />
+          {dataKeys.map((key, index) => {
+            const isFirst = index === 0;
+            const isLast = index === dataKeys.length - 1;
+            const barColor = getBarColor(key);
+            const barOpacity = getBarOpacity(key);
+            return (
+              <Bar
+                key={key}
+                dataKey={key}
+                stackId="a"
+                fill={barColor}
+                fillOpacity={barOpacity}
+                maxBarSize={30}
+                radius={
+                  isFirst && isLast
+                    ? [0, 5, 5, 0]
+                    : isFirst
+                    ? [0, 0, 0, 0]
+                    : isLast
+                    ? [0, 5, 5, 0]
+                    : [0, 0, 0, 0]
+                }
+              >
+                {isFirst && (
+                  <LabelList
+                    dataKey="name"
+                    position="insideLeft"
+                    offset={8}
+                    content={(props: any) => {
+                      const { x, y, width, height, index } = props;
+                      const item = displayData[index];
+                      const iconUrl = getIconUrl(item);
+
+                      return (
+                        <g>
+                          {/* Icon */}
+                          {iconUrl ? (
+                            <image
+                              x={x}
+                              y={y + height / 2 - 9}
+                              width={18}
+                              height={18}
+                              href={iconUrl}
+                              onError={(e: any) => {
+                                // Fallback if icon fails to load
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <foreignObject
+                              x={x}
+                              y={y + height / 2 - 9}
+                              width={18}
+                              height={18}
+                            >
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Link2 className="size-[18px] opacity-60" />
+                              </div>
+                            </foreignObject>
+                          )}
+
+                          {/* Name Label */}
+                          <text
+                            x={x + 26}
+                            y={y + height / 2}
+                            fill="currentColor"
+                            fontSize={14}
+                            dominantBaseline="middle"
+                            className="fill-foreground"
+                          >
+                            {item.name}
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
+                )}
+              </Bar>
+            );
+          })}
+        </BarChart>
+      </ChartContainer>
+    </div>
+  );
+
+  if (!showCard) {
+    return chartContent;
+  }
+
+  return <div className="w-full">{chartContent}</div>;
+}

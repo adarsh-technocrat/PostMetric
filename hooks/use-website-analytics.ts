@@ -659,11 +659,16 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     if (!analytics.breakdowns) return [];
     switch (ui.selectedPathTab) {
       case "Page":
-        return analytics.breakdowns.path.page || [];
+        return analytics.breakdowns.path.pages || [];
       case "Hostname":
-        return analytics.breakdowns.path.hostname || [];
+        return analytics.breakdowns.path.hostnames || [];
+      case "Entry page":
+        return analytics.breakdowns.path.entryPages || [];
+      case "Exit link":
+        // TODO: Implement proper exit page tracking (last page in session)
+        return analytics.breakdowns.path.pages || [];
       default:
-        return analytics.breakdowns.path.page || [];
+        return analytics.breakdowns.path.pages || [];
     }
   };
 
