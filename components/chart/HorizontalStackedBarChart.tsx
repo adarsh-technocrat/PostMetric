@@ -61,51 +61,24 @@ export function HorizontalStackedBarChart({
   // Visitor bars use the visitor line color from AnalyticsChart (#8dcdff)
   // Revenue bars use the renewal bar color from AnalyticsChart (#E16540)
   const getBarColor = (key: string): string => {
-    const lowerKey = key.toLowerCase();
-
-    // Check if it's a visitor-related metric
-    if (
-      lowerKey.includes("visitor") ||
-      lowerKey.includes("view") ||
-      lowerKey.includes("pageview") ||
-      lowerKey === "visitors"
-    ) {
-      return "#8dcdff"; // Visitor line color from AnalyticsChart (line 748)
+    if (key === "revenue") {
+      return "#E16540"; // Revenue renewal bar color from AnalyticsChart
     }
 
-    // Check if it's a revenue-related metric
-    if (
-      lowerKey.includes("revenue") ||
-      lowerKey.includes("renewal") ||
-      lowerKey.includes("refund") ||
-      lowerKey.includes("payment") ||
-      lowerKey.includes("sales")
-    ) {
-      return "#E16540"; // Revenue renewal bar color from AnalyticsChart (line 728)
+    if (key === "visitors" || key === "uv") {
+      return "#8dcdff"; // Visitor line color from AnalyticsChart
     }
 
     // Default to CSS variable if no match
     return `var(--color-${key})`;
   };
 
-  // Determine bar opacity based on data key
-  // Revenue bars use 0.6 opacity (same as renewal bars in AnalyticsChart)
-  // Visitor bars use full opacity (1.0)
   const getBarOpacity = (key: string): number => {
-    const lowerKey = key.toLowerCase();
-
-    // Revenue-related metrics get reduced opacity (like renewal bars in AnalyticsChart)
-    if (
-      lowerKey.includes("revenue") ||
-      lowerKey.includes("renewal") ||
-      lowerKey.includes("refund") ||
-      lowerKey.includes("payment") ||
-      lowerKey.includes("sales")
-    ) {
-      return 0.6; // Same opacity as renewal bars in AnalyticsChart (RevenueRenewalBarShape, line 119)
+    if (key === "revenue") {
+      return 0.6;
     }
 
-    return 1.0; // Full opacity for visitors and other metrics
+    return 1.0;
   };
 
   const chartContent = (
