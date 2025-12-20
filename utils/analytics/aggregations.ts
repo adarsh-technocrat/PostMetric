@@ -810,17 +810,44 @@ export async function getCampaignBreakdown(
       !!entry.utm_term ||
       !!entry.utm_content;
 
-    // Generate a name from the campaign parameters
-    // Priority: utm_campaign > param_ref > param_via > utm_source > "Direct"
+    // Generate a name from the campaign parameters as a query string
+    // Format: ?ref=value, ?via=value, or ?utm_source=value&utm_medium=value&...
     let name = "Direct";
+    const params: string[] = [];
+
+    // Priority order for building query string:
+    // 1. param_ref (highest priority for simple ref tracking)
+    if (entry.param_ref) {
+      params.push(`ref=${encodeURIComponent(entry.param_ref)}`);
+    }
+    // 2. param_via
+    if (entry.param_via) {
+      params.push(`via=${encodeURIComponent(entry.param_via)}`);
+    }
+    // 3. param_source
+    if (entry.param_source) {
+      params.push(`source=${encodeURIComponent(entry.param_source)}`);
+    }
+    // 4. UTM parameters (if no param_ref/via, or if UTM params exist)
+    if (entry.utm_source) {
+      params.push(`utm_source=${encodeURIComponent(entry.utm_source)}`);
+    }
+    if (entry.utm_medium) {
+      params.push(`utm_medium=${encodeURIComponent(entry.utm_medium)}`);
+    }
     if (entry.utm_campaign) {
-      name = entry.utm_campaign;
-    } else if (entry.param_ref) {
-      name = entry.param_ref;
-    } else if (entry.param_via) {
-      name = entry.param_via;
-    } else if (entry.utm_source) {
-      name = entry.utm_source;
+      params.push(`utm_campaign=${encodeURIComponent(entry.utm_campaign)}`);
+    }
+    if (entry.utm_term) {
+      params.push(`utm_term=${encodeURIComponent(entry.utm_term)}`);
+    }
+    if (entry.utm_content) {
+      params.push(`utm_content=${encodeURIComponent(entry.utm_content)}`);
+    }
+
+    // Build the query string
+    if (params.length > 0) {
+      name = `?${params.join("&")}`;
     }
 
     return {

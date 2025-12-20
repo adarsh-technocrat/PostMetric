@@ -1,14 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { Bar, BarChart, XAxis, YAxis, LabelList } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { Filter, ExternalLink, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 
 export interface HorizontalStackedBarChartData {
   name: string;
   icon?: string | null;
-  url?: string | null;
   [key: string]: string | number | null | undefined;
 }
 
@@ -27,11 +25,9 @@ export function HorizontalStackedBarChart({
   maxItems = 10,
   showCard = true,
 }: HorizontalStackedBarChartProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  // Get the data keys from config (excluding name, icon, url)
+  // Get the data keys from config (excluding name, icon)
   const dataKeys = Object.keys(config).filter(
-    (key) => key !== "name" && key !== "icon" && key !== "url"
+    (key) => key !== "name" && key !== "icon"
   );
 
   // Limit data to maxItems
@@ -122,34 +118,7 @@ export function HorizontalStackedBarChart({
               key={index}
               className="relative flex items-center justify-end text-sm font-medium text-foreground"
               style={{ height: `${100 / displayData.length}%` }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
             >
-              {hoveredIndex === index && (
-                <div className="absolute right-14 z-10 flex items-center gap-1">
-                  {item.url && (
-                    <a
-                      className="flex h-7 w-7 items-center justify-center rounded bg-neutral-900/90 text-neutral-100 shadow-md ring-1 ring-white/20 backdrop-blur-sm duration-100 hover:bg-neutral-800 hover:ring-white/30"
-                      title={`Go to ${item.name}`}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="size-4 shrink-0" />
-                    </a>
-                  )}
-                  <button
-                    className="flex h-7 w-7 items-center justify-center rounded bg-neutral-900/90 text-neutral-100 shadow-md ring-1 ring-white/20 backdrop-blur-sm duration-100 hover:bg-neutral-800 hover:ring-white/30"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log(`Filter by ${item.name}`);
-                    }}
-                  >
-                    <Filter className="size-4 shrink-0" />
-                  </button>
-                </div>
-              )}
               {total.toLocaleString()}
             </div>
           );
@@ -170,6 +139,7 @@ export function HorizontalStackedBarChart({
             const isLast = index === dataKeys.length - 1;
             const barColor = getBarColor(key);
             const barOpacity = getBarOpacity(key);
+            const radius = 4;
             return (
               <Bar
                 key={key}
@@ -179,13 +149,9 @@ export function HorizontalStackedBarChart({
                 fillOpacity={barOpacity}
                 maxBarSize={30}
                 radius={
-                  isFirst && isLast
-                    ? [0, 5, 5, 0]
-                    : isFirst
-                    ? [0, 0, 0, 0]
-                    : isLast
-                    ? [0, 5, 5, 0]
-                    : [0, 0, 0, 0]
+                  isLast
+                    ? [0, radius, radius, 0] // Rounded on right side (top-right and bottom-right)
+                    : [0, 0, 0, 0] // No radius for bars that aren't the rightmost
                 }
               >
                 {isFirst && (
@@ -197,7 +163,25 @@ export function HorizontalStackedBarChart({
                       const { x, y, width, height, index } = props;
                       const item = displayData[index];
                       const iconUrl = getIconUrl(item);
+                      const isCampaignLabel = item.name?.startsWith("?");
+                      if (isCampaignLabel) {
+                        return (
+                          <g>
+                            <text
+                              x={x + 8}
+                              y={y + height / 2}
+                              fill="currentColor"
+                              fontSize={14}
+                              dominantBaseline="middle"
+                              className="fill-foreground"
+                            >
+                              {item.name}
+                            </text>
+                          </g>
+                        );
+                      }
 
+                      // Regular label rendering for non-campaign data
                       return (
                         <g>
                           {/* Icon */}
