@@ -176,9 +176,40 @@ export async function PUT(
         await unregisterPaymentProviderSync(websiteId, "stripe");
       }
 
-      // If a new Stripe key is added, register periodic sync jobs
       if (isNewStripeKey && paymentProviders?.stripe?.apiKey) {
         await registerPaymentProviderSync(websiteId, "stripe");
+
+        // Trigger immediate job processing in the background (fire and forget)
+        // This ensures payments start syncing as soon as the key is added
+        const getBaseUrl = () => {
+          // Use NEXT_PUBLIC_APP_URL if set (production)
+          if (process.env.NEXT_PUBLIC_APP_URL) {
+            return process.env.NEXT_PUBLIC_APP_URL;
+          }
+          // Use VERCEL_URL for Vercel deployments
+          if (process.env.VERCEL_URL) {
+            return `https://${process.env.VERCEL_URL}`;
+          }
+          // Fallback to localhost for development
+          return "http://localhost:3000";
+        };
+
+        const baseUrl = getBaseUrl();
+
+        // Process jobs asynchronously - don't wait for response
+        fetch(`${baseUrl}/api/jobs/process`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(process.env.CRON_SECRET && {
+              Authorization: `Bearer ${process.env.CRON_SECRET}`,
+            }),
+          },
+          body: JSON.stringify({ batchSize: 5, maxConcurrent: 2 }),
+        }).catch((err) => {
+          // Silently fail - this is a background operation
+          console.error("Failed to trigger immediate job processing:", err);
+        });
       }
     } catch (error) {
       // Log but don't fail the request - job registration is non-critical

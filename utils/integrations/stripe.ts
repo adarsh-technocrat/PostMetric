@@ -119,8 +119,17 @@ class StripePaymentSyncer {
     const paymentIntents: Stripe.PaymentIntent[] = [];
     let hasMore = true;
     let startingAfter: string | undefined = undefined;
+    let requestCount = 0;
+    const RATE_LIMIT_DELAY_MS = 100; // 100ms delay = max 10 requests per second
 
     while (hasMore) {
+      // Add delay between requests to respect rate limits (except for first request)
+      if (requestCount > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, RATE_LIMIT_DELAY_MS)
+        );
+      }
+
       const params = new URLSearchParams();
       params.append("limit", "100");
       params.append("expand[]", "data.invoice");
@@ -148,6 +157,17 @@ class StripePaymentSyncer {
         },
       });
 
+      if (response.status === 429) {
+        const retryAfter = response.headers.get("Retry-After");
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000; // Default 2 seconds
+
+        console.warn(
+          `Rate limit hit for website ${this.websiteId}, waiting ${waitTime}ms before retry`
+        );
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        continue; // Retry the same request
+      }
+
       if (!response.ok) {
         throw new Error(
           `Stripe API error: ${response.status} ${response.statusText}`
@@ -160,6 +180,8 @@ class StripePaymentSyncer {
       if (data.data.length > 0) {
         startingAfter = data.data[data.data.length - 1].id;
       }
+
+      requestCount++;
     }
 
     return paymentIntents;
@@ -201,6 +223,9 @@ class StripePaymentSyncer {
           `[DEBUG] Invoice not expanded for payment intent ${paymentIntent.id}, retrieving invoice ${invoice}`
         );
         try {
+          // Add small delay to respect rate limits when retrieving invoices
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
           expandedInvoice = await this.stripe.invoices.retrieve(invoice, {
             expand: ["subscription"],
           });
@@ -209,11 +234,19 @@ class StripePaymentSyncer {
               expandedInvoice.billing_reason || "N/A"
             }`
           );
-        } catch (error) {
-          console.warn(
-            `Could not retrieve invoice ${invoice} for payment intent ${paymentIntent.id}:`,
-            error
-          );
+        } catch (error: any) {
+          // Handle rate limiting
+          if (error.type === "StripeRateLimitError") {
+            console.warn(
+              `Rate limit hit while retrieving invoice ${invoice}, will retry later`
+            );
+            // Don't throw - we'll continue without the invoice data
+          } else {
+            console.warn(
+              `Could not retrieve invoice ${invoice} for payment intent ${paymentIntent.id}:`,
+              error
+            );
+          }
         }
       }
     } else {
@@ -346,8 +379,19 @@ class StripePaymentSyncer {
     const refunds: Stripe.Refund[] = [];
     let hasMore = true;
     let startingAfter: string | undefined = undefined;
+    let requestCount = 0;
+
+    // Rate limiting: Add delay between requests
+    const RATE_LIMIT_DELAY_MS = 100;
 
     while (hasMore) {
+      // Add delay between requests to respect rate limits (except for first request)
+      if (requestCount > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, RATE_LIMIT_DELAY_MS)
+        );
+      }
+
       const params: Stripe.RefundListParams = {
         limit: 100,
       };
@@ -360,12 +404,28 @@ class StripePaymentSyncer {
       params.created.gte = Math.floor(this.startDate.getTime() / 1000);
       params.created.lte = Math.floor(this.endDate.getTime() / 1000);
 
-      const response = await this.stripe.refunds.list(params);
+      try {
+        const response = await this.stripe.refunds.list(params);
 
-      refunds.push(...response.data);
-      hasMore = response.has_more;
-      if (response.data.length > 0) {
-        startingAfter = response.data[response.data.length - 1].id;
+        refunds.push(...response.data);
+        hasMore = response.has_more;
+        if (response.data.length > 0) {
+          startingAfter = response.data[response.data.length - 1].id;
+        }
+        requestCount++;
+      } catch (error: any) {
+        // Handle rate limiting
+        if (error.type === "StripeRateLimitError") {
+          const retryAfter = error.headers?.["retry-after"] || "2";
+          const waitTime = parseInt(retryAfter) * 1000;
+
+          console.warn(
+            `Rate limit hit for refunds sync (website ${this.websiteId}), waiting ${waitTime}ms`
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          continue; // Retry the same request
+        }
+        throw error; // Re-throw other errors
       }
     }
 
@@ -395,6 +455,9 @@ class StripePaymentSyncer {
 
     if (refund.charge) {
       try {
+        // Add small delay to respect rate limits
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         const charge = await this.stripe.charges.retrieve(
           refund.charge as string,
           { expand: ["customer"] }
@@ -421,6 +484,9 @@ class StripePaymentSyncer {
 
     if (!customerEmail && refund.payment_intent) {
       try {
+        // Add small delay to respect rate limits
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         const paymentIntent = await this.stripe.paymentIntents.retrieve(
           refund.payment_intent as string
         );
