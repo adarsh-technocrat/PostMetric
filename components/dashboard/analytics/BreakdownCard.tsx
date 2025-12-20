@@ -181,8 +181,8 @@ export function BreakdownCard({
   };
 
   return (
-    <section className="custom-card" id={title}>
-      <div>
+    <section className="custom-card w-full max-w-full" id={title}>
+      <div className="w-full">
         <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-textPrimary/5 px-1 py-1">
           <div className="flex items-baseline gap-0">
             <div role="tablist" className="tabs tabs-sm ml-1">
@@ -226,11 +226,11 @@ export function BreakdownCard({
             </Button>
           </div>
         </div>
-        <div className="relative h-96">
+        <div className="relative h-96 w-full max-w-full overflow-hidden">
           {title === "Location" && selectedTab === "Map" ? (
-            renderChart()
+            <div className="w-full h-full max-w-full">{renderChart()}</div>
           ) : chartType === "horizontalBar" ? (
-            renderChart()
+            <div className="w-full h-full max-w-full">{renderChart()}</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {renderChart()}

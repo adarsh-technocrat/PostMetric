@@ -254,7 +254,7 @@ export function GeneralSettings({
               Allow localhost debugging{" "}
               <span
                 className="group -m-1 cursor-pointer p-1 inline-flex items-center"
-                title="DataFast does not set the cookie on localhost to avoid polluting your own data. To override this for debugging, check this box."
+                title="Postmetric does not set the cookie on localhost to avoid polluting your own data. To override this for debugging, check this box."
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -317,7 +317,7 @@ export function GeneralSettings({
             />
             <div className="flex justify-between items-top">
               <p className="text-xs text-textSecondary">
-                Your public DataFast ID is{" "}
+                Your public Postmetric ID is{" "}
                 <span className="link-hover link font-medium text-base-content">
                   {trackingCode}
                 </span>

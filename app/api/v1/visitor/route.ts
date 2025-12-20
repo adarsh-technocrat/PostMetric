@@ -7,7 +7,7 @@ import PageView from "@/db/models/PageView";
 /**
  * GET /api/v1/visitor
  * Get visitor data using API key authentication
- * Based on DataFast API: https://datafa.st/docs/api-introduction
+ * Based on Postmetric API: https://postmetric.com/docs/api-introduction
  */
 export async function GET(request: NextRequest) {
   try {

@@ -424,7 +424,7 @@ export function RevenueSettings({
                       <div className="text-sm text-textSecondary leading-relaxed pl-5">
                         Create a{" "}
                         <a
-                          href="https://dashboard.stripe.com/apikeys/create?name=DataFast&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_customer_read&permissions%5B%5D=rak_payment_intent_read&permissions%5B%5D=rak_checkout_session_read&permissions%5B%5D=rak_invoice_read&permissions%5B%5D=rak_webhook_write"
+                          href="https://dashboard.stripe.com/apikeys/create?name=Postmetric&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_customer_read&permissions%5B%5D=rak_payment_intent_read&permissions%5B%5D=rak_checkout_session_read&permissions%5B%5D=rak_invoice_read&permissions%5B%5D=rak_webhook_write"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="group link text-base-content hover:text-primary inline-flex items-center gap-1"

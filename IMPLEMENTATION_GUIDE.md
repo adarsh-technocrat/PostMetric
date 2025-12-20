@@ -1,4 +1,4 @@
-# DataFast Clone - Implementation Guide
+# Postmetric Clone - Implementation Guide
 
 ## What We've Built So Far
 
@@ -85,13 +85,13 @@ All models include proper indexing for performance optimization.
 
 ```javascript
 // Basic tracking
-datafast("track", "pageview", { path: "/page" });
+postmetric("track", "pageview", { path: "/page" });
 
 // Custom goal
-datafast("track", "goal", { event: "button_click", value: 100 });
+postmetric("track", "goal", { event: "button_click", value: 100 });
 
 // User identification
-datafast("identify", { userId: "user123", email: "user@example.com" });
+postmetric("identify", { userId: "user123", email: "user@example.com" });
 ```
 
 #### 1.3 Utility Functions
@@ -348,7 +348,7 @@ async function linkPaymentToVisitor(payment, websiteId) {
 Update tracking script to support:
 
 ```javascript
-datafast("track", "goal", {
+postmetric("track", "goal", {
   event: "button_click",
   value: 100, // optional
 });
@@ -514,7 +514,7 @@ pnpm add -D @types/ua-parser-js
 
 ## Resources
 
-- [DataFast Documentation](https://datafa.st/docs)
+- [Postmetric Documentation](https://postmetric.com/docs)
 - [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
 - [MongoDB Aggregation](https://www.mongodb.com/docs/manual/aggregation/)
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)

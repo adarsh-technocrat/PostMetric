@@ -135,7 +135,7 @@ export function APISettings({
               target="_blank"
               className="link text-base-content"
             >
-              DataFast API
+              Postmetric API
             </Link>
           </CardDescription>
         </CardHeader>

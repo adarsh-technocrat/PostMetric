@@ -5,7 +5,7 @@ import { trackGoalEvent } from "@/utils/database/goal";
 /**
  * POST /api/v1/goal
  * Create a custom goal event using API key authentication
- * Based on DataFast API: https://datafa.st/docs/api-introduction
+ * Based on Postmetric API: https://postmetric.com/docs/api-introduction
  */
 export async function POST(request: NextRequest) {
   try {

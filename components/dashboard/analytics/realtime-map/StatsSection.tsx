@@ -86,7 +86,7 @@ export function StatsSection({ visitors, websiteName }: StatsSectionProps) {
               }}
             />
             <a
-              href={`https://${topReferrer.name}?ref=datafast-realtime-map`}
+              href={`https://${topReferrer.name}?ref=postmetric-realtime-map`}
               target="_blank"
               rel="noopener noreferrer"
               className="max-w-[150px] truncate font-semibold hover:underline"

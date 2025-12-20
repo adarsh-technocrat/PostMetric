@@ -11,7 +11,7 @@ export function TestimonialsSection() {
             Loved by data-driven teams
           </h2>
           <p className="text-stone-500 font-normal text-base lg:text-lg leading-relaxed max-w-xl">
-            Join thousands of founders and marketers who rely on DataFast to
+            Join thousands of founders and marketers who rely on Postmetric to
             make better decisions every day.
           </p>
         </div>
@@ -45,7 +45,7 @@ export function TestimonialsSection() {
           <div className="absolute bottom-0 left-0 w-full p-6 lg:p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-20">
             <div className="flex flex-col gap-2">
               <p className="text-white font-cooper text-xl lg:text-2xl leading-tight">
-                "DataFast completely changed how we allocate our marketing
+                "Postmetric completely changed how we allocate our marketing
                 budget. The ROI tracking is insane."
               </p>
               <div className="flex items-center gap-3 mt-2">
@@ -201,7 +201,7 @@ export function TestimonialsSection() {
               </svg>
             </div>
             <p className="text-stone-600 text-sm leading-6 font-medium">
-              "I've tried every analytics tool out there. DataFast is the only
+              "I've tried every analytics tool out there. Postmetric is the only
               one that gives me the data I need without the headache. It's built
               for makers, not data scientists."
             </p>
@@ -263,4 +263,3 @@ export function TestimonialsSection() {
     </div>
   );
 }
-

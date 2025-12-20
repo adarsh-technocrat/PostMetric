@@ -73,7 +73,7 @@ export function HorizontalStackedBarChart({
   };
 
   const chartContent = (
-    <div className={`relative ${height}`}>
+    <div className={`relative w-full max-w-full ${height}`}>
       <div className="absolute right-4 top-0 flex h-full flex-col justify-around py-4 z-10">
         {displayData.map((item, index) => {
           const total = getTotal(item);
@@ -89,7 +89,10 @@ export function HorizontalStackedBarChart({
         })}
       </div>
 
-      <ChartContainer config={config} className={`h-full w-full ${height}`}>
+      <ChartContainer
+        config={config}
+        className={`h-full w-full max-w-full ${height}`}
+      >
         <BarChart
           data={displayData}
           layout="vertical"
@@ -202,5 +205,5 @@ export function HorizontalStackedBarChart({
     return chartContent;
   }
 
-  return <div className="w-full">{chartContent}</div>;
+  return <div className="w-full max-w-full">{chartContent}</div>;
 }

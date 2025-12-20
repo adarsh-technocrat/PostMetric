@@ -77,7 +77,7 @@ export default function WebsiteAnalyticsPage({
 
   return (
     <>
-      <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 md:px-8 bg-background">
+      <main className="mx-auto min-h-screen max-w-7xl pb-32">
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center mt-6">
           <div className="flex w-full flex-col items-center gap-4 sm:flex-row">
             <WebsiteSelector websiteId={websiteId} website={website} />
@@ -122,9 +122,9 @@ export default function WebsiteAnalyticsPage({
         </section>
 
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 min-w-0">
             <div className="flex flex-col gap-4 lg:flex-row">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <WaitingForEventsBanner
                   chartData={chartData}
                   loading={analytics.loading}
@@ -154,8 +154,7 @@ export default function WebsiteAnalyticsPage({
                     }
                   />
 
-                  {/* Chart */}
-                  <div className="px-4 pb-4">
+                  <div className="pb-4">
                     <AnalyticsChart
                       data={chartData}
                       showMentions={ui.showMentionsOnChart}
@@ -176,27 +175,31 @@ export default function WebsiteAnalyticsPage({
             </div>
           </div>
 
-          <BreakdownCard
-            title="Source"
-            tabs={["Channel", "Referrer", "Campaign", "Keyword"] as const}
-            selectedTab={ui.selectedSourceTab}
-            data={sourceData}
-            onTabChange={setSelectedSourceTab}
-            chartType={
-              ui.selectedSourceTab === "Channel" ? "pie" : "horizontalBar"
-            }
-          />
+          <div className="min-w-0">
+            <BreakdownCard
+              title="Source"
+              tabs={["Channel", "Referrer", "Campaign", "Keyword"] as const}
+              selectedTab={ui.selectedSourceTab}
+              data={sourceData}
+              onTabChange={setSelectedSourceTab}
+              chartType={
+                ui.selectedSourceTab === "Channel" ? "pie" : "horizontalBar"
+              }
+            />
+          </div>
 
-          <BreakdownCard
-            title="Path"
-            tabs={["Hostname", "Page", "Entry page", "Exit link"] as const}
-            selectedTab={ui.selectedPathTab}
-            data={pathData}
-            onTabChange={setSelectedPathTab}
-            chartType="horizontalBar"
-          />
+          <div className="min-w-0">
+            <BreakdownCard
+              title="Path"
+              tabs={["Hostname", "Page", "Entry page", "Exit link"] as const}
+              selectedTab={ui.selectedPathTab}
+              data={pathData}
+              onTabChange={setSelectedPathTab}
+              chartType="horizontalBar"
+            />
+          </div>
 
-          <div ref={locationCardRef}>
+          <div ref={locationCardRef} className="min-w-0">
             <BreakdownCard
               title="Location"
               tabs={["Map", "Country", "Region", "City"] as const}
@@ -209,14 +212,16 @@ export default function WebsiteAnalyticsPage({
             />
           </div>
 
-          <BreakdownCard
-            title="System"
-            tabs={["Browser", "OS", "Device"] as const}
-            selectedTab={ui.selectedSystemTab}
-            data={systemData}
-            onTabChange={setSelectedSystemTab}
-            chartType="horizontalBar"
-          />
+          <div className="min-w-0">
+            <BreakdownCard
+              title="System"
+              tabs={["Browser", "OS", "Device"] as const}
+              selectedTab={ui.selectedSystemTab}
+              data={systemData}
+              onTabChange={setSelectedSystemTab}
+              chartType="horizontalBar"
+            />
+          </div>
 
           <div className="md:col-span-2">
             <GoalsCard

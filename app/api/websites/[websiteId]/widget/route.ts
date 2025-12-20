@@ -6,7 +6,7 @@ import { getVisitorsNow } from "@/utils/analytics/aggregations";
 /**
  * GET /api/websites/[websiteId]/widget
  * Generate widget iframe HTML for real-time visitor count
- * Based on DataFast widget: https://datafa.st/docs/api-introduction
+ * Based on Postmetric widget: https://postmetric.com/docs/api-introduction
  */
 export async function GET(
   request: NextRequest,

@@ -38,12 +38,14 @@ export function WidgetsSettings({
   const generateEmbedCode = () => {
     const iframeCode = `<iframe
   src="${
-    typeof window !== "undefined" ? window.location.origin : "https://datafa.st"
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://postmetric.com"
   }${widgetUrl}"
   style="background: transparent !important; border: none; width: 100%; height: 180px;"
   frameborder="0"
   allowtransparency="true"
-  title="DataFast Widget"
+  title="Postmetric Widget"
   loading="lazy"
 ></iframe>`;
 
@@ -122,7 +124,7 @@ export function WidgetsSettings({
                   className="w-full max-w-full bg-transparent! min-w-0"
                 >
                   <iframe
-                    title="DataFast Widget"
+                    title="Postmetric Widget"
                     className="h-[400px] w-full max-w-full"
                     src={widgetUrl}
                   />

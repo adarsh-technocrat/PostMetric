@@ -8,20 +8,20 @@ import { NavItem } from "./NavItem";
 import { NavSection } from "./NavSection";
 import { SidebarWebsiteSelector } from "./WebsiteSelector";
 import {
-  DashboardIcon,
-  InsightsIcon,
-  ExportIcon,
-  CampaignIcon,
-  FunnelIcon,
-  AlertIcon,
-  ApiIcon,
-  IntegrationIcon,
-  SettingsIcon,
-  CommandIcon,
-  DocumentationIcon,
-  ChartBarIcon,
-  TrendingUpIcon,
-} from "@/components/icons";
+  LayoutDashboard,
+  Sparkles,
+  Download,
+  Megaphone,
+  Filter,
+  Bell,
+  Code,
+  Plug,
+  Settings,
+  Command,
+  Book,
+  BarChart3,
+  TrendingUp,
+} from "lucide-react";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { generateUserAvatar } from "@/lib/avatar";
@@ -113,7 +113,10 @@ export function Sidebar() {
         <nav className="flex flex-col gap-6">
           <div className="flex flex-col gap-6 items-stretch">
             <SidebarWebsiteSelector />
-            <NavItem href="/dashboard" icon={<DashboardIcon />}>
+            <NavItem
+              href="/dashboard"
+              icon={<LayoutDashboard className="w-[18px] h-[18px]" />}
+            >
               Dashboard
             </NavItem>
 
@@ -123,13 +126,13 @@ export function Sidebar() {
                 <NavSection title="Analytics" color="amber">
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}`}
-                    icon={<ChartBarIcon />}
+                    icon={<BarChart3 className="w-[18px] h-[18px]" />}
                   >
                     Analytics
                   </NavItem>
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}?insights=true`}
-                    icon={<InsightsIcon />}
+                    icon={<Sparkles className="w-[18px] h-[18px]" />}
                     onClick={() => {
                       console.log("AI Insights feature coming soon");
                     }}
@@ -138,7 +141,7 @@ export function Sidebar() {
                   </NavItem>
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}/export`}
-                    icon={<ExportIcon />}
+                    icon={<Download className="w-[18px] h-[18px]" />}
                   >
                     Export & Reports
                   </NavItem>
@@ -146,19 +149,19 @@ export function Sidebar() {
                 <NavSection title="Growth" color="rose">
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}/campaigns`}
-                    icon={<CampaignIcon />}
+                    icon={<Megaphone className="w-[18px] h-[18px]" />}
                   >
                     Campaigns
                   </NavItem>
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}/funnels`}
-                    icon={<FunnelIcon />}
+                    icon={<Filter className="w-[18px] h-[18px]" />}
                   >
                     Funnels
                   </NavItem>
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}/roi`}
-                    icon={<TrendingUpIcon />}
+                    icon={<TrendingUp className="w-[18px] h-[18px]" />}
                   >
                     Marketing ROI
                   </NavItem>
@@ -168,22 +171,28 @@ export function Sidebar() {
 
             {/* Global sections - always visible */}
             <NavSection title="Tools & Settings" color="lime">
-              <NavItem href="/dashboard/alerts" icon={<AlertIcon />}>
+              <NavItem
+                href="/dashboard/alerts"
+                icon={<Bell className="w-[18px] h-[18px]" />}
+              >
                 Alerts & Notifications
               </NavItem>
-              <NavItem href="/dashboard/api-keys" icon={<ApiIcon />}>
+              <NavItem
+                href="/dashboard/api-keys"
+                icon={<Code className="w-[18px] h-[18px]" />}
+              >
                 API Keys
               </NavItem>
               <NavItem
                 href="/dashboard/integrations"
-                icon={<IntegrationIcon />}
+                icon={<Plug className="w-[18px] h-[18px]" />}
               >
                 Integrations
               </NavItem>
               {hasWebsiteSelected ? (
                 <NavItem
                   href={`/dashboard/${currentWebsiteId}/settings`}
-                  icon={<SettingsIcon />}
+                  icon={<Settings className="w-[18px] h-[18px]" />}
                   badge={
                     <span className="text-lime-700 font-semibold text-[10px] px-2 py-0.5 rounded-md text-center uppercase leading-3.5 bg-lime-100">
                       New
@@ -195,7 +204,7 @@ export function Sidebar() {
               ) : (
                 <NavItem
                   href="/dashboard/settings"
-                  icon={<SettingsIcon />}
+                  icon={<Settings className="w-[18px] h-[18px]" />}
                   badge={
                     <span className="text-lime-700 font-semibold text-[10px] px-2 py-0.5 rounded-md text-center uppercase leading-3.5 bg-lime-100">
                       New
@@ -217,7 +226,7 @@ export function Sidebar() {
             }}
           >
             <div className="flex items-center gap-3.5 grow">
-              <CommandIcon />
+              <Command className="w-4 h-4" />
               <p className="text-stone-500 font-medium text-sm group-hover:text-stone-800 lowercase">
                 CMD + K
               </p>
@@ -230,7 +239,7 @@ export function Sidebar() {
             href="https://docs.postmetric.com"
           >
             <div className="flex items-center gap-3.5 grow">
-              <DocumentationIcon />
+              <Book className="w-[18px] h-[18px]" />
               <p className="text-stone-500 font-medium text-sm group-hover:text-stone-800">
                 Documentation
               </p>
