@@ -251,6 +251,45 @@ export function TestimonialsSection() {
             0:45
           </div>
         </div>
+        <div className="bg-white p-6 lg:p-8 border border-stone-200 flex flex-col justify-between gap-6 hover:border-stone-300 transition-colors">
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-1 text-brand-600">
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+            </div>
+            <p className="text-stone-600 text-sm leading-6">
+              "The real-time analytics and clean dashboard make it so easy to
+              see what's working. Best investment we've made for our marketing
+              team."
+            </p>
+          </div>
+          <div className="flex items-center gap-3 pt-4 border-t border-stone-100">
+            <img
+              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces"
+              alt="User"
+              className="w-8 h-8 rounded-full bg-stone-100"
+            />
+            <div className="flex flex-col">
+              <span className="text-stone-900 font-mono text-xs font-bold uppercase">
+                Rachel Kim
+              </span>
+              <span className="text-stone-500 text-xs">Marketing Director</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* CTA Footer */}
