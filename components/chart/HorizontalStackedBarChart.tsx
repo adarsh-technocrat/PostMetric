@@ -57,20 +57,11 @@ export function HorizontalStackedBarChart({
     return null;
   };
 
-  // Determine bar color based on data key
-  // Visitor bars use the visitor line color from AnalyticsChart (#8dcdff)
-  // Revenue bars use the renewal bar color from AnalyticsChart (#E16540)
   const getBarColor = (key: string): string => {
     if (key === "revenue") {
-      return "#E16540"; // Revenue renewal bar color from AnalyticsChart
+      return "#E16540";
     }
-
-    if (key === "visitors" || key === "uv") {
-      return "#8dcdff"; // Visitor line color from AnalyticsChart
-    }
-
-    // Default to CSS variable if no match
-    return `var(--color-${key})`;
+    return "#8dcdff";
   };
 
   const getBarOpacity = (key: string): number => {
