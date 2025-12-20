@@ -63,10 +63,8 @@ export function ActivityFeed({
     }
   }, [paymentEvents]);
 
-  // Memoize visitor names to ensure consistency across re-renders
   const visitorNames = useMemo(() => {
     const nameMap = new Map<string, string>();
-    // Get names from visitors
     visitors.forEach((visitor) => {
       const key = visitor.userId || visitor.visitorId;
       if (!nameMap.has(key)) {

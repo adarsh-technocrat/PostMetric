@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAllUserWebsites } from "@/store/slices/websitesSlice";
 import { WebsiteCard } from "@/components/dashboard/WebsiteCard";
-import { PlusIcon, XIcon } from "@/components/icons";
+import { PlusIcon } from "@/components/icons";
 
 export default function DashboardPage() {
-  const [showVideo, setShowVideo] = useState(true);
   const dispatch = useAppDispatch();
   const websites = useAppSelector((state) => state.websites.websites) as Array<{
     _id: string;
@@ -22,7 +20,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     dispatch(fetchAllUserWebsites());
-  }, [dispatch]);
+  }, []);
 
   return (
     <>

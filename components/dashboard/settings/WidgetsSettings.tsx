@@ -57,7 +57,7 @@ export function WidgetsSettings({
   };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 min-w-0 overflow-x-hidden">
       <div className="custom-card">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-1.5">
@@ -76,7 +76,7 @@ export function WidgetsSettings({
 
       {enabled && (
         <>
-          <div className="custom-card relative overflow-hidden bg-base-200">
+          <div className="custom-card relative overflow-hidden bg-base-200 min-w-0 max-w-full">
             <div
               className="absolute inset-0 text-base-content opacity-[0.08]"
               style={{
@@ -116,11 +116,14 @@ export function WidgetsSettings({
                   Chart
                 </button>
               </div>
-              <div className="flex items-center justify-center p-6">
-                <div data-theme={theme} className="w-full bg-transparent!">
+              <div className="flex items-center justify-center p-6 min-w-0">
+                <div
+                  data-theme={theme}
+                  className="w-full max-w-full bg-transparent! min-w-0"
+                >
                   <iframe
                     title="DataFast Widget"
-                    className="h-[400px] w-full"
+                    className="h-[400px] w-full max-w-full"
                     src={widgetUrl}
                   />
                 </div>
@@ -128,13 +131,13 @@ export function WidgetsSettings({
             </div>
           </div>
 
-          <div className="custom-card">
+          <div className="custom-card min-w-0 max-w-full overflow-hidden">
             <div className="custom-card-head">
               <h3 className="custom-card-title">Embed code</h3>
             </div>
-            <div className="custom-card-body space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="space-y-2">
+            <div className="custom-card-body space-y-4 min-w-0 overflow-hidden">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3 min-w-0">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-base-secondary text-xs font-medium">
                     Revenue color
                   </Label>
@@ -145,7 +148,7 @@ export function WidgetsSettings({
                     className="input input-sm h-8 w-full cursor-pointer rounded-md p-0 [&::-moz-color-swatch]:rounded-md [&::-moz-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-base-secondary text-xs font-medium">
                     Visitors color
                   </Label>
@@ -156,7 +159,7 @@ export function WidgetsSettings({
                     className="input input-sm h-8 w-full cursor-pointer rounded-md p-0 [&::-moz-color-swatch]:rounded-md [&::-moz-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-base-secondary text-xs font-medium">
                     Theme
                   </Label>
@@ -171,13 +174,13 @@ export function WidgetsSettings({
                   </select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-base-secondary text-sm">
+              <div className="space-y-2 min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between min-w-0">
+                  <p className="text-base-secondary text-sm min-w-0 truncate">
                     Add this snippet to your website:
                   </p>
                   <select
-                    className="select select-xs border-base-content/10"
+                    className="select select-xs border-base-content/10 shrink-0"
                     value={codeFormat}
                     onChange={(e) =>
                       setCodeFormat(e.target.value as "html" | "jsx")
@@ -187,11 +190,13 @@ export function WidgetsSettings({
                     <option value="jsx">JSX</option>
                   </select>
                 </div>
-                <CodeBlock
-                  code={generateEmbedCode()}
-                  language={codeFormat === "jsx" ? "jsx" : "markup"}
-                  showCopyButton={true}
-                />
+                <div className="min-w-0 max-w-full overflow-hidden">
+                  <CodeBlock
+                    code={generateEmbedCode()}
+                    language={codeFormat === "jsx" ? "jsx" : "markup"}
+                    showCopyButton={true}
+                  />
+                </div>
               </div>
             </div>
           </div>

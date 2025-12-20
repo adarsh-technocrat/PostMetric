@@ -2,100 +2,94 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { formatTrialPeriod } from "@/lib/config";
 
 export default function BillingPage() {
-  const [eventsRange, setEventsRange] = useState(9);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly"
   );
+  const [selectedVolume, setSelectedVolume] = useState("10K");
 
-  const eventsOptions = [
-    "10k",
-    "100k",
-    "200k",
-    "500k",
-    "1M",
-    "2M",
-    "5M",
-    "7M",
-    "10M",
-    "10M+",
-  ];
-
-  const currentEvents = eventsOptions[eventsRange];
-  const eventsValue =
-    eventsRange === 9
-      ? "10M+"
-      : eventsRange === 0
-      ? "10k"
-      : eventsOptions[eventsRange];
-
-  // Pricing structure based on events range
-  // Starter plan: $9/month for 10k, scaling up
-  // Growth plan: $19/month for 10k, scaling up
-  const getPricing = (eventsRange: number) => {
     const baseStarterMonthly = 9;
     const baseGrowthMonthly = 19;
 
-    // Pricing multipliers based on events range
-    const multipliers = [
-      1, // 10k - base price
-      1.5, // 100k
-      2, // 200k
-      3, // 500k
-      4, // 1M
-      5, // 2M
-      6, // 5M
-      7, // 7M
-      8, // 10M
-      10, // 10M+
-    ];
+  const starterMonthly = baseStarterMonthly;
+  const growthMonthly = baseGrowthMonthly;
+  const starterYearly = starterMonthly * 10;
+  const growthYearly = growthMonthly * 10;
 
-    const multiplier = multipliers[eventsRange] || 1;
-    const starterMonthly = Math.round(baseStarterMonthly * multiplier);
-    const growthMonthly = Math.round(baseGrowthMonthly * multiplier);
-
-    return {
-      starterMonthly,
-      growthMonthly,
-      starterYearly: starterMonthly * 10, // 2 months free (10 months)
-      growthYearly: growthMonthly * 10, // 2 months free (10 months)
-    };
-  };
-
-  const pricing = getPricing(eventsRange);
   const starterPrice =
-    billingPeriod === "monthly"
-      ? pricing.starterMonthly
-      : pricing.starterYearly;
+    billingPeriod === "monthly" ? starterMonthly : starterYearly;
   const growthPrice =
-    billingPeriod === "monthly" ? pricing.growthMonthly : pricing.growthYearly;
+    billingPeriod === "monthly" ? growthMonthly : growthYearly;
 
-  // Calculate savings for yearly plans
-  const starterYearlySavings =
-    pricing.starterMonthly * 12 - pricing.starterYearly;
-  const growthYearlySavings = pricing.growthMonthly * 12 - pricing.growthYearly;
+  const starterYearlySavings = starterMonthly * 12 - starterYearly;
+  const growthYearlySavings = growthMonthly * 12 - growthYearly;
 
-  const daysLeft = 8; // This would come from props or API
+  const plans = [
+    {
+      name: "Starter",
+      price: starterPrice,
+      monthlyPrice: starterMonthly,
+      yearlySavings: starterYearlySavings,
+      eventLimit: "10k monthly events",
+      features: [
+        { text: "10k monthly events", included: true },
+        { text: "1 website", included: true },
+        { text: "1 team member", included: true },
+        { text: "3 years of data retention", included: true },
+        { text: "Mentions and link attribution for 𝕏", included: false },
+      ],
+      buttonText: "Get Started",
+      buttonLink: "/dashboard/new",
+      priceId: "price_1PjYvqEIeBR5XIjfRwXlMnGp",
+      isPopular: false,
+    },
+    {
+      name: "Growth",
+      price: growthPrice,
+      monthlyPrice: growthMonthly,
+      yearlySavings: growthYearlySavings,
+      eventLimit: "10k monthly events",
+      features: [
+        { text: "10k monthly events", included: true },
+        { text: "30 websites", included: true },
+        { text: "30 team members", included: true },
+        { text: "5+ years of data retention", included: true },
+        { text: "Mentions and link attribution for 𝕏", included: true },
+      ],
+      buttonText: "Get Started",
+      buttonLink: "/dashboard/new",
+      priceId: "price_1SImzbEIeBR5XIjf7IqKjV6D",
+      isPopular: true,
+    },
+  ];
+
+  const volumes = [
+    "1K",
+    "5K",
+    "10K",
+    "25K",
+    "50K",
+    "75K",
+    "100K",
+    "250K",
+    "500K",
+    "750K",
+    "1M",
+    "1M+",
+  ];
 
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-8 md:px-8">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-4xl">
+        {/* Back Button */}
         <section className="mb-12 space-y-3">
           <Link
             href="/dashboard"
@@ -118,73 +112,128 @@ export default function BillingPage() {
           <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
         </section>
 
-        <section>
-          <section className="space-y-8">
-            {/* Pricing Controls */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-1 items-center gap-2 md:gap-3">
-                  <span className="text-base-secondary shrink-0 cursor-pointer select-none text-xs md:text-sm">
-                    10k
-                  </span>
-                  <div className="relative flex flex-1 items-center">
-                    <input
-                      min="0"
-                      max="9"
-                      step="1"
-                      className="range h-2 w-full cursor-pointer"
-                      id="events-range"
-                      type="range"
-                      value={eventsRange}
-                      onChange={(e) => setEventsRange(Number(e.target.value))}
-                      name="events-range"
-                    />
-                    <div
-                      className="pointer-events-none absolute -top-10 left-1/2 z-50 -translate-x-1/2 transform"
-                      style={{
-                        left: `clamp(30px, ${((eventsRange / 9) * 100).toFixed(
-                          0
-                        )}%, calc(100% - 30px))`,
-                      }}
-                    >
-                      <div className="whitespace-nowrap rounded-md bg-neutral px-2 py-1 text-center text-xs text-neutral-content shadow-lg dark:bg-base-content dark:text-base-100">
-                        <span className="font-semibold">{eventsValue}</span>{" "}
-                        monthly events
+        <div className="flex flex-col w-full items-center">
+          <div className="flex flex-col w-full">
+            {/* Header */}
+            <div className="py-6 px-4 lg:px-20 lg:py-20 flex flex-col gap-6 items-center pb-20">
+              <div className="flex flex-col gap-3 items-center">
+                <h1 className="font-cooper text-[28px] lg:text-[40px] leading-8 lg:leading-tight text-center text-balance text-stone-800">
+                  Simple, transparent pricing
+                </h1>
+                <h2 className="text-center text-balance lg:whitespace-pre-line whitespace-normal leading-6 text-stone-500 text-base lg:text-lg">
+                  Pay only for what you use. No hidden fees, no surprises.
+                  <br className="md:block hidden" />
+                  Start free and scale as you grow.
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center w-full gap-6">
+              <div className="flex flex-col items-center gap-10 w-full">
+                <div className="flex flex-col items-center gap-10 w-full">
+                  <div className="flex flex-col gap-10 w-full md:px-6 px-4">
+                    {/* Volume Selector - Desktop */}
+                    <div className="lg:flex flex-col items-center gap-4 w-full hidden">
+                      <div className="flex flex-col items-center gap-1">
+                        <p className="text-stone-500 font-normal text-xs">
+                          Select your monthly event volume
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center w-full">
+                        <div className="grid grid-cols-12 w-full justify-around relative isolate">
+                          {volumes.map((volume) => (
+                            <button
+                              key={volume}
+                              onClick={() => setSelectedVolume(volume)}
+                              className="relative flex flex-col items-center justify-items-start cursor-pointer group gap-1 w-full"
+                            >
+                              <p
+                                className={`text-xs transition-colors duration-200 leading-5 ${
+                                  selectedVolume === volume
+                                    ? "text-brand-600 font-semibold scale-110"
+                                    : "text-stone-500 group-hover:text-brand-600 font-normal group-hover:font-medium"
+                                }`}
+                              >
+                                {volume}
+                              </p>
+                              <div className="flex items-center justify-center h-6">
+                                <div
+                                  className={`w-0.5 transition-all duration-200 ${
+                                    selectedVolume === volume
+                                      ? "bg-brand-600 h-6"
+                                      : "bg-stone-400 group-hover:bg-brand-600 group-hover:scale-y-120 h-3"
+                                  }`}
+                                ></div>
+                              </div>
+                            </button>
+                          ))}
+                          <div className="w-full absolute bottom-2.5 -z-10">
+                            <div className="h-0.5 bg-stone-200 w-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Volume Selector - Mobile */}
+                    <div className="flex flex-col gap-4 lg:hidden">
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                        <p className="text-stone-800 font-medium text-sm">
+                          Monthly events
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={selectedVolume}
+                            onChange={(e) => setSelectedVolume(e.target.value)}
+                            className="w-full py-1.5 min-h-9 outline-none text-sm rounded-lg border border-stone-300 px-3 bg-white focus:border-brand-500 transition-all duration-100"
+                          >
+                            <option value="1K">1,000</option>
+                            <option value="5K">5,000</option>
+                            <option value="10K">10,000</option>
+                            <option value="25K">25,000</option>
+                            <option value="50K">50,000</option>
+                            <option value="75K">75,000</option>
+                            <option value="100K">100,000</option>
+                            <option value="250K">250,000</option>
+                            <option value="500K">500,000</option>
+                            <option value="750K">750,000</option>
+                            <option value="1M">1,000,000</option>
+                            <option value="1M+">1,000,000+</option>
+                          </select>
                       </div>
                     </div>
                   </div>
-                  <span className="text-base-secondary shrink-0 cursor-pointer select-none text-xs md:text-sm">
-                    10M+
-                  </span>
                 </div>
-                <div className="relative flex shrink-0 items-center justify-end">
-                  <div className="relative grid grid-cols-2 rounded-lg bg-neutral/5 p-1 shadow-inner dark:bg-neutral/50">
+
+                  {/* Billing Period Toggle */}
+                  <div className="flex items-center justify-center w-full px-4 md:px-6">
+                    <div className="relative inline-flex items-center rounded border border-stone-200 bg-stone-50 p-1">
                     <button
                       onClick={() => setBillingPeriod("monthly")}
-                      className={`flex cursor-pointer select-none items-center justify-center gap-1 truncate rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded ${
                         billingPeriod === "monthly"
-                          ? "bg-base-100 shadow-sm"
-                          : "text-base-content/70"
+                            ? "bg-white text-stone-800"
+                            : "text-stone-500"
                       }`}
                     >
                       Monthly
                     </button>
                     <button
                       onClick={() => setBillingPeriod("yearly")}
-                      className={`flex cursor-pointer select-none items-center justify-center gap-1 truncate rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded ${
                         billingPeriod === "yearly"
-                          ? "bg-base-100 shadow-sm"
-                          : "text-base-content/70"
+                            ? "bg-white text-stone-800"
+                            : "text-stone-500"
                       }`}
                     >
                       Yearly
                     </button>
-                    <div className="absolute -top-6 right-0 flex -translate-y-full items-center gap-1.5">
-                      <span className="whitespace-nowrap text-xs font-medium text-primary">
+                      {billingPeriod === "yearly" && (
+                        <div className="absolute -top-8 right-0 flex items-center gap-1.5">
+                          <span className="whitespace-nowrap text-xs font-medium text-stone-600">
                         2 months free
                       </span>
                       <svg
-                        className="h-5 w-5 fill-primary opacity-60 md:h-6 md:w-6"
+                            className="h-5 w-5 fill-stone-600 opacity-60"
                         style={{ transform: "rotate(32deg) scaleX(-1)" }}
                         viewBox="0 0 219 41"
                         fill="none"
@@ -200,384 +249,138 @@ export default function BillingPage() {
                         </defs>
                       </svg>
                     </div>
+                      )}
+              </div>
+            </div>
+
+                  {/* Pricing Plans */}
+                  <div className="flex flex-col w-full items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 max-w-full w-full border-b border-t border-stone-200">
+                      {plans.map((plan, index) => (
+                        <div
+                          key={plan.name}
+                          className={`flex flex-col w-full ${
+                            index === 0
+                              ? "border-r border-stone-200"
+                              : "border-none border-stone-200"
+                          }`}
+                        >
+                          <div className="px-4 md:px-6 py-3 flex items-center justify-between bg-stone-0 border-b border-stone-200">
+                            <p className="text-stone-800 font-semibold text-sm font-mono uppercase">
+                              {plan.name}
+                              <br className="sm:hidden" />
+                            </p>
+                          </div>
+                          <div className="flex md:flex-row flex-col gap-2 md:items-center py-5 bg-stone-0 md:py-10 px-4 md:px-6">
+                            <p className="font-light text-[40px] font-mono text-stone-800">
+                              ${plan.price}
+                            </p>
+                            <div className="flex flex-col gap-0.5">
+                              <p className="text-stone-800 font-semibold text-sm font-mono uppercase">
+                                per month
+                              </p>
+                              <p className="text-stone-800 font-normal text-xs">
+                                <span className="hidden md:inline">
+                                  {plan.eventLimit}
+                            </span>
+                                <br className="md:hidden" />
+                                <span className="md:hidden">{plan.eventLimit}</span>
+                          </p>
+                        </div>
+                      </div>
+                          <div className="w-full">
+                            <Link
+                              href={plan.buttonLink}
+                              className={`w-full md:px-6 group px-4 py-3 h-11 flex items-center justify-center font-semibold transition-all ${
+                                plan.isPopular
+                                  ? "bg-brand-500 hover:bg-brand-600 text-white"
+                                  : "bg-stone-800 hover:bg-stone-900 text-white"
+                              }`}
+                              data-postmetric-goal="checkout_button_clicked"
+                              data-postmetric-goal-price-id={plan.priceId}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="font-mono uppercase text-xs text-white">
+                                  {plan.buttonText}
+                                </span>
+                                <svg
+                                  width="16"
+                                  height="16"
+                          viewBox="0 0 16 16"
+                                  fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                                  className="text-white"
+                        >
+                          <path
+                                    d="M6 12L10 8L6 4"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                          />
+                        </svg>
+                    </div>
+                            </Link>
+                  </div>
+                          <div className="flex flex-col gap-3 py-6 px-4 md:px-6">
+                            {index === 1 ? (
+                              <p className="text-lime-600 font-semibold text-sm">
+                                Everything in Starter, plus:
+                              </p>
+                            ) : (
+                              <p className="text-stone-800 font-semibold text-sm">
+                                What's included:
+                            </p>
+                          )}
+                            {plan.features.map((feature, featureIndex) => (
+                              <div
+                                key={featureIndex}
+                                className="flex items-center gap-2"
+                              >
+                                <span
+                                  className={
+                                    feature.included
+                                      ? "text-brand-500"
+                                      : "text-stone-200"
+                                  }
+                                >
+                                  <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                                      d="M16.6667 5L7.50004 14.1667L3.33337 10"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                          />
+                        </svg>
+                        </span>
+                                <p
+                                  className={
+                                    feature.included
+                                      ? "text-stone-800 font-normal text-sm"
+                                      : "text-stone-500 font-normal text-sm"
+                                  }
+                                >
+                                  {feature.text}
+                      </p>
+                    </div>
+                            ))}
+                  </div>
+              </div>
+                      ))}
+            </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Pricing Cards */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Starter Plan */}
-              <div className="rounded-[1.3rem] border border-base-content/5 bg-neutral/5 p-1.5 dark:bg-neutral/50">
-                <Card className="custom-card relative flex h-full flex-col p-6 sm:p-8">
-                  <div className="flex flex-1 flex-col space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-base-secondary text-sm font-medium uppercase tracking-wider">
-                        Starter
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <p className="text-4xl font-extrabold tracking-tight">
-                            $0
-                          </p>
-                          <p className="text-base-secondary text-sm leading-tight">
-                            then{" "}
-                            <span className="font-semibold text-base-content">
-                              ${starterPrice}
-                            </span>
-                            {billingPeriod === "monthly" ? "/month" : "/year"}{" "}
-                            in{" "}
-                            <span className="font-semibold text-base-content">
-                              {daysLeft}
-                            </span>{" "}
-                            days
-                          </p>
-                        </div>
-                        {billingPeriod === "yearly" &&
-                          starterYearlySavings > 0 && (
-                            <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
-                                className="size-4"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Save ${starterYearlySavings}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                    <ul className="flex-1 space-y-2.5 text-sm">
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-primary opacity-80"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium text-base-content">
-                            {eventsValue}
-                          </span>{" "}
-                          monthly{" "}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help border-b border-dashed border-base-content/30 transition-colors hover:border-primary">
-                                  events
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  Events are pageviews, payments, and goals you
-                                  track. Counted across all your websites
-                                  combined.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">1</span> website
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">1</span> team member
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">3</span> years of data
-                          retention
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/30"
-                        >
-                          <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                        </svg>
-                        <span className="leading-relaxed text-base-content/60">
-                          Mentions and link attribution for 𝕏
-                        </span>
-                      </li>
-                    </ul>
-                    <div className="mt-auto space-y-2">
-                      <Button
-                        className="w-full"
-                        data-postmetric-goal="checkout_button_clicked"
-                        data-postmetric-goal-price-id="price_1PjYvqEIeBR5XIjfRwXlMnGp"
-                      >
-                        Pick Starter plan
-                      </Button>
-                      <p className="text-center text-xs text-muted-foreground">
-                        No charge until your free trial ends in{" "}
-                        <span className="font-medium text-foreground">
-                          {daysLeft}
-                        </span>{" "}
-                        days
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Growth Plan */}
-              <div className="rounded-[1.3rem] border border-base-content/5 bg-neutral/5 p-1.5 dark:bg-neutral/50">
-                <Card className="custom-card relative flex h-full flex-col p-6 sm:p-8">
-                  <div className="flex flex-1 flex-col space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-base-secondary text-sm font-medium uppercase tracking-wider">
-                        Growth
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <p className="text-4xl font-extrabold tracking-tight">
-                            $0
-                          </p>
-                          <p className="text-base-secondary text-sm leading-tight">
-                            then{" "}
-                            <span className="font-semibold text-base-content">
-                              ${growthPrice}
-                            </span>
-                            {billingPeriod === "monthly" ? "/month" : "/year"}{" "}
-                            in{" "}
-                            <span className="font-semibold text-base-content">
-                              {daysLeft}
-                            </span>{" "}
-                            days
-                          </p>
-                        </div>
-                        {billingPeriod === "yearly" &&
-                          growthYearlySavings > 0 && (
-                            <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
-                                className="size-4"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Save ${growthYearlySavings}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                    <ul className="flex-1 space-y-2.5 text-sm">
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-primary opacity-80"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium text-base-content">
-                            {eventsValue}
-                          </span>{" "}
-                          monthly{" "}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help border-b border-dashed border-base-content/30 transition-colors hover:border-primary">
-                                  events
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  Events are pageviews, payments, and goals you
-                                  track. Counted across all your websites
-                                  combined.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">30</span> websites
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">30</span> team members
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <span className="font-medium">5+</span> years of data
-                          retention
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-base-content/60"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="leading-relaxed">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help border-b border-dashed border-base-content/30 transition-colors hover:border-primary">
-                                  Mentions
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>See who talks about your brand on 𝕏</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>{" "}
-                          and{" "}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help border-b border-dashed border-base-content/30 transition-colors hover:border-primary">
-                                  link attribution
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  Find exact 𝕏 post URLs that brought traffic
-                                  and revenue to your site (not just t.co links)
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>{" "}
-                          for 𝕏
-                        </span>
-                      </li>
-                    </ul>
-                    <div className="mt-auto space-y-2">
-                      <Button
-                        className="w-full"
-                        data-postmetric-goal="checkout_button_clicked"
-                        data-postmetric-goal-price-id="price_1SImzbEIeBR5XIjf7IqKjV6D"
-                      >
-                        Pick Growth plan
-                      </Button>
-                      <p className="text-center text-xs text-muted-foreground">
-                        No charge until your free trial ends in{" "}
-                        <span className="font-medium text-foreground">
-                          {daysLeft}
-                        </span>{" "}
-                        days
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-          </section>
+          </div>
+        </div>
 
           {/* FAQ Section */}
           <section className="mt-24 rounded-lg bg-muted/30 py-12" id="faq">
@@ -976,7 +779,6 @@ export default function BillingPage() {
                 </AccordionItem>
               </Accordion>
             </div>
-          </section>
         </section>
       </div>
     </div>
