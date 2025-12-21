@@ -21,6 +21,7 @@ import {
   createRoundedTopRectPath,
 } from "@/utils/analytics/chart";
 import { NotesIcon } from "@/components/icons";
+import { AnalyticsChartShimmer } from "@/components/shimmer";
 
 export interface Mention {
   text: string;
@@ -254,6 +255,7 @@ interface AnalyticsChartProps {
   onMentionClick?: (data: ChartDataPoint) => void;
   onNoteClick?: (data: ChartDataPoint) => void;
   height?: string;
+  loading?: boolean;
 }
 
 function AnalyticsChartComponent({
@@ -265,8 +267,19 @@ function AnalyticsChartComponent({
   onMentionClick,
   onNoteClick,
   height = "h-72 md:h-96",
+  loading = false,
 }: AnalyticsChartProps) {
   const [showMentionsOnChart, setShowMentionsOnChart] = useState(showMentions);
+
+  // Show shimmer when loading
+  if (loading) {
+    return <AnalyticsChartShimmer height={height} />;
+  }
+
+  // Show nothing when there's no data
+  if (!data || data.length === 0) {
+    return null;
+  }
 
   const calculateDomainMax = (dataMax: number): number => {
     if (dataMax <= 0) {
@@ -434,7 +447,7 @@ function AnalyticsChartComponent({
                 <div
                   className="w-3 h-3 rounded-sm"
                   style={{
-                    backgroundColor: "#8dcdff",
+                    backgroundColor: "rgb(87, 83, 78)",
                   }}
                 ></div>
                 <span className="text-textSecondary">Visitors</span>
@@ -621,9 +634,13 @@ function AnalyticsChartComponent({
         >
           <defs>
             <linearGradient id="visitorGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7888b2" stopOpacity={0.4} />
-              <stop offset="40%" stopColor="#7888b2" stopOpacity={0.1} />
-              <stop offset="100%" stopColor="#7888b2" stopOpacity={0} />
+              <stop offset="0%" stopColor="rgb(87, 83, 78)" stopOpacity={0.4} />
+              <stop
+                offset="40%"
+                stopColor="rgb(87, 83, 78)"
+                stopOpacity={0.1}
+              />
+              <stop offset="100%" stopColor="rgb(87, 83, 78)" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -745,7 +762,7 @@ function AnalyticsChartComponent({
             yAxisId="left"
             type="monotone"
             dataKey="solidLineValue"
-            stroke="#8dcdff"
+            stroke="rgb(87, 83, 78)"
             strokeWidth={2.5}
             strokeLinecap="round"
             isAnimationActive={true}
@@ -810,12 +827,12 @@ function ChartDot({
   ) {
     return (
       <g>
-        <circle cx={cx} cy={cy} r={4} fill="#8dcdff" />
+        <circle cx={cx} cy={cy} r={4} fill="rgb(87, 83, 78)" />
         <circle
           cx={cx}
           cy={cy}
           r={7}
-          fill="#8dcdff"
+          fill="rgb(87, 83, 78)"
           className="animate-pulse"
           opacity={0.3}
         />
@@ -837,7 +854,7 @@ function ChartDot({
           cy={cy}
           r={12}
           fill="white"
-          stroke="#8dcdff"
+          stroke="rgb(87, 83, 78)"
           strokeWidth={2}
         />
         {profileMentions.length > 0
@@ -860,7 +877,7 @@ function ChartDot({
                     cy={cy + offsetY}
                     r={avatarRadius + 2}
                     fill="white"
-                    stroke="#8dcdff"
+                    stroke="rgb(87, 83, 78)"
                     strokeWidth={2}
                   />
                   <circle

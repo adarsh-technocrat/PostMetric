@@ -129,7 +129,7 @@ export function VisitorPopupContent({ visitor }: VisitorPopupContentProps) {
                 className="absolute inset-0 overflow-hidden rounded-full"
                 style={{
                   background:
-                    "linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(139, 183, 253) 35%, rgb(209, 213, 219) 50%, rgb(253, 186, 116) 65%, rgb(239, 68, 68) 100%)",
+                    "linear-gradient(90deg, rgb(214, 211, 209) 0%, rgb(168, 162, 158) 35%, rgb(120, 113, 108) 50%, rgb(87, 83, 78) 65%, rgb(28, 25, 23) 100%)",
                 }}
               />
               <div

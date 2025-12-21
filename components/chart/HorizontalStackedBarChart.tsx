@@ -61,7 +61,7 @@ export function HorizontalStackedBarChart({
     if (key === "revenue") {
       return "#E16540";
     }
-    return "#8dcdff";
+    return "rgb(87, 83, 78)";
   };
 
   const getBarOpacity = (key: string): number => {
@@ -69,7 +69,24 @@ export function HorizontalStackedBarChart({
       return 0.6;
     }
 
-    return 1.0;
+    return 0.75;
+  };
+
+  const truncateText = (
+    text: string,
+    maxWidth: number,
+    fontSize: number = 14
+  ): string => {
+    if (!text) return "";
+    // Approximate character width (roughly 0.6 * fontSize for most characters)
+    const avgCharWidth = fontSize * 0.6;
+    const maxChars = Math.floor((maxWidth - 12) / avgCharWidth); // -12 for ellipsis padding
+
+    if (text.length <= maxChars) {
+      return text;
+    }
+
+    return text.substring(0, maxChars - 3) + "...";
   };
 
   const chartContent = (
@@ -131,6 +148,11 @@ export function HorizontalStackedBarChart({
                       const item = displayData[index];
                       const iconUrl = getIconUrl(item);
                       const isCampaignLabel = item.name?.startsWith("?");
+                      const availableWidth = width - 8; // Leave some padding
+                      const truncatedCampaignName = isCampaignLabel
+                        ? truncateText(item.name || "", availableWidth)
+                        : item.name;
+
                       if (isCampaignLabel) {
                         return (
                           <g>
@@ -142,7 +164,7 @@ export function HorizontalStackedBarChart({
                               dominantBaseline="middle"
                               className="fill-foreground"
                             >
-                              {item.name}
+                              {truncatedCampaignName}
                             </text>
                           </g>
                         );
@@ -177,16 +199,17 @@ export function HorizontalStackedBarChart({
                             </foreignObject>
                           )}
 
-                          {/* Name Label */}
                           <text
                             x={x + 26}
                             y={y + height / 2}
                             fill="currentColor"
                             fontSize={14}
                             dominantBaseline="middle"
-                            className="fill-foreground"
+                            className="fill-foreground "
                           >
-                            {item.name}
+                            {item.name && item.name.length > 45
+                              ? `${item.name.slice(0, 45)}...`
+                              : item.name}
                           </text>
                         </g>
                       );
