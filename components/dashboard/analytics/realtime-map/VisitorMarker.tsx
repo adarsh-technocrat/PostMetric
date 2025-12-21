@@ -6,19 +6,21 @@ import {
   generateVisitorName,
   getAvatarUrl,
   getConversionScoreColor,
-  createPopupContent,
   getVisitorCoordinates,
   type Visitor,
 } from "@/utils/realtime-map";
+import { VisitorPopupContent } from "./VisitorPopupContent";
 
 interface VisitorMarkerProps {
   visitor: Visitor;
   isFocused?: boolean;
+  onSelect?: (visitorId: string, userId?: string) => void;
 }
 
 export function VisitorMarker({
   visitor,
   isFocused = false,
+  onSelect,
 }: VisitorMarkerProps) {
   const [showPopup, setShowPopup] = useState(false);
   const [lng, lat] = getVisitorCoordinates(visitor);
@@ -35,6 +37,9 @@ export function VisitorMarker({
         onClick={(e) => {
           e.originalEvent.stopPropagation();
           setShowPopup(true);
+          if (onSelect) {
+            onSelect(visitor.visitorId, visitor.userId);
+          }
         }}
       >
         <div
@@ -71,19 +76,16 @@ export function VisitorMarker({
         <Popup
           longitude={lng}
           latitude={lat}
-          anchor="bottom"
+          anchor="top-left"
           onClose={() => setShowPopup(false)}
           closeButton={true}
-          closeOnClick={true}
+          closeOnClick={false}
           className="mapbox-popup-custom"
-          offset={25}
+          offset={[-30, -68]}
+          closeOnMove={false}
+          maxWidth="500px"
         >
-          <div
-            dangerouslySetInnerHTML={{
-              __html: createPopupContent(visitor),
-            }}
-            className="min-w-[200px]"
-          />
+          <VisitorPopupContent visitor={visitor} />
         </Popup>
       )}
     </>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useEffect, useRef } from "react";
-import { Eye, CreditCard } from "lucide-react";
+import { Eye, CreditCard, X } from "lucide-react";
 import {
   formatTimeAgo,
   generateVisitorName,
+  getAvatarUrl,
   type Visitor,
   type PaymentEvent,
   type PageViewEvent,
@@ -14,7 +15,9 @@ interface ActivityFeedProps {
   visitors: Visitor[];
   paymentEvents: PaymentEvent[];
   pageViewEvents: PageViewEvent[];
+  selectedVisitorId?: string | null;
   onVisitorClick?: (visitorId: string, userId?: string) => void;
+  onClearSelection?: () => void;
 }
 
 function formatPaymentAmount(amount: number, currency: string = "usd"): string {
@@ -27,7 +30,9 @@ export function ActivityFeed({
   visitors,
   paymentEvents,
   pageViewEvents,
+  selectedVisitorId,
   onVisitorClick,
+  onClearSelection,
 }: ActivityFeedProps) {
   const playedPaymentIds = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -90,12 +95,31 @@ export function ActivityFeed({
     return nameMap;
   }, [visitors, pageViewEvents, paymentEvents]);
 
+  const selectedVisitor = useMemo(() => {
+    if (!selectedVisitorId) return null;
+    return visitors.find(
+      (v) => (v.userId || v.visitorId) === selectedVisitorId
+    );
+  }, [visitors, selectedVisitorId]);
+
   const activityItems = useMemo(() => {
     // Use page view events for activity feed (shows all individual events)
-    const items: (PageViewEvent | PaymentEvent)[] = [
+    let items: (PageViewEvent | PaymentEvent)[] = [
       ...pageViewEvents,
       ...paymentEvents,
     ];
+
+    // Filter by selected visitor if one is selected
+    if (selectedVisitorId) {
+      items = items.filter((item) => {
+        if ("type" in item && item.type === "payment") {
+          return item.visitorId === selectedVisitorId;
+        }
+        const pageView = item as PageViewEvent;
+        return (pageView.userId || pageView.visitorId) === selectedVisitorId;
+      });
+    }
+
     return items
       .sort((a, b) => {
         const timeA = new Date(a.timestamp).getTime();
@@ -103,11 +127,48 @@ export function ActivityFeed({
         return timeB - timeA;
       })
       .slice(0, 20);
-  }, [pageViewEvents, paymentEvents]);
+  }, [pageViewEvents, paymentEvents, selectedVisitorId]);
+
+  const selectedVisitorName = selectedVisitor
+    ? generateVisitorName(selectedVisitor.visitorId, selectedVisitor.userId)
+    : null;
+  const selectedVisitorAvatar = selectedVisitor
+    ? getAvatarUrl(selectedVisitor.visitorId, selectedVisitor.country)
+    : null;
 
   return (
     <div className="absolute bottom-0 left-0 z-10 max-h-[20vh] w-full max-w-full overflow-hidden bg-white/90 py-3 text-gray-700 ring-1 ring-gray-200 backdrop-blur-sm md:bottom-4 md:left-4 md:max-h-[30vh] md:w-96 md:rounded-box shadow-lg">
-      <div className="hide-scrollbar max-h-[calc(20vh-40px)] overflow-y-auto md:mt-2 md:max-h-[calc(30vh-40px)]">
+      {selectedVisitorId && selectedVisitorName && (
+        <div className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between bg-gray-50 px-3 py-1.5 backdrop-blur-sm border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            {selectedVisitorAvatar && (
+              <img
+                src={selectedVisitorAvatar}
+                alt={selectedVisitorName}
+                className="size-6 rounded-full bg-base-200 ring-1 ring-base-content/20 transition-all duration-100"
+              />
+            )}
+            <span className="text-xs text-gray-600">
+              Showing events for{" "}
+              <span className="font-medium text-gray-900">
+                {selectedVisitorName}
+              </span>
+            </span>
+          </div>
+          <button
+            title="Show all events"
+            className="group btn btn-square btn-ghost btn-xs hover:bg-gray-200"
+            onClick={onClearSelection}
+          >
+            <X className="size-4 duration-100 group-hover:text-gray-900" />
+          </button>
+        </div>
+      )}
+      <div
+        className={`hide-scrollbar max-h-[calc(20vh-40px)] overflow-y-auto md:mt-2 md:max-h-[calc(30vh-40px)] ${
+          selectedVisitorId ? "pt-8" : ""
+        }`}
+      >
         <div className="space-y-1">
           {activityItems.map((item) => {
             // Check if it's a payment event

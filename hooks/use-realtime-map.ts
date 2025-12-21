@@ -47,6 +47,9 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
 
   const [isRotating, setIsRotating] = useState(false);
   const [focusedVisitorId, setFocusedVisitorId] = useState<string | null>(null);
+  const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(
+    null
+  );
   const animationFrameRef = useRef<number | null>(null);
 
   const onViewportChange = useCallback((evt: { viewState: ViewState }) => {
@@ -382,6 +385,15 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
     };
   }, [open, isMapLoaded, isRotating]);
 
+  const selectVisitor = useCallback((visitorId: string, userId?: string) => {
+    const key = userId || visitorId;
+    setSelectedVisitorId(key);
+  }, []);
+
+  const clearSelectedVisitor = useCallback(() => {
+    setSelectedVisitorId(null);
+  }, []);
+
   return {
     visitors,
     paymentEvents,
@@ -397,5 +409,8 @@ export function useRealtimeMap({ open, websiteId }: UseRealtimeMapProps) {
     toggleRotation,
     focusedVisitorId,
     focusOnVisitor,
+    selectedVisitorId,
+    selectVisitor,
+    clearSelectedVisitor,
   };
 }

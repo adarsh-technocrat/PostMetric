@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "PostMetric",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#615FFF",
+    "light": "#9A9AFF",
+    "dark": "#292524"
   },
   "favicon": "/favicon.svg",
   "navigation": {

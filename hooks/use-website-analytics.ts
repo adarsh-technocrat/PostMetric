@@ -665,8 +665,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
       case "Entry page":
         return analytics.breakdowns.path.entryPages || [];
       case "Exit link":
-        // TODO: Implement proper exit page tracking (last page in session)
-        return analytics.breakdowns.path.pages || [];
+        return analytics.breakdowns.path.exitLinks || [];
       default:
         return analytics.breakdowns.path.pages || [];
     }

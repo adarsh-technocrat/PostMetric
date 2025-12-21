@@ -103,6 +103,7 @@ interface WebsiteAnalytics {
       pages: BreakdownData[];
       hostnames: BreakdownData[];
       entryPages: BreakdownData[];
+      exitLinks: BreakdownData[];
     };
     location: {
       country: BreakdownData[];
@@ -261,6 +262,7 @@ const analyticsSlice = createSlice({
               pages: action.payload.breakdowns.path?.pages || [],
               hostnames: action.payload.breakdowns.path?.hostnames || [],
               entryPages: action.payload.breakdowns.path?.entryPages || [],
+              exitLinks: action.payload.breakdowns.path?.exitLinks || [],
             },
             location: {
               country: action.payload.breakdowns.location?.country || [],

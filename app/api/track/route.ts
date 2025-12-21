@@ -119,6 +119,8 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     let hostname = requestBody?.hostname || hostnameForValidation;
     let bodyVisitorId: string | null = requestBody?.visitorId || null;
     let bodySessionId: string | null = requestBody?.sessionId || null;
+    const eventType = requestBody?.type || "pageview";
+    const extraData = requestBody?.extraData || {};
 
     // Log path extraction for debugging
     console.log(`[Tracking] Path extracted:`, {
@@ -297,6 +299,9 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       ...utmParams,
       ...deviceInfo,
       ...location,
+      exitUrl: eventType === "exit_link" ? extraData.exitUrl : undefined,
+      exitLinkText:
+        eventType === "exit_link" ? extraData.exitLinkText : undefined,
       timestamp: now,
     });
     await pageView.save();

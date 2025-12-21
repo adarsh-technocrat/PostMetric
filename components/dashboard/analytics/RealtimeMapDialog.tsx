@@ -49,6 +49,9 @@ export function RealtimeMapDialog({
     toggleRotation,
     focusedVisitorId,
     focusOnVisitor,
+    selectedVisitorId,
+    selectVisitor,
+    clearSelectedVisitor,
   } = useRealtimeMap({
     open,
     websiteId,
@@ -203,6 +206,7 @@ export function RealtimeMapDialog({
                       key={visitorKey}
                       visitor={visitor}
                       isFocused={focusedVisitorId === visitorKey}
+                      onSelect={selectVisitor}
                     />
                   );
                 })}
@@ -231,7 +235,9 @@ export function RealtimeMapDialog({
               visitors={visitors}
               paymentEvents={paymentEvents}
               pageViewEvents={pageViewEvents}
-              onVisitorClick={focusOnVisitor}
+              selectedVisitorId={selectedVisitorId}
+              onVisitorClick={selectVisitor}
+              onClearSelection={clearSelectedVisitor}
             />
           </div>
         </div>

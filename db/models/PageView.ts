@@ -26,6 +26,10 @@ export interface IPageView extends Document {
   region?: string;
   city?: string;
 
+  // Exit link tracking (external link clicked from this page)
+  exitUrl?: string;
+  exitLinkText?: string;
+
   timestamp: Date;
   createdAt: Date;
 }
@@ -110,6 +114,12 @@ const PageViewSchema = new Schema<IPageView>(
       type: String,
     },
     city: {
+      type: String,
+    },
+    exitUrl: {
+      type: String,
+    },
+    exitLinkText: {
       type: String,
     },
     timestamp: {

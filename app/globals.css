@@ -364,3 +364,78 @@ input[type="range"].volume-slider::-moz-range-thumb {
 .marquee-container:hover .marquee-text {
   animation-play-state: paused;
 }
+
+/* Mapbox popup styling - match VisitorPopupContent container */
+.mapbox-popup-custom {
+  max-width: 500px !important;
+}
+
+.mapbox-popup-custom .mapboxgl-popup-content {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  width: 100%;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Fade out animation when popup is closing */
+.mapbox-popup-custom.mapboxgl-popup-closing .mapboxgl-popup-content {
+  animation: fadeOut 0.15s ease-in-out;
+}
+
+/* Remove top-left border radius for top-left anchor */
+.mapbox-popup-custom.mapboxgl-popup-anchor-top-left .mapboxgl-popup-content {
+  border-top-left-radius: 0;
+}
+
+.mapbox-popup-custom .mapboxgl-popup-tip {
+  display: none;
+}
+
+.mapbox-popup-custom .mapboxgl-popup-close-button {
+  right: 8px;
+  top: 8px;
+  font-size: 20px;
+  color: hsl(var(--muted-foreground));
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+}
+
+.mapbox-popup-custom .mapboxgl-popup-close-button:hover {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}

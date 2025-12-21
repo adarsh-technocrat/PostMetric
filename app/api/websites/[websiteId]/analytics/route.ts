@@ -9,6 +9,7 @@ import {
   getPagesBreakdown,
   getHostnamesBreakdown,
   getEntryPagesBreakdown,
+  getExitLinksBreakdown,
   getLocationBreakdown,
   getSystemBreakdown,
   getChannelBreakdownWithReferrers,
@@ -191,6 +192,7 @@ export async function GET(
       pathPages,
       pathHostnames,
       pathEntryPages,
+      pathExitLinks,
       locationCountry,
       locationRegion,
       locationCity,
@@ -213,6 +215,7 @@ export async function GET(
       getPagesBreakdown(websiteId, startDate, endDate),
       getHostnamesBreakdown(websiteId, startDate, endDate),
       getEntryPagesBreakdown(websiteId, startDate, endDate),
+      getExitLinksBreakdown(websiteId, startDate, endDate),
       // Location breakdowns
       getLocationBreakdown(websiteId, startDate, endDate, "country"),
       getLocationBreakdown(websiteId, startDate, endDate, "region"),
@@ -301,6 +304,7 @@ export async function GET(
           pages: pathPages || [],
           hostnames: pathHostnames || [],
           entryPages: pathEntryPages || [],
+          exitLinks: pathExitLinks || [],
         },
         location: {
           country: locationCountry || [],
