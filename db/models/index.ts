@@ -17,6 +17,7 @@ export { default as ApiKey } from "./ApiKey";
 export { default as TeamMember } from "./TeamMember";
 export { default as EmailNotification } from "./EmailNotification";
 export { default as SyncJob } from "./SyncJob";
+export { default as NewsletterSubscriber } from "./NewsletterSubscriber";
 
 // Export types
 export type { IUser } from "./User";
@@ -43,3 +44,4 @@ export type {
   SyncJobStatus,
   SyncRange,
 } from "./SyncJob";
+export type { INewsletterSubscriber } from "./NewsletterSubscriber";

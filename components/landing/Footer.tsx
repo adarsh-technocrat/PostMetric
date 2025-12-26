@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export function Footer() {
   return (
-    <footer className="flex flex-col gap-10 px-4 md:px-6 pb-10 pt-10 border-t border-stone-200 bg-stone-50">
+    <footer className="flex flex-col gap-10 px-4 md:px-6 pb-10 pt-10 border-t border-stone-200 ">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
         <div className="col-span-2 md:col-span-2 flex flex-col gap-4 pr-8">
           <Link href="/" className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function Footer() {
               API Reference
             </Link>
             <Link
-              href="#"
+              href="/blog"
               className="hover:text-brand-600 font-normal text-sm transition-colors text-stone-600"
             >
               Blog
