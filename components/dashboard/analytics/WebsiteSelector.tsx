@@ -27,9 +27,7 @@ export function WebsiteSelector({ websiteId, website }: WebsiteSelectorProps) {
           <Image
             src={
               website?.iconUrl ||
-              `https://icons.duckduckgo.com/ip3/${
-                website?.domain || "uxmagic.ai"
-              }.ico`
+              `https://icons.duckduckgo.com/ip3/${website?.domain}.ico`
             }
             alt={website?.name || "Loading..."}
             className="size-5! rounded"

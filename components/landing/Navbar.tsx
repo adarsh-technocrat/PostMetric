@@ -3,9 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/firebase/auth-context";
+import { UserMenu } from "@/components/dashboard/UserMenu";
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
 
   const navLinks = [
     { href: "/#features", label: "Features" },
@@ -65,23 +68,44 @@ export function Navbar() {
       </div>
 
       <div className="w-full hidden lg:flex justify-end">
-        <div className="hidden lg:flex gap-4 justify-end w-max">
-          <Link
-            href="/login"
-            className="uppercase cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-200 px-4 py-2 rounded hover:bg-stone-100 transition-all text-stone-700"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/dashboard/new"
-            className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-800 bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-700 transition-all uppercase"
-          >
-            Get Started
-          </Link>
+        <div className="hidden lg:flex gap-4 justify-end w-max items-center">
+          {loading ? (
+            <div className="h-8 w-8 animate-pulse rounded-full bg-stone-200" />
+          ) : user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="uppercase cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-200 px-4 py-2 rounded hover:bg-stone-100 transition-all text-stone-700"
+              >
+                Dashboard
+              </Link>
+              <UserMenu />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="uppercase cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-200 px-4 py-2 rounded hover:bg-stone-100 transition-all text-stone-700"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/dashboard/new"
+                className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-800 bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-700 transition-all uppercase"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="flex lg:hidden w-full items-center justify-end">
+      <div className="flex lg:hidden w-full items-center justify-end gap-2">
+        {!loading && user && (
+          <div className="lg:hidden">
+            <UserMenu />
+          </div>
+        )}
         <button className="flex gap-4 justify-end lg:hidden">
           <svg
             width="24"

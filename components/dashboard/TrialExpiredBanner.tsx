@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { PricingContent } from "@/components/landing/pricing/PricingContent";
 import { Footer } from "@/components/landing/Footer";
+import { Navbar } from "@/components/landing/Navbar";
 
 export function TrialExpiredBanner() {
   return (
     <div className="fixed inset-0 z-50 bg-stone-50 flex flex-col min-h-screen overflow-y-auto">
-      <main className="flex-1 flex flex-col items-center justify-center w-full">
+      <div className="w-full flex flex-col items-center">
+        <Navbar />
         <div className="max-w-4xl w-full border-x border-stone-200 flex flex-col gap-20 lg:gap-30">
           <div className="flex flex-col items-center gap-6 text-center px-4 md:px-6 pt-12 lg:pt-20">
             <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center border border-red-100 mb-2">
@@ -58,9 +59,7 @@ export function TrialExpiredBanner() {
             <PricingContent showHeader={false} showBillingToggle={true} />
           </div>
         </div>
-      </main>
 
-      <div className="w-full flex justify-center">
         <div className="max-w-4xl w-full border-x border-stone-200 flex flex-col">
           <div className="w-full flex flex-col items-center justify-center gap-2 text-center px-4 md:px-6 py-12 lg:py-20">
             <p className="text-stone-400 text-sm">
@@ -73,6 +72,9 @@ export function TrialExpiredBanner() {
               Request trial extension →
             </Link>
           </div>
+        </div>
+
+        <div className="max-w-4xl w-full border-x border-stone-200">
           <Footer />
         </div>
       </div>
