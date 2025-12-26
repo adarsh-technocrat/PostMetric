@@ -266,16 +266,9 @@ function AnalyticsChartComponent({
   onMentionClick,
   onNoteClick,
   height = "h-72 md:h-96",
-  loading = false,
 }: AnalyticsChartProps) {
   const [showMentionsOnChart, setShowMentionsOnChart] = useState(showMentions);
 
-  // Show nothing when loading
-  if (loading) {
-    return null;
-  }
-
-  // Show nothing when there's no data
   if (!data || data.length === 0) {
     return null;
   }
