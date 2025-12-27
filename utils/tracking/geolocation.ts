@@ -1,3 +1,7 @@
+import countries from "i18n-iso-countries";
+import enLocale from "i18n-iso-countries/langs/en.json";
+countries.registerLocale(enLocale);
+
 /**
  * Get geolocation from IP address
  * Supports multiple geolocation services:
@@ -169,4 +173,37 @@ export function getIPFromHeaders(headers: Headers): string {
     return cfConnectingIP;
   }
   return "0.0.0.0";
+}
+
+/**
+ * Get country name from country code
+ */
+export function getCountryName(code: string): string {
+  const countryName = countries.getName(code.toUpperCase(), "en");
+  return countryName || code;
+}
+
+/**
+ * Get flag emoji from country code
+ */
+export function getFlagEmoji(countryCode: string): string {
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+/**
+ * Get location image URL (flag) for country/region/city
+ */
+export function getLocationImageUrl(
+  name: string,
+  type: "country" | "region" | "city"
+): string {
+  if (type === "country") {
+    const countryCode = name.length === 2 ? name.toUpperCase() : name;
+    return `https://purecatamphetamine.github.io/country-flag-icons/3x2/${countryCode}.svg`;
+  }
+  return "";
 }

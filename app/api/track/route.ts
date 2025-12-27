@@ -353,10 +353,9 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
 
     const protocol: string =
       request.headers.get("x-forwarded-proto") ||
-      request.nextUrl.protocol.slice(0, -1); // Remove trailing ':'
+      request.nextUrl.protocol.slice(0, -1);
     const isSecure: boolean = protocol === "https";
 
-    // Prepare response with cookies and security headers
     const response: NextResponse = new NextResponse(PIXEL, {
       status: 200,
       headers: {
@@ -370,17 +369,20 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
-        "Set-Cookie": [
-          createVisitorIdCookie(visitorId, isSecure),
-          createSessionIdCookie(sessionId, isSecure),
-        ].join(", "),
       },
     });
+    response.headers.append(
+      "Set-Cookie",
+      createVisitorIdCookie(visitorId, isSecure)
+    );
+    response.headers.append(
+      "Set-Cookie",
+      createSessionIdCookie(sessionId, isSecure)
+    );
 
     return response;
   } catch (error) {
     console.error("Tracking error:", error);
-    // Return pixel even on error to not break client sites
     return new NextResponse(PIXEL, {
       status: 200,
       headers: {

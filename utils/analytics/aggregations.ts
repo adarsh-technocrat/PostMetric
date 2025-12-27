@@ -4,7 +4,18 @@ import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
-import countries from "i18n-iso-countries";
+import {
+  resolveChannel,
+  formatReferrerName,
+  getReferrerImageUrl,
+} from "@/utils/tracking/channel";
+import { extractUrlParams } from "@/utils/tracking/utm";
+import {
+  getCountryName,
+  getFlagEmoji,
+  getLocationImageUrl,
+} from "@/utils/tracking/geolocation";
+import { getSystemImageUrl } from "@/utils/tracking/device";
 
 export type Granularity = "hourly" | "daily" | "weekly" | "monthly";
 
@@ -896,180 +907,6 @@ export async function getCampaignBreakdown(
 }
 
 /**
- * Helper function to get referrer image URL
- */
-function getReferrerImageUrl(referrerDomain: string | null): string | null {
-  if (
-    !referrerDomain ||
-    referrerDomain === "Direct" ||
-    referrerDomain === "Direct/None"
-  ) {
-    return "https://icons.duckduckgo.com/ip3/none.ico";
-  }
-  const cleanDomain = referrerDomain.toLowerCase().replace(/^www\./, "");
-  return `https://icons.duckduckgo.com/ip3/${cleanDomain}.ico`;
-}
-
-/**
- * Helper function to classify channel from utmMedium
- */
-function classifyChannel(utmMedium: string | null | undefined): string {
-  if (!utmMedium) return "Direct";
-
-  const medium = utmMedium.toLowerCase();
-
-  // Map common UTM mediums to channel names
-  if (
-    medium.includes("social") ||
-    medium.includes("facebook") ||
-    medium.includes("twitter") ||
-    medium.includes("instagram") ||
-    medium.includes("linkedin") ||
-    medium.includes("youtube") ||
-    medium.includes("tiktok") ||
-    medium.includes("pinterest") ||
-    medium.includes("reddit")
-  ) {
-    return "Organic social";
-  }
-  if (medium.includes("email") || medium === "newsletter") {
-    return "Email";
-  }
-  if (
-    medium.includes("cpc") ||
-    medium.includes("paid") ||
-    medium.includes("ad") ||
-    medium.includes("ppc") ||
-    medium.includes("sponsored")
-  ) {
-    return "Paid search";
-  }
-  if (medium.includes("organic") || medium.includes("search")) {
-    return "Organic search";
-  }
-  if (medium.includes("referral") || medium.includes("affiliate")) {
-    return "Referral";
-  }
-  if (medium.includes("direct") || medium === "none") {
-    return "Direct";
-  }
-
-  // Default: capitalize first letter
-  return utmMedium.charAt(0).toUpperCase() + utmMedium.slice(1);
-}
-
-/**
- * Helper function to format referrer name (e.g., "x.com" -> "X", "youtube.com" -> "YouTube")
- */
-function formatReferrerName(domain: string): string {
-  if (!domain || domain === "Direct" || domain === "Direct/None") {
-    return "Direct/None";
-  }
-
-  const cleanDomain = domain
-    .toLowerCase()
-    .replace(/^www\./, "")
-    .replace(/\.(com|org|net|io|co|dev)$/, "");
-
-  const domainMap: Record<string, string> = {
-    x: "X",
-    twitter: "X",
-    "x.com": "X",
-    youtube: "YouTube",
-    "youtube.com": "YouTube",
-    facebook: "Facebook",
-    "facebook.com": "Facebook",
-    instagram: "Instagram",
-    "instagram.com": "Instagram",
-    linkedin: "LinkedIn",
-    "linkedin.com": "LinkedIn",
-    medium: "Medium",
-    "medium.com": "Medium",
-    telegram: "telegram.org",
-    "telegram.org": "telegram.org",
-    producthunt: "Product Hunt",
-    reddit: "Reddit",
-    "reddit.com": "Reddit",
-    hackernews: "Hacker News",
-    "news.ycombinator.com": "Hacker News",
-  };
-
-  if (domainMap[cleanDomain]) {
-    return domainMap[cleanDomain];
-  }
-
-  return cleanDomain
-    .split(".")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-/**
- * Helper function to extract URL parameters from referrer or path
- */
-function extractUrlParams(
-  referrer: string | null | undefined,
-  path?: string
-): {
-  param_ref?: string;
-  param_via?: string;
-  utm_source?: string;
-  utm_medium?: string;
-} {
-  const params: any = {};
-
-  // Try to extract from referrer URL
-  if (referrer) {
-    try {
-      const referrerUrl = referrer.startsWith("http")
-        ? referrer
-        : `https://${referrer}`;
-      const urlObj = new URL(referrerUrl);
-
-      const paramRef =
-        urlObj.searchParams.get("ref") || urlObj.searchParams.get("param_ref");
-      const paramVia =
-        urlObj.searchParams.get("via") || urlObj.searchParams.get("param_via");
-      const utmSource = urlObj.searchParams.get("utm_source");
-      const utmMedium = urlObj.searchParams.get("utm_medium");
-
-      if (paramRef) params.param_ref = paramRef;
-      if (paramVia) params.param_via = paramVia;
-      if (utmSource) params.utm_source = utmSource;
-      if (utmMedium) params.utm_medium = utmMedium;
-    } catch (error) {
-      // Referrer might not be a valid URL, continue
-    }
-  }
-
-  // Also try to extract from path if provided
-  if (path) {
-    try {
-      const pathUrl = path.startsWith("http")
-        ? path
-        : `https://example.com${path}`;
-      const urlObj = new URL(pathUrl);
-
-      const paramRef =
-        urlObj.searchParams.get("ref") || urlObj.searchParams.get("param_ref");
-      const paramVia =
-        urlObj.searchParams.get("via") || urlObj.searchParams.get("param_via");
-      const utmSource = urlObj.searchParams.get("utm_source");
-      const utmMedium = urlObj.searchParams.get("utm_medium");
-
-      if (paramRef && !params.param_ref) params.param_ref = paramRef;
-      if (paramVia && !params.param_via) params.param_via = paramVia;
-      if (utmSource && !params.utm_source) params.utm_source = utmSource;
-      if (utmMedium && !params.utm_medium) params.utm_medium = utmMedium;
-    } catch (error) {
-      // Path might not be a valid URL, continue
-    }
-  }
-
-  return params;
-}
-
-/**
  * Get channel breakdown with nested referrers
  * Returns channels with referrers nested inside, matching the expected schema
  */
@@ -1373,7 +1210,7 @@ export async function getChannelBreakdownWithReferrers(
   const channelMap = new Map<string, any>();
 
   sessionsData.forEach((item) => {
-    const channelName = classifyChannel(item.channel);
+    const channelName = resolveChannel(item.referrer, item.utmMedium);
     const referrerDomain = item.referrerDomain || "Direct/None";
     const key = `${item.channel || "Direct"}::${referrerDomain}`;
 
@@ -1668,7 +1505,7 @@ export async function getReferrersBreakdown(
   const referrerMap = new Map<string, any>();
 
   sessionsData.forEach((session) => {
-    const channelName = classifyChannel(session.channel);
+    const channelName = resolveChannel(session.referrer, session.utmMedium);
     const referrerDomain = session.referrerDomain || "Direct/None";
 
     // Helper to check if domain is an IP address
@@ -1944,6 +1781,7 @@ export async function getReferrersBreakdown(
       $group: {
         _id: "$sessionId",
         sessionId: { $first: "$sessionId" },
+        referrer: { $first: "$session.referrer" },
         referrerDomain: { $first: "$referrerDomain" },
         channel: { $first: "$channel" },
         utmSource: { $first: "$session.utmSource" },
@@ -2057,6 +1895,7 @@ export async function getReferrersBreakdown(
         _id: "$sessionId",
         sessionId: { $first: "$sessionId" },
         visitorId: { $first: "$visitorId" },
+        referrer: { $first: "$session.referrer" },
         referrerDomain: { $first: "$referrerDomain" },
         channel: { $first: "$channel" },
         utmSource: { $first: "$session.utmSource" },
@@ -2099,7 +1938,7 @@ export async function getReferrersBreakdown(
   };
 
   revenueData.forEach((item) => {
-    const channelName = classifyChannel(item.channel);
+    const channelName = resolveChannel(item.referrer, item.utmMedium);
     const referrerDomain = item.referrerDomain || "Direct/None";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
@@ -2176,7 +2015,7 @@ export async function getReferrersBreakdown(
   });
 
   goalsData.forEach((item) => {
-    const channelName = classifyChannel(item.channel);
+    const channelName = resolveChannel(item.referrer, item.utmMedium);
     const referrerDomain = item.referrerDomain || "Direct/None";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
@@ -2953,34 +2792,6 @@ export async function getExitLinksBreakdown(
   return result;
 }
 
-// Register English locale for country names
-import enLocale from "i18n-iso-countries/langs/en.json";
-countries.registerLocale(enLocale);
-
-function getCountryName(code: string): string {
-  const countryName = countries.getName(code.toUpperCase(), "en");
-  return countryName || code;
-}
-
-function getFlagEmoji(countryCode: string): string {
-  const codePoints = countryCode
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
-
-function getLocationImageUrl(
-  name: string,
-  type: "country" | "region" | "city"
-): string {
-  if (type === "country") {
-    const countryCode = name.length === 2 ? name.toUpperCase() : name;
-    return `https://purecatamphetamine.github.io/country-flag-icons/3x2/${countryCode}.svg`;
-  }
-  return "";
-}
-
 export async function getLocationBreakdown(
   websiteId: string,
   startDate: Date,
@@ -3200,121 +3011,6 @@ export async function getLocationBreakdown(
   result.sort((a, b) => b.uv - a.uv);
 
   return result;
-}
-
-function getSystemImageUrl(
-  name: string,
-  type: "browser" | "os" | "device"
-): string {
-  const nameLower = name.toLowerCase();
-
-  if (type === "browser") {
-    const browserMap: Record<string, string> = {
-      chrome: "chrome",
-      "mobile chrome": "chrome",
-      firefox: "firefox",
-      safari: "safari",
-      "mobile safari": "safari",
-      edge: "edge",
-      opera: "opera",
-      "opera touch": "opera-touch",
-      "internet explorer": "ie",
-      ie: "ie",
-      brave: "brave",
-      samsung: "samsung-internet",
-      "samsung internet": "samsung-internet",
-      yandex: "yandex",
-      uc: "uc",
-      "uc browser": "uc",
-      ucbrowser: "uc",
-      webkit: "webkit",
-      "chrome webview": "chrome",
-      gsa: "gsa",
-      quark: "quark",
-      electron: "electron",
-      "avast secure browser": "avast-secure",
-      vivo: "vivo",
-      wechat: "wechat",
-      whale: "whale",
-      miui: "miui",
-      "miui browser": "miui",
-      "android browser": "android-webview",
-    };
-
-    if (nameLower.includes("twitter")) {
-      return "https://icons.duckduckgo.com/ip3/twitter.com.ico";
-    }
-    if (nameLower.includes("instagram")) {
-      return "https://icons.duckduckgo.com/ip3/instagram.com.ico";
-    }
-    if (nameLower.includes("facebook")) {
-      return "https://icons.duckduckgo.com/ip3/facebook.com.ico";
-    }
-    if (nameLower.includes("linkedin")) {
-      return "https://icons.duckduckgo.com/ip3/linkedin.com.ico";
-    }
-    if (nameLower.includes("tiktok")) {
-      return "https://icons.duckduckgo.com/ip3/tiktok.com.ico";
-    }
-    if (nameLower.includes("klarna")) {
-      return "https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/klarna/klarna_64x64.png";
-    }
-
-    for (const [key, folder] of Object.entries(browserMap)) {
-      if (nameLower.includes(key)) {
-        return `https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/${folder}/${folder}_64x64.png`;
-      }
-    }
-
-    return "https://icons.duckduckgo.com/ip3/unknown.com.ico";
-  } else if (type === "os") {
-    const osMap: Record<string, string> = {
-      ios: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/apple.svg",
-      "mac os": "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/apple.svg",
-      macos: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/apple.svg",
-      mac: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/apple.svg",
-      windows:
-        "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoft.svg",
-      android:
-        "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/android.svg",
-      linux: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linux.svg",
-      ubuntu: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/ubuntu.svg",
-      "chromium os":
-        "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/chromeos.svg",
-      playstation:
-        "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/playstation.svg",
-    };
-
-    for (const [key, path] of Object.entries(osMap)) {
-      if (nameLower.includes(key)) {
-        return path;
-      }
-    }
-
-    return "https://icons.duckduckgo.com/ip3/unknown.com.ico";
-  } else if (type === "device") {
-    // Use emoji as fallback for device types since there's no good CDN for device icons
-    // The component will handle displaying these appropriately
-    const deviceMap: Record<string, string> = {
-      desktop:
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7l-2 3v1h8v-1l-2-3h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 12H3V4h18v10z'/%3E%3C/svg%3E",
-      mobile:
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z'/%3E%3C/svg%3E",
-      tablet:
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 14H5V6h14v12z'/%3E%3C/svg%3E",
-      console: "https://icons.duckduckgo.com/ip3/unknown.com.ico",
-    };
-
-    for (const [key, path] of Object.entries(deviceMap)) {
-      if (nameLower.includes(key)) {
-        return path;
-      }
-    }
-
-    return "https://icons.duckduckgo.com/ip3/unknown.com.ico";
-  }
-
-  return "https://icons.duckduckgo.com/ip3/unknown.com.ico";
 }
 
 /**
