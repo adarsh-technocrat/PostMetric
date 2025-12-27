@@ -10,10 +10,11 @@ import {
   createVisitorIdCookie,
   createSessionIdCookie,
 } from "@/utils/tracking/visitor";
-import { parseUserAgent } from "@/utils/tracking/device";
+import { parseUserAgent, type DeviceInfo } from "@/utils/tracking/device";
 import {
   getLocationFromIP,
   getIPFromHeaders,
+  type LocationInfo,
 } from "@/utils/tracking/geolocation";
 import { shouldExcludeVisit } from "@/utils/tracking/validation";
 import { getWebsiteByTrackingCode } from "@/utils/database/website";
@@ -21,11 +22,54 @@ import {
   checkTrafficSpike,
   applyAttackModeProtections,
 } from "@/utils/security/attack-mode";
+import type { IWebsite } from "@/db/models/Website";
+import type { ISession } from "@/db/models/Session";
+import type { IPageView } from "@/db/models/PageView";
 
 const PIXEL = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
 );
+
+type TrackingEventType =
+  | "pageview"
+  | "exit_link"
+  | "scroll"
+  | "click"
+  | "custom";
+
+interface UtmParams {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+}
+
+interface FinalUtmParams {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+}
+
+interface ExitLinkExtraData {
+  exitUrl?: string;
+  exitLinkText?: string;
+}
+
+interface TrackingRequestBody {
+  hostname?: string;
+  path?: string;
+  title?: string;
+  visitorId?: string;
+  sessionId?: string;
+  type?: TrackingEventType;
+  referrer?: string;
+  utmParams?: UtmParams;
+  extraData?: ExitLinkExtraData | Record<string, unknown>;
+}
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -50,23 +94,17 @@ export async function POST(request: NextRequest) {
 async function handleTrack(request: NextRequest, method: "GET" | "POST") {
   try {
     await connectDB();
-
-    // Parse request body once for POST requests (can only read body once in Next.js)
-    let requestBody: any = null;
+    let requestBody: TrackingRequestBody | null = null;
     if (method === "POST") {
       try {
-        requestBody = await request.json();
+        const body = await request.json();
+        requestBody = body as TrackingRequestBody;
       } catch (e) {
-        // Ignore JSON parse errors
         requestBody = null;
       }
     }
 
-    const trackingCode =
-      request.nextUrl.searchParams.get("site") ||
-      requestBody?.site ||
-      requestBody?.websiteId ||
-      null;
+    const trackingCode = request.nextUrl.searchParams.get("site");
 
     if (!trackingCode) {
       return new NextResponse(PIXEL, {
@@ -78,12 +116,9 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       });
     }
 
-    let hostnameForValidation =
-      request.nextUrl.searchParams.get("hostname") ||
-      requestBody?.hostname ||
-      "unknown";
+    const hostnameForValidation: string = requestBody?.hostname || "unknown";
 
-    const website = await getWebsiteByTrackingCode(
+    const website: IWebsite | null = await getWebsiteByTrackingCode(
       trackingCode,
       hostnameForValidation
     );
@@ -97,36 +132,28 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       });
     }
 
-    const headers = request.headers;
-    const cookieHeader = headers.get("cookie");
-    const userAgent = headers.get("user-agent");
-    const ip = getIPFromHeaders(headers);
+    const headers: Headers = request.headers;
+    const cookieHeader: string | null = headers.get("cookie");
+    const userAgent: string | null = headers.get("user-agent");
+    const ip: string = getIPFromHeaders(headers);
 
-    let path =
+    let path: string =
       request.nextUrl.searchParams.get("path") || requestBody?.path || "/";
-    let title =
+    let title: string | undefined =
       request.nextUrl.searchParams.get("title") ||
       requestBody?.title ||
       undefined;
-    let hostname = requestBody?.hostname || hostnameForValidation;
-    let bodyVisitorId: string | null = requestBody?.visitorId || null;
-    let bodySessionId: string | null = requestBody?.sessionId || null;
-    const eventType = requestBody?.type;
-    const extraData = requestBody?.extraData || {};
+    const hostname: string = hostnameForValidation;
+    const bodyVisitorId: string | null = requestBody?.visitorId || null;
+    const bodySessionId: string | null = requestBody?.sessionId || null;
+    const eventType: TrackingEventType | undefined = requestBody?.type;
+    const extraData: ExitLinkExtraData | Record<string, unknown> =
+      requestBody?.extraData || {};
 
-    const clientReferrer = requestBody?.referrer || null;
-    const utmParams = requestBody?.utmParams || {};
+    const clientReferrer: string | null = requestBody?.referrer || null;
+    const utmParams: UtmParams = requestBody?.utmParams || {};
 
-    console.log(`[Tracking] Path extracted:`, {
-      method,
-      pathFromQuery: request.nextUrl.searchParams.get("path"),
-      pathFromBody: requestBody?.path,
-      finalPath: path,
-      hostname,
-      visitorId: bodyVisitorId,
-      sessionId: bodySessionId,
-    });
-    let visitorId = getVisitorIdFromCookie(cookieHeader);
+    let visitorId: string = getVisitorIdFromCookie(cookieHeader) || "";
     if (!visitorId && bodyVisitorId) {
       visitorId = bodyVisitorId;
     }
@@ -134,11 +161,11 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       visitorId = generateVisitorId();
     }
 
-    let sessionId = getSessionIdFromCookie(cookieHeader);
+    let sessionId: string = getSessionIdFromCookie(cookieHeader) || "";
     if (!sessionId && bodySessionId) {
       sessionId = bodySessionId;
     }
-    const isNewSession = !sessionId;
+    const isNewSession: boolean = !sessionId;
     if (!sessionId) {
       sessionId = generateSessionId();
     }
@@ -159,7 +186,7 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       title = title.replace(/\0/g, "").replace(/[\x00-\x1F\x7F]/g, "");
     }
 
-    const referrer = clientReferrer || null;
+    const referrer: string | null = clientReferrer || null;
 
     let referrerDomain: string | null = null;
     if (referrer) {
@@ -167,43 +194,32 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
         const referrerUrl = new URL(referrer);
         referrerDomain = referrerUrl.hostname;
       } catch {
-        // If referrer is not a valid URL, try to extract domain from string
         referrerDomain = referrer.includes("://")
           ? referrer.split("://")[1]?.split("/")[0] || null
           : referrer;
       }
     }
 
-    let finalUtmParams: any = {};
+    let finalUtmParams: FinalUtmParams = {};
     if (utmParams?.utm_source) {
       finalUtmParams = {
         utmSource: utmParams.utm_source,
         utmMedium: utmParams.utm_medium || "unknown",
-        utmCampaign: utmParams.utm_campaign || null,
-        utmTerm: utmParams.utm_term || null,
-        utmContent: utmParams.utm_content || null,
+        utmCampaign: utmParams.utm_campaign || undefined,
+        utmTerm: utmParams.utm_term || undefined,
+        utmContent: utmParams.utm_content || undefined,
       };
     }
 
-    const deviceInfo = parseUserAgent(userAgent);
+    const deviceInfo: DeviceInfo = parseUserAgent(userAgent);
 
-    const location = await getLocationFromIP(ip);
+    const location: LocationInfo = await getLocationFromIP(ip);
 
-    console.log(`[Tracking] Location for IP ${ip}:`, {
-      country: location.country,
-      city: location.city,
-      hasCoordinates: !!(location.latitude && location.longitude),
-    });
-
-    // Check attack mode protections
-    // Check for traffic spike and activate attack mode if needed
     await checkTrafficSpike(website._id.toString());
 
     // Apply attack mode protections
-    const protection = await applyAttackModeProtections(
-      website._id.toString(),
-      ip
-    );
+    const protection: { allowed: boolean; reason?: string } =
+      await applyAttackModeProtections(website._id.toString(), ip);
 
     if (!protection.allowed) {
       return new NextResponse(PIXEL, {
@@ -232,10 +248,10 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       path = `#${Buffer.from(path).toString("base64").slice(0, 10)}`;
     }
 
-    const now = new Date();
+    const now: Date = new Date();
 
     // Create or update session
-    let session = await Session.findOne({
+    let session: ISession | null = await Session.findOne({
       websiteId: website._id,
       sessionId,
     });
@@ -243,8 +259,8 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     if (isNewSession || !session) {
       // Before creating a new session, check if there's an active session for this visitor
       // This prevents duplicate sessions when cookies are lost but visitor is still active
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-      const existingActiveSession = await Session.findOne({
+      const fiveMinutesAgo: Date = new Date(now.getTime() - 5 * 60 * 1000);
+      const existingActiveSession: ISession | null = await Session.findOne({
         websiteId: website._id,
         visitorId,
         lastSeenAt: { $gte: fiveMinutesAgo },
@@ -294,7 +310,7 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     }
 
     // Create page view
-    const pageView = new PageView({
+    const pageView: IPageView = new PageView({
       websiteId: website._id,
       sessionId,
       visitorId,
@@ -314,9 +330,14 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       ...finalUtmParams,
       ...deviceInfo,
       ...location,
-      exitUrl: eventType === "exit_link" ? extraData.exitUrl : undefined,
+      exitUrl:
+        eventType === "exit_link" && "exitUrl" in extraData
+          ? extraData.exitUrl
+          : undefined,
       exitLinkText:
-        eventType === "exit_link" ? extraData.exitLinkText : undefined,
+        eventType === "exit_link" && "exitLinkText" in extraData
+          ? extraData.exitLinkText
+          : undefined,
       timestamp: now,
     });
     await pageView.save();
@@ -330,13 +351,13 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       timestamp: now.toISOString(),
     });
 
-    const protocol =
+    const protocol: string =
       request.headers.get("x-forwarded-proto") ||
       request.nextUrl.protocol.slice(0, -1); // Remove trailing ':'
-    const isSecure = protocol === "https";
+    const isSecure: boolean = protocol === "https";
 
     // Prepare response with cookies and security headers
-    const response = new NextResponse(PIXEL, {
+    const response: NextResponse = new NextResponse(PIXEL, {
       status: 200,
       headers: {
         "Content-Type": "image/gif",

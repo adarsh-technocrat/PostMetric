@@ -1,22 +1,13 @@
 import { randomBytes } from "crypto";
 
-/**
- * Generate a unique visitor ID
- */
 export function generateVisitorId(): string {
   return randomBytes(16).toString("hex");
 }
 
-/**
- * Generate a unique session ID
- */
 export function generateSessionId(): string {
   return randomBytes(16).toString("hex");
 }
 
-/**
- * Get visitor ID from cookie string
- */
 export function getVisitorIdFromCookie(
   cookieHeader: string | null
 ): string | null {
@@ -31,9 +22,6 @@ export function getVisitorIdFromCookie(
   return cookies["_pm_vid"] || null;
 }
 
-/**
- * Get session ID from cookie string
- */
 export function getSessionIdFromCookie(
   cookieHeader: string | null
 ): string | null {
@@ -48,9 +36,6 @@ export function getSessionIdFromCookie(
   return cookies["_pm_sid"] || null;
 }
 
-/**
- * Create cookie string for visitor ID
- */
 export function createVisitorIdCookie(
   visitorId: string,
   isSecure: boolean = false
@@ -59,9 +44,6 @@ export function createVisitorIdCookie(
   return `_pm_vid=${visitorId}; Path=/; Max-Age=31536000; SameSite=Lax${secureFlag}`;
 }
 
-/**
- * Create cookie string for session ID
- */
 export function createSessionIdCookie(
   sessionId: string,
   isSecure: boolean = false
