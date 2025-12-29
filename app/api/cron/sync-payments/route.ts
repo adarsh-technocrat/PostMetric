@@ -120,18 +120,8 @@ export async function POST(request: NextRequest) {
               jobId: job._id.toString(),
             });
 
-            // Update nextSyncAt if syncConfig exists
-            if (syncConfig) {
-              const nextSync = calculateNextSyncDate(
-                syncConfig.frequency || "hourly"
-              );
-              website.paymentProviders.stripe.syncConfig = {
-                ...syncConfig,
-                lastSyncAt: new Date(),
-                nextSyncAt: nextSync,
-              };
-              await website.save();
-            }
+            // Note: nextSyncAt and lastSyncAt will be updated after job completion
+            // in the processJob function to ensure we only update on success
           }
         }
       }
@@ -244,10 +234,11 @@ async function processJob(job: any): Promise<{
       throw new Error(`Website not found: ${job.websiteId}`);
     }
 
-    // Determine date range
-    const startDate =
-      job.startDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const endDate = job.endDate || new Date();
+    // Determine date range - ensure dates are Date objects
+    const startDate = job.startDate
+      ? new Date(job.startDate)
+      : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const endDate = job.endDate ? new Date(job.endDate) : new Date();
 
     // Process based on provider
     let result: { synced: number; skipped: number; errors: number };
@@ -284,6 +275,21 @@ async function processJob(job: any): Promise<{
 
     // Update job status
     await updateSyncJobStatus(job._id.toString(), "completed", result);
+
+    if (
+      job.type === "cron" &&
+      job.provider === "stripe" &&
+      website?.paymentProviders?.stripe?.syncConfig
+    ) {
+      const syncConfig = website.paymentProviders.stripe.syncConfig;
+      const nextSync = calculateNextSyncDate(syncConfig.frequency || "hourly");
+      website.paymentProviders.stripe.syncConfig = {
+        ...syncConfig,
+        lastSyncAt: new Date(),
+        nextSyncAt: nextSync,
+      };
+      await website.save();
+    }
 
     return result;
   } catch (error: any) {
