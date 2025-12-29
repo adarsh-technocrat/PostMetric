@@ -92,6 +92,7 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
                           />
                         </linearGradient>
                       </defs>
+                      <YAxis hide />
                       {hasRevenue && (
                         <YAxis
                           yAxisId="right"

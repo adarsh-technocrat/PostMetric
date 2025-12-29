@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useRef } from "react";
-import { Eye, CreditCard, X } from "lucide-react";
+import { Eye, X } from "lucide-react";
 import {
   formatTimeAgo,
   generateVisitorName,
@@ -191,8 +191,8 @@ export function ActivityFeed({
                     }
                   }}
                 >
-                  <div className="mt-0.5 shrink-0">
-                    <CreditCard className="h-3.5 w-3.5 text-success" />
+                  <div className="mt-0.5 shrink-0 self-start leading-none text-sm">
+                    💸
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="font-medium text-gray-900">
