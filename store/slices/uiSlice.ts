@@ -10,6 +10,7 @@ export interface UIState {
   selectedGoalTab: "Goal" | "Funnel" | "Journey";
   showMentionsOnChart: boolean;
   showRevenueOnChart: boolean;
+  showVisitorsOnChart: boolean;
 }
 
 const initialState: UIState = {
@@ -22,6 +23,7 @@ const initialState: UIState = {
   selectedGoalTab: "Goal",
   showMentionsOnChart: true,
   showRevenueOnChart: true,
+  showVisitorsOnChart: true,
 };
 
 const uiSlice = createSlice({
@@ -73,6 +75,9 @@ const uiSlice = createSlice({
     setShowRevenueOnChart: (state, action: PayloadAction<boolean>) => {
       state.showRevenueOnChart = action.payload;
     },
+    setShowVisitorsOnChart: (state, action: PayloadAction<boolean>) => {
+      state.showVisitorsOnChart = action.payload;
+    },
   },
 });
 
@@ -86,5 +91,6 @@ export const {
   setSelectedGoalTab,
   setShowMentionsOnChart,
   setShowRevenueOnChart,
+  setShowVisitorsOnChart,
 } = uiSlice.actions;
 export default uiSlice.reducer;

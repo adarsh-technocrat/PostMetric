@@ -28,6 +28,7 @@ interface MetricsListProps {
   visitorsNow: { value: string };
   showRevenueOnChart: boolean;
   showMentionsOnChart: boolean;
+  showVisitorsOnChart: boolean;
   isConnected: boolean;
   currency?: string;
   revenueBreakdown?: {
@@ -37,6 +38,7 @@ interface MetricsListProps {
   } | null;
   onShowRevenueChange: (checked: boolean) => void;
   onShowMentionsChange: (checked: boolean) => void;
+  onShowVisitorsChange: (checked: boolean) => void;
 }
 
 export function MetricsList({
@@ -49,11 +51,13 @@ export function MetricsList({
   visitorsNow,
   showRevenueOnChart,
   showMentionsOnChart,
+  showVisitorsOnChart,
   isConnected,
   currency = "USD",
   revenueBreakdown,
   onShowRevenueChange,
   onShowMentionsChange,
+  onShowVisitorsChange,
 }: MetricsListProps) {
   return (
     <ul className="grid grid-cols-3 flex-col overflow-x-scroll border-0 border-textPrimary/5 p-4 pb-6 max-md:gap-4 sm:flex-row md:flex lg:pb-4">
@@ -61,8 +65,11 @@ export function MetricsList({
         <div className="flex flex-col items-start gap-1 border-textPrimary/5 md:mr-6 md:border-r md:pr-6 select-none">
           <div className="flex cursor-pointer items-center gap-1.5">
             <Checkbox
-              defaultChecked
-              className="data-[state=checked]:bg-secondary"
+              checked={showVisitorsOnChart}
+              onCheckedChange={(checked) =>
+                onShowVisitorsChange(checked === true)
+              }
+              className="data-[state=checked]:bg-white data-[state=checked]:border-[#7888b2] data-[state=checked]:text-[#7888b2]"
             />
             <div className="text-textSecondary whitespace-nowrap text-xs md:text-sm">
               Visitors

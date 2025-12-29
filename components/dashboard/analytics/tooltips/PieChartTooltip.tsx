@@ -102,8 +102,16 @@ export const PieChartTooltip = ({
     })}`;
   };
 
+  const channelName = activeChannel?.name || "Unknown";
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 min-w-[200px] max-w-[240px]">
+      <div className="mb-2.5 pb-2.5 border-b border-gray-100">
+        <div className="text-sm font-semibold text-textPrimary truncate">
+          {channelName}
+        </div>
+      </div>
+
       <div className="space-y-1.5 text-[0.7rem] mb-2.5 pb-2.5 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -119,22 +127,20 @@ export const PieChartTooltip = ({
             {formatNumber(channelVisitors)}
           </span>
         </div>
-        {channelRevenue > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <div
-                className="w-2.5 h-2.5 rounded-sm"
-                style={{
-                  backgroundColor: "#E16540",
-                }}
-              ></div>
-              <span className="text-textSecondary">Revenue</span>
-            </div>
-            <span className="font-semibold text-textPrimary">
-              {formatCurrency(channelRevenue)}
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <div
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{
+                backgroundColor: "#E16540",
+              }}
+            ></div>
+            <span className="text-textSecondary">Revenue</span>
           </div>
-        )}
+          <span className="font-semibold text-textPrimary">
+            {formatCurrency(channelRevenue)}
+          </span>
+        </div>
       </div>
       {topReferrers.length > 0 && (
         <div>

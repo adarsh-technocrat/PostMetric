@@ -74,7 +74,7 @@ export function HorizontalStackedBarChart({
 
   const chartContent = (
     <div className={`relative w-full max-w-full ${height}`}>
-      <div className="absolute right-4 top-0 flex h-full flex-col justify-around py-4 z-10">
+      <div className="absolute right-4 top-0 flex h-full flex-col py-4 z-10">
         {displayData.map((item, index) => {
           const total = getTotal(item);
           return (
@@ -96,11 +96,18 @@ export function HorizontalStackedBarChart({
         <BarChart
           data={displayData}
           layout="vertical"
-          margin={{ top: 16, right: 60, bottom: 16, left: 16 }}
-          barCategoryGap="10%"
+          margin={{ top: 0, right: 60, bottom: 0, left: 16 }}
+          barCategoryGap={8}
         >
           <XAxis type="number" hide />
-          <YAxis type="category" dataKey="name" hide />
+          <YAxis
+            type="category"
+            dataKey="name"
+            hide
+            padding={{ top: 0, bottom: 0 }}
+            width={0}
+            tick={false}
+          />
           {dataKeys.map((key, index) => {
             const isFirst = index === 0;
             const isLast = index === dataKeys.length - 1;

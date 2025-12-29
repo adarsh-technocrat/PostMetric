@@ -5,6 +5,7 @@ import { useAppDispatch } from "@/store/hooks";
 import {
   setShowMentionsOnChart,
   setShowRevenueOnChart,
+  setShowVisitorsOnChart,
 } from "@/store/slices/uiSlice";
 import { AnalyticsChart } from "@/components/chart";
 import { WebsiteSelector } from "@/components/dashboard/analytics/WebsiteSelector";
@@ -141,6 +142,7 @@ export default function WebsiteAnalyticsPage({
                     visitorsNow={{ value: visitorsNow }}
                     showRevenueOnChart={ui.showRevenueOnChart}
                     showMentionsOnChart={ui.showMentionsOnChart}
+                    showVisitorsOnChart={ui.showVisitorsOnChart}
                     isConnected={isConnected}
                     currency={
                       (website?.settings as WebsiteSettings)?.currency || "USD"
@@ -152,6 +154,9 @@ export default function WebsiteAnalyticsPage({
                     onShowMentionsChange={(checked) =>
                       dispatch(setShowMentionsOnChart(checked))
                     }
+                    onShowVisitorsChange={(checked) =>
+                      dispatch(setShowVisitorsOnChart(checked))
+                    }
                   />
 
                   <div className="pb-4">
@@ -159,6 +164,7 @@ export default function WebsiteAnalyticsPage({
                       data={chartData}
                       showMentions={ui.showMentionsOnChart}
                       showRevenue={ui.showRevenueOnChart}
+                      showVisitors={ui.showVisitorsOnChart}
                       currency={
                         (website?.settings as WebsiteSettings)?.currency ||
                         "USD"

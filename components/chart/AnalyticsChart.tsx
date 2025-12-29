@@ -241,6 +241,7 @@ interface AnalyticsChartProps {
   avatarUrls?: string[];
   showMentions?: boolean;
   showRevenue?: boolean;
+  showVisitors?: boolean;
   currency?: string;
   onMentionClick?: (data: ChartDataPoint) => void;
   onNoteClick?: (data: ChartDataPoint) => void;
@@ -253,6 +254,7 @@ function AnalyticsChartComponent({
   avatarUrls = [],
   showMentions = true,
   showRevenue = true,
+  showVisitors = true,
   currency = "USD",
   onMentionClick,
   onNoteClick,
@@ -454,26 +456,28 @@ function AnalyticsChartComponent({
             tickMargin={10}
             minTickGap={50}
           />
-          <YAxis
-            yAxisId="left"
-            stroke="#9ca3af"
-            className="stroke-neutral-200 dark:stroke-neutral-600!"
-            tick={{
-              fill: "hsl(var(--muted-foreground))",
-              fontSize: 11,
-              className: "text-xs fill-textSecondary opacity-80",
-            }}
-            style={{
-              fontSize: "11px",
-            }}
-            tickFormatter={(value) => {
-              if (value >= 1000) return `${value / 1000}k`;
-              return value.toString();
-            }}
-            tickMargin={8}
-            domain={visitorDomain}
-            ticks={visitorTicks}
-          />
+          {showVisitors && (
+            <YAxis
+              yAxisId="left"
+              stroke="#9ca3af"
+              className="stroke-neutral-200 dark:stroke-neutral-600!"
+              tick={{
+                fill: "hsl(var(--muted-foreground))",
+                fontSize: 11,
+                className: "text-xs fill-textSecondary opacity-80",
+              }}
+              style={{
+                fontSize: "11px",
+              }}
+              tickFormatter={(value) => {
+                if (value >= 1000) return `${value / 1000}k`;
+                return value.toString();
+              }}
+              tickMargin={8}
+              domain={visitorDomain}
+              ticks={visitorTicks}
+            />
+          )}
           {showRevenue && (
             <YAxis
               yAxisId="right"
@@ -505,15 +509,17 @@ function AnalyticsChartComponent({
           )}
 
           <Tooltip content={<AnalyticsChartTooltip currency={currency} />} />
-          <Area
-            yAxisId="left"
-            type="monotone"
-            dataKey="visitors"
-            stroke="transparent"
-            strokeWidth={0}
-            fill="url(#visitorGradient)"
-            fillOpacity={0.6}
-          />
+          {showVisitors && (
+            <Area
+              yAxisId="left"
+              type="monotone"
+              dataKey="visitors"
+              stroke="transparent"
+              strokeWidth={0}
+              fill="url(#visitorGradient)"
+              fillOpacity={0.6}
+            />
+          )}
 
           {showRevenue && (
             <Bar
