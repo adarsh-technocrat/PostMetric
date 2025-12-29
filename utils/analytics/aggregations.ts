@@ -187,6 +187,8 @@ export async function getSourceBreakdown(
   if (type === "channel") {
     sessionsGroupId = {
       sourceType: { $ifNull: ["$utmMedium", "Direct"] },
+      referrer: "$referrer",
+      utmMedium: "$utmMedium",
       visitorId: "$visitorId",
     };
   } else if (type === "referrer") {
@@ -250,40 +252,84 @@ export async function getSourceBreakdown(
     };
   }
 
-  const sessionsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
+  // Build sessions pipeline based on type
+  let sessionsPipeline: any[];
+
+  if (type === "channel") {
+    sessionsPipeline = [
+      {
+        $match: {
+          websiteId: websiteObjectId,
+          firstVisitAt: { $gte: startDate, $lte: endDate },
+        },
       },
-    },
-    {
-      $group: {
-        _id: sessionsGroupId,
-        sessionIds: { $addToSet: "$_id" },
+      {
+        $group: {
+          _id: sessionsGroupId,
+          sessionIds: { $addToSet: "$_id" },
+        },
       },
-    },
-    {
-      $group: {
-        _id: "$_id.sourceType",
-        uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
+      {
+        $group: {
+          _id: {
+            sourceType: "$_id.sourceType",
+            referrer: "$_id.referrer",
+            utmMedium: "$_id.utmMedium",
+          },
+          uniqueVisitors: { $sum: 1 },
+          allSessionIds: { $push: "$sessionIds" },
+        },
       },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
+      {
+        $project: {
+          _id: 1,
+          uniqueVisitors: 1,
+          sessionIds: {
+            $reduce: {
+              input: "$allSessionIds",
+              initialValue: [],
+              in: { $setUnion: ["$$value", "$$this"] },
+            },
           },
         },
       },
-    },
-  ];
+    ];
+  } else {
+    sessionsPipeline = [
+      {
+        $match: {
+          websiteId: websiteObjectId,
+          firstVisitAt: { $gte: startDate, $lte: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: sessionsGroupId,
+          sessionIds: { $addToSet: "$_id" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.sourceType",
+          uniqueVisitors: { $sum: 1 },
+          allSessionIds: { $push: "$sessionIds" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          uniqueVisitors: 1,
+          sessionIds: {
+            $reduce: {
+              input: "$allSessionIds",
+              initialValue: [],
+              in: { $setUnion: ["$$value", "$$this"] },
+            },
+          },
+        },
+      },
+    ];
+  }
 
   const sessionsData = await Session.aggregate(sessionsPipeline);
 
@@ -292,8 +338,18 @@ export async function getSourceBreakdown(
   let goalsGroupId: any;
 
   if (type === "channel") {
-    revenueGroupId = { $ifNull: ["$session.utmMedium", "Direct"] };
-    goalsGroupId = { $ifNull: ["$session.utmMedium", "Direct"] };
+    // For channels, we'll resolve in JavaScript, so group by a temporary key
+    // We'll include referrer and utmMedium to resolve later
+    revenueGroupId = {
+      tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
+      referrer: "$session.referrer",
+      utmMedium: "$session.utmMedium",
+    };
+    goalsGroupId = {
+      tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
+      referrer: "$session.referrer",
+      utmMedium: "$session.utmMedium",
+    };
   } else if (type === "referrer") {
     revenueGroupId = {
       $cond: {
@@ -348,6 +404,17 @@ export async function getSourceBreakdown(
     goalsGroupId = { $ifNull: ["$session.utmTerm", "Direct"] };
   }
 
+  const revenueGroupStage: any = {
+    _id: revenueGroupId,
+    revenue: { $sum: "$amount" },
+    sessionsWithPayments: { $addToSet: "$sessionId" },
+  };
+
+  if (type === "channel") {
+    revenueGroupStage.referrer = { $first: "$session.referrer" };
+    revenueGroupStage.utmMedium = { $first: "$session.utmMedium" };
+  }
+
   const revenuePipeline = [
     {
       $match: {
@@ -371,17 +438,24 @@ export async function getSourceBreakdown(
       },
     },
     {
-      $group: {
-        _id: revenueGroupId,
-        revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
-      },
+      $group: revenueGroupStage,
     },
   ];
 
   const revenueData = await Payment.aggregate(revenuePipeline);
 
   // Step 3: Get goal count per source type from GoalEvent (via Session)
+  const goalsGroupStage: any = {
+    _id: goalsGroupId,
+    goalCount: { $sum: 1 },
+    uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
+  };
+
+  if (type === "channel") {
+    goalsGroupStage.referrer = { $first: "$session.referrer" };
+    goalsGroupStage.utmMedium = { $first: "$session.utmMedium" };
+  }
+
   const goalsPipeline = [
     {
       $match: {
@@ -404,17 +478,112 @@ export async function getSourceBreakdown(
       },
     },
     {
-      $group: {
-        _id: goalsGroupId,
-        goalCount: { $sum: 1 },
-        uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
-      },
+      $group: goalsGroupStage,
     },
   ];
 
   const goalsData = await GoalEvent.aggregate(goalsPipeline);
 
   // Step 4: Combine all data
+  // For channel type, resolve channels properly
+  if (type === "channel") {
+    // Resolve channels for sessions data
+    const resolvedSessionsMap = new Map<string, any>();
+    sessionsData.forEach((item) => {
+      const resolvedChannel = resolveChannel(
+        item._id.referrer || null,
+        item._id.utmMedium || null
+      );
+      if (!resolvedSessionsMap.has(resolvedChannel)) {
+        resolvedSessionsMap.set(resolvedChannel, {
+          uniqueVisitors: 0,
+          sessionIds: new Set(),
+        });
+      }
+      const session = resolvedSessionsMap.get(resolvedChannel);
+      session.uniqueVisitors += item.uniqueVisitors || 0;
+      if (item.sessionIds) {
+        item.sessionIds.forEach((sid: string) => session.sessionIds.add(sid));
+      }
+    });
+
+    // Resolve channels for revenue data
+    const revenueMap = new Map<string, any>();
+    revenueData.forEach((item) => {
+      const resolvedChannel = resolveChannel(
+        item.referrer || null,
+        item.utmMedium || null
+      );
+      if (!revenueMap.has(resolvedChannel)) {
+        revenueMap.set(resolvedChannel, {
+          revenue: 0,
+          sessionsWithPayments: new Set(),
+        });
+      }
+      const rev = revenueMap.get(resolvedChannel);
+      rev.revenue += item.revenue || 0;
+      if (item.sessionsWithPayments) {
+        item.sessionsWithPayments.forEach((sid: string) =>
+          rev.sessionsWithPayments.add(sid)
+        );
+      }
+    });
+
+    // Resolve channels for goals data
+    const goalsMap = new Map<string, any>();
+    goalsData.forEach((item) => {
+      const resolvedChannel = resolveChannel(
+        item.referrer || null,
+        item.utmMedium || null
+      );
+      if (!goalsMap.has(resolvedChannel)) {
+        goalsMap.set(resolvedChannel, {
+          goalCount: 0,
+          uniqueVisitorsWithGoals: new Set(),
+        });
+      }
+      const goal = goalsMap.get(resolvedChannel);
+      goal.goalCount += item.goalCount || 0;
+      if (item.uniqueVisitorsWithGoals) {
+        item.uniqueVisitorsWithGoals.forEach((vid: string) =>
+          goal.uniqueVisitorsWithGoals.add(vid)
+        );
+      }
+    });
+
+    // Combine resolved data
+    const result = Array.from(resolvedSessionsMap.entries()).map(
+      ([channelName, sessionData]) => {
+        const revenueInfo = revenueMap.get(channelName);
+        const goalsInfo = goalsMap.get(channelName);
+
+        const uv = sessionData.uniqueVisitors || 0;
+        const revenue = revenueInfo?.revenue || 0;
+        const sessionsWithPayments =
+          revenueInfo?.sessionsWithPayments?.size || 0;
+        const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+        const goalCount = goalsInfo?.goalCount || 0;
+        const goalConversionRate =
+          uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.size || 0) / uv : 0;
+
+        return {
+          name: channelName,
+          uv,
+          revenue,
+          conversionRate,
+          goalCount,
+          goalConversionRate,
+        };
+      }
+    );
+
+    // Sort by unique visitors descending
+    result.sort((a, b) => b.uv - a.uv);
+
+    return result;
+  }
+
+  // For non-channel types, use original logic
   const revenueMap = new Map(
     revenueData.map((item) => [item._id || "Direct", item])
   );
@@ -423,7 +592,7 @@ export async function getSourceBreakdown(
   );
 
   const result = sessionsData.map((item) => {
-    const sourceName = item._id || "Direct";
+    const sourceName = item._id?.sourceType || item._id || "Direct";
     const revenueInfo = revenueMap.get(sourceName);
     const goalsInfo = goalsMap.get(sourceName);
 
@@ -437,7 +606,6 @@ export async function getSourceBreakdown(
 
     return {
       name: sourceName,
-      value: uv, // Keep value for backward compatibility, but use uv
       uv,
       revenue,
       conversionRate,
@@ -1093,6 +1261,8 @@ export async function getChannelBreakdownWithReferrers(
         revenue: { $sum: "$amount" },
         paymentCount: { $sum: 1 },
         sessionsWithPayments: { $addToSet: "$sessionId" },
+        referrer: { $first: "$session.referrer" },
+        utmMedium: { $first: "$session.utmMedium" },
       },
     },
   ];
@@ -1183,6 +1353,8 @@ export async function getChannelBreakdownWithReferrers(
         },
         goalCount: { $sum: 1 },
         uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
+        referrer: { $first: "$session.referrer" },
+        utmMedium: { $first: "$session.utmMedium" },
       },
     },
   ];
@@ -1190,20 +1362,55 @@ export async function getChannelBreakdownWithReferrers(
   const goalsData = await GoalEvent.aggregate(goalsPipeline);
 
   // Step 4: Combine all data and structure as channels with referrers
+  // First, we need to resolve channels for revenue and goals data
   const revenueMap = new Map<string, any>();
   revenueData.forEach((item) => {
-    const key = `${item._id.channel || "Direct"}::${
-      item._id.referrerDomain || "Direct/None"
-    }`;
-    revenueMap.set(key, item);
+    // Resolve channel from referrer and utmMedium for revenue data
+    const sessionReferrer = item.referrer || null;
+    const sessionUtmMedium = item.utmMedium || null;
+    const resolvedChannel = resolveChannel(sessionReferrer, sessionUtmMedium);
+    const referrerDomain = item._id.referrerDomain || "Direct/None";
+    const key = `${resolvedChannel}::${referrerDomain}`;
+
+    if (!revenueMap.has(key)) {
+      revenueMap.set(key, {
+        revenue: 0,
+        paymentCount: 0,
+        sessionsWithPayments: new Set(),
+      });
+    }
+    const rev = revenueMap.get(key);
+    rev.revenue += item.revenue || 0;
+    rev.paymentCount += item.paymentCount || 0;
+    if (item.sessionsWithPayments) {
+      item.sessionsWithPayments.forEach((sid: string) =>
+        rev.sessionsWithPayments.add(sid)
+      );
+    }
   });
 
   const goalsMap = new Map<string, any>();
   goalsData.forEach((item) => {
-    const key = `${item._id.channel || "Direct"}::${
-      item._id.referrerDomain || "Direct/None"
-    }`;
-    goalsMap.set(key, item);
+    // Resolve channel from referrer and utmMedium for goals data
+    const sessionReferrer = item.referrer || null;
+    const sessionUtmMedium = item.utmMedium || null;
+    const resolvedChannel = resolveChannel(sessionReferrer, sessionUtmMedium);
+    const referrerDomain = item._id.referrerDomain || "Direct/None";
+    const key = `${resolvedChannel}::${referrerDomain}`;
+
+    if (!goalsMap.has(key)) {
+      goalsMap.set(key, {
+        goalCount: 0,
+        uniqueVisitorsWithGoals: new Set(),
+      });
+    }
+    const goal = goalsMap.get(key);
+    goal.goalCount += item.goalCount || 0;
+    if (item.uniqueVisitorsWithGoals) {
+      item.uniqueVisitorsWithGoals.forEach((vid: string) =>
+        goal.uniqueVisitorsWithGoals.add(vid)
+      );
+    }
   });
 
   // Group sessions data by channel, then by referrer
@@ -1212,7 +1419,7 @@ export async function getChannelBreakdownWithReferrers(
   sessionsData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
     const referrerDomain = item.referrerDomain || "Direct/None";
-    const key = `${item.channel || "Direct"}::${referrerDomain}`;
+    const key = `${channelName}::${referrerDomain}`;
 
     const revenueInfo = revenueMap.get(key);
     const goalsInfo = goalsMap.get(key);
@@ -1220,7 +1427,7 @@ export async function getChannelBreakdownWithReferrers(
     const uv = item.uniqueVisitors?.length || 0;
     const revenue = revenueInfo?.revenue || 0;
     const paymentCount = revenueInfo?.paymentCount || 0;
-    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
+    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.size || 0;
     const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
     const goalCount = goalsInfo?.goalCount || 0;
     const uniqueVisitorsWithGoals =

@@ -16,19 +16,10 @@ import { Button } from "@/components/ui/button";
 import { HorizontalStackedBarChart, MapChart } from "@/components/chart";
 import type { HorizontalStackedBarChartData } from "@/components/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-
-interface BreakdownData {
-  name: string;
-  uv: number;
-  revenue?: number; // Revenue in cents
-  image?: string; // Image URL (for system and location breakdowns)
-  flag?: string; // Flag emoji (for location breakdowns - countries only)
-  conversionRate?: number; // Conversion rate
-  goalCount?: number; // Goal count
-  goalConversionRate?: number; // Goal conversion rate
-  hostname?: string; // For path breakdowns
-  countryCode?: string; // ISO 2-letter country code (for location breakdowns)
-}
+import {
+  PieChartTooltip,
+  type BreakdownData,
+} from "./tooltips/PieChartTooltip";
 
 interface BreakdownCardProps {
   title: string;
@@ -63,7 +54,7 @@ const generateStackedData = (
       name: itemName,
       icon: iconUrl,
       visitors: item.uv || 0,
-      revenue: item.revenue ? Math.round(item.revenue / 100) : 0, // Convert cents to dollars
+      revenue: item.revenue ? Math.round(item.revenue / 100) : 0,
     };
   });
 };
@@ -100,7 +91,6 @@ export function BreakdownCard({
     .filter((item) => item.uv >= 0);
 
   const renderChart = () => {
-    // Show map chart for Location breakdown when Map tab is selected
     if (title === "Location" && selectedTab === "Map") {
       return <MapChart data={sanitizedData} height="h-96" />;
     }
@@ -109,7 +99,89 @@ export function BreakdownCard({
       const pieData = sanitizedData.map((item) => ({
         name: item.name || "Unknown",
         value: item.uv || 0,
+        payload: item, // Include full item data for tooltip
       }));
+
+      const minPercentForLabel = 0.05;
+
+      // Custom label component to render both text and referrer images
+      const renderCustomLabel = (props: any) => {
+        const {
+          cx,
+          cy,
+          midAngle,
+          innerRadius,
+          outerRadius,
+          name,
+          percent,
+          payload,
+        } = props;
+
+        // Calculate position for text label (outside the pie)
+        const textRadius = outerRadius + 20;
+        const textX = cx + textRadius * Math.cos(-midAngle * (Math.PI / 180));
+        const textY = cy + textRadius * Math.sin(-midAngle * (Math.PI / 180));
+
+        // Calculate position for referrer images (center of the slice)
+        const imageRadius = (innerRadius + outerRadius) / 2;
+        const imageX = cx + imageRadius * Math.cos(-midAngle * (Math.PI / 180));
+        const imageY = cy + imageRadius * Math.sin(-midAngle * (Math.PI / 180));
+
+        // Get top referrers with images (up to 3)
+        const referrersWithImages = payload?.referrers
+          ? payload.referrers.filter((ref: any) => ref.image).slice(0, 3)
+          : [];
+
+        return (
+          <g>
+            {/* Text label */}
+            {percent >= minPercentForLabel && (
+              <text
+                x={textX}
+                y={textY}
+                fill="currentColor"
+                textAnchor={textX > cx ? "start" : "end"}
+                dominantBaseline="central"
+                className="text-xs fill-textSecondary"
+              >
+                {`${name} ${(percent * 100).toFixed(0)}%`}
+              </text>
+            )}
+
+            {/* Referrer images in center of slice */}
+            {referrersWithImages.length > 0 && (
+              <g>
+                {referrersWithImages.map((referrer: any, index: number) => {
+                  const iconSize = referrersWithImages.length === 1 ? 20 : 16;
+                  const spacing = referrersWithImages.length === 1 ? 0 : 6;
+                  const totalWidth =
+                    referrersWithImages.length * iconSize +
+                    (referrersWithImages.length - 1) * spacing;
+                  const startX = imageX - totalWidth / 2;
+                  const iconX = startX + index * (iconSize + spacing);
+
+                  return (
+                    <image
+                      key={`referrer-${index}`}
+                      x={iconX}
+                      y={imageY - iconSize / 2}
+                      width={iconSize}
+                      height={iconSize}
+                      href={referrer.image}
+                      style={{
+                        clipPath: "circle(50%)",
+                      }}
+                      onError={(e: any) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  );
+                })}
+              </g>
+            )}
+          </g>
+        );
+      };
 
       return (
         <PieChart>
@@ -118,9 +190,9 @@ export function BreakdownCard({
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, percent }) =>
-              `${name} ${(percent * 100).toFixed(0)}%`
-            }
+            cornerRadius="5%"
+            innerRadius="30%"
+            label={renderCustomLabel}
             outerRadius={100}
             fill="#8884d8"
             dataKey="value"
@@ -132,7 +204,7 @@ export function BreakdownCard({
               />
             ))}
           </Pie>
-          <Tooltip />
+          <Tooltip content={<PieChartTooltip allData={sanitizedData} />} />
         </PieChart>
       );
     }
