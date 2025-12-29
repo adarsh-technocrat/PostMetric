@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { getVisitorsNow } from "@/utils/analytics/aggregations";
+import { getVisitorsNow } from "@/utils/analytics/aggregations/getVisitorsNow.aggregation";
 import Website from "@/db/models/Website";
 import connectDB from "@/db";
 

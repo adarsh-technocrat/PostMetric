@@ -98,6 +98,7 @@ interface WebsiteAnalytics {
       referrer: BreakdownData[];
       campaign: BreakdownData[];
       keyword: BreakdownData[];
+      channels?: BreakdownData[]; // Channels with nested referrers
     };
     path: {
       pages: BreakdownData[];

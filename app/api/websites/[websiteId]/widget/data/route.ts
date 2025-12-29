@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
-import { getVisitorsNow } from "@/utils/analytics/aggregations";
+import { getVisitorsNow } from "@/utils/analytics/aggregations/getVisitorsNow.aggregation";
 
 /**
  * GET /api/websites/[websiteId]/widget/data

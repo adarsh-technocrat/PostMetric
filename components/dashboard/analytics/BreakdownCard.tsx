@@ -8,18 +8,16 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import { HorizontalStackedBarChart, MapChart } from "@/components/chart";
+import {
+  HorizontalStackedBarChart,
+  MapChart,
+  PieChart,
+} from "@/components/chart";
 import type { HorizontalStackedBarChartData } from "@/components/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import {
-  PieChartTooltip,
-  type BreakdownData,
-} from "./tooltips/PieChartTooltip";
+import type { BreakdownData } from "./tooltips/PieChartTooltip";
 
 interface BreakdownCardProps {
   title: string;
@@ -96,117 +94,7 @@ export function BreakdownCard({
     }
 
     if (chartType === "pie") {
-      const pieData = sanitizedData.map((item) => ({
-        name: item.name || "Unknown",
-        value: item.uv || 0,
-        payload: item, // Include full item data for tooltip
-      }));
-
-      const minPercentForLabel = 0.05;
-
-      // Custom label component to render both text and referrer images
-      const renderCustomLabel = (props: any) => {
-        const {
-          cx,
-          cy,
-          midAngle,
-          innerRadius,
-          outerRadius,
-          name,
-          percent,
-          payload,
-        } = props;
-
-        // Calculate position for text label (outside the pie)
-        const textRadius = outerRadius + 20;
-        const textX = cx + textRadius * Math.cos(-midAngle * (Math.PI / 180));
-        const textY = cy + textRadius * Math.sin(-midAngle * (Math.PI / 180));
-
-        // Calculate position for referrer images (center of the slice)
-        const imageRadius = (innerRadius + outerRadius) / 2;
-        const imageX = cx + imageRadius * Math.cos(-midAngle * (Math.PI / 180));
-        const imageY = cy + imageRadius * Math.sin(-midAngle * (Math.PI / 180));
-
-        // Get top referrers with images (up to 3)
-        const referrersWithImages = payload?.referrers
-          ? payload.referrers.filter((ref: any) => ref.image).slice(0, 3)
-          : [];
-
-        return (
-          <g>
-            {/* Text label */}
-            {percent >= minPercentForLabel && (
-              <text
-                x={textX}
-                y={textY}
-                fill="currentColor"
-                textAnchor={textX > cx ? "start" : "end"}
-                dominantBaseline="central"
-                className="text-xs fill-textSecondary"
-              >
-                {`${name} ${(percent * 100).toFixed(0)}%`}
-              </text>
-            )}
-
-            {/* Referrer images in center of slice */}
-            {referrersWithImages.length > 0 && (
-              <g>
-                {referrersWithImages.map((referrer: any, index: number) => {
-                  const iconSize = referrersWithImages.length === 1 ? 20 : 16;
-                  const spacing = referrersWithImages.length === 1 ? 0 : 6;
-                  const totalWidth =
-                    referrersWithImages.length * iconSize +
-                    (referrersWithImages.length - 1) * spacing;
-                  const startX = imageX - totalWidth / 2;
-                  const iconX = startX + index * (iconSize + spacing);
-
-                  return (
-                    <image
-                      key={`referrer-${index}`}
-                      x={iconX}
-                      y={imageY - iconSize / 2}
-                      width={iconSize}
-                      height={iconSize}
-                      href={referrer.image}
-                      style={{
-                        clipPath: "circle(50%)",
-                      }}
-                      onError={(e: any) => {
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  );
-                })}
-              </g>
-            )}
-          </g>
-        );
-      };
-
-      return (
-        <PieChart>
-          <Pie
-            data={pieData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            cornerRadius="5%"
-            innerRadius="30%"
-            label={renderCustomLabel}
-            outerRadius={100}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {pieData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={colors[index % colors.length]}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<PieChartTooltip allData={sanitizedData} />} />
-        </PieChart>
-      );
+      return <PieChart data={sanitizedData} colors={colors} height="h-96" />;
     }
 
     if (chartType === "horizontalBar") {
@@ -299,9 +187,9 @@ export function BreakdownCard({
           </div>
         </div>
         <div className="relative h-96 w-full max-w-full overflow-hidden">
-          {title === "Location" && selectedTab === "Map" ? (
-            <div className="w-full h-full max-w-full">{renderChart()}</div>
-          ) : chartType === "horizontalBar" ? (
+          {(title === "Location" && selectedTab === "Map") ||
+          chartType === "horizontalBar" ||
+          chartType === "pie" ? (
             <div className="w-full h-full max-w-full">{renderChart()}</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

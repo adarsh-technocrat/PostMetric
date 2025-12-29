@@ -1,8 +1,8 @@
 import connectDB from "@/db";
-import PageView from "@/db/models/PageView";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
+import PageView from "@/db/models/PageView";
 import { Types } from "mongoose";
 import {
   resolveChannel,
@@ -10,167 +10,7 @@ import {
   getReferrerImageUrl,
 } from "@/utils/tracking/channel";
 import { extractUrlParams } from "@/utils/tracking/utm";
-import {
-  getCountryNameFromCode,
-  getFlagEmoji,
-  getLocationImageUrlFromCode,
-} from "@/utils/tracking/geolocation";
-import { getSystemImageUrl } from "@/utils/tracking/device";
 
-export type Granularity = "hourly" | "daily" | "weekly" | "monthly";
-
-function getDateTruncUnit(granularity: Granularity): string {
-  switch (granularity) {
-    case "hourly":
-      return "hour";
-    case "daily":
-      return "day";
-    case "weekly":
-      return "week";
-    case "monthly":
-      return "month";
-    default:
-      return "day";
-  }
-}
-
-export async function getVisitorsOverTime(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  granularity: Granularity = "daily"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-
-  const pipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateTrunc: {
-            date: "$timestamp",
-            unit: unit,
-          },
-        },
-        visitors: { $addToSet: "$visitorId" },
-      },
-    },
-    {
-      $project: {
-        date: "$_id",
-        count: { $size: "$visitors" },
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
-  ];
-
-  const results = await PageView.aggregate(pipeline);
-  return results.map((r) => ({
-    date: r.date,
-    visitors: r.count,
-  }));
-}
-
-/**
- * Get revenue over time
- * Returns raw revenue components separately - frontend should calculate net revenue if needed
- * - revenue: sum of non-refunded payments (gross revenue)
- * - revenueNew: sum of non-refunded, non-renewal payments
- * - revenueRefund: sum of refunded payments
- * Note: Net revenue = revenue - revenueRefund (calculated in frontend)
- */
-export async function getRevenueOverTime(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  granularity: Granularity = "daily"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-
-  const pipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateTrunc: {
-            date: "$timestamp",
-            unit: unit,
-          },
-        },
-        revenueNew: {
-          $sum: {
-            $cond: [
-              {
-                $and: [
-                  { $eq: ["$refunded", false] },
-                  { $eq: ["$renewal", false] },
-                ],
-              },
-              "$amount",
-              0,
-            ],
-          },
-        },
-        renewalRevenue: {
-          $sum: {
-            $cond: [
-              {
-                $and: [
-                  { $eq: ["$refunded", false] },
-                  { $eq: ["$renewal", true] },
-                ],
-              },
-              "$amount",
-              0,
-            ],
-          },
-        },
-        revenueRefund: {
-          $sum: {
-            $cond: [{ $eq: ["$refunded", true] }, "$amount", 0],
-          },
-        },
-      },
-    },
-    {
-      $project: {
-        date: "$_id",
-        revenueNew: 1,
-        renewalRevenue: 1,
-        revenueRefund: 1,
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
-  ];
-
-  return await Payment.aggregate(pipeline);
-}
-
-/**
- * Get source breakdown (channel, referrer, campaign, keyword) with detailed metrics
- */
 export async function getSourceBreakdown(
   websiteId: string,
   startDate: Date,
@@ -264,9 +104,54 @@ export async function getSourceBreakdown(
         },
       },
       {
-        $group: {
-          _id: sessionsGroupId,
-          sessionIds: { $addToSet: "$_id" },
+        $addFields: {
+          referrerDomain: {
+            $cond: {
+              if: { $ne: ["$referrer", null] },
+              then: {
+                $let: {
+                  vars: {
+                    noHttps: {
+                      $cond: {
+                        if: {
+                          $eq: [{ $substr: ["$referrer", 0, 8] }, "https://"],
+                        },
+                        then: { $substr: ["$referrer", 8, -1] },
+                        else: "$referrer",
+                      },
+                    },
+                  },
+                  in: {
+                    $let: {
+                      vars: {
+                        noHttp: {
+                          $cond: {
+                            if: {
+                              $eq: [
+                                { $substr: ["$$noHttps", 0, 7] },
+                                "http://",
+                              ],
+                            },
+                            then: { $substr: ["$$noHttps", 7, -1] },
+                            else: "$$noHttps",
+                          },
+                        },
+                      },
+                      in: {
+                        $arrayElemAt: [
+                          {
+                            $split: ["$$noHttp", "/"],
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              else: "Direct/None",
+            },
+          },
         },
       },
       {
@@ -275,22 +160,18 @@ export async function getSourceBreakdown(
             sourceType: "$_id.sourceType",
             referrer: "$_id.referrer",
             utmMedium: "$_id.utmMedium",
+            referrerDomain: "$referrerDomain",
+            utmSource: "$utmSource",
           },
-          uniqueVisitors: { $sum: 1 },
-          allSessionIds: { $push: "$sessionIds" },
+          uniqueVisitors: { $addToSet: "$visitorId" },
+          sessionIds: { $addToSet: "$_id" },
         },
       },
       {
         $project: {
           _id: 1,
-          uniqueVisitors: 1,
-          sessionIds: {
-            $reduce: {
-              input: "$allSessionIds",
-              initialValue: [],
-              in: { $setUnion: ["$$value", "$$this"] },
-            },
-          },
+          uniqueVisitors: { $size: "$uniqueVisitors" },
+          sessionIds: 1,
         },
       },
     ];
@@ -344,11 +225,105 @@ export async function getSourceBreakdown(
       tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
       referrer: "$session.referrer",
       utmMedium: "$session.utmMedium",
+      referrerDomain: {
+        $cond: {
+          if: { $ne: ["$session.referrer", null] },
+          then: {
+            $let: {
+              vars: {
+                noHttps: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        { $substr: ["$session.referrer", 0, 8] },
+                        "https://",
+                      ],
+                    },
+                    then: { $substr: ["$session.referrer", 8, -1] },
+                    else: "$session.referrer",
+                  },
+                },
+              },
+              in: {
+                $let: {
+                  vars: {
+                    noHttp: {
+                      $cond: {
+                        if: {
+                          $eq: [{ $substr: ["$$noHttps", 0, 7] }, "http://"],
+                        },
+                        then: { $substr: ["$$noHttps", 7, -1] },
+                        else: "$$noHttps",
+                      },
+                    },
+                  },
+                  in: {
+                    $arrayElemAt: [
+                      {
+                        $split: ["$$noHttp", "/"],
+                      },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          else: "Direct/None",
+        },
+      },
     };
     goalsGroupId = {
       tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
       referrer: "$session.referrer",
       utmMedium: "$session.utmMedium",
+      referrerDomain: {
+        $cond: {
+          if: { $ne: ["$session.referrer", null] },
+          then: {
+            $let: {
+              vars: {
+                noHttps: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        { $substr: ["$session.referrer", 0, 8] },
+                        "https://",
+                      ],
+                    },
+                    then: { $substr: ["$session.referrer", 8, -1] },
+                    else: "$session.referrer",
+                  },
+                },
+              },
+              in: {
+                $let: {
+                  vars: {
+                    noHttp: {
+                      $cond: {
+                        if: {
+                          $eq: [{ $substr: ["$$noHttps", 0, 7] }, "http://"],
+                        },
+                        then: { $substr: ["$$noHttps", 7, -1] },
+                        else: "$$noHttps",
+                      },
+                    },
+                  },
+                  in: {
+                    $arrayElemAt: [
+                      {
+                        $split: ["$$noHttp", "/"],
+                      },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          else: "Direct/None",
+        },
+      },
     };
   } else if (type === "referrer") {
     revenueGroupId = {
@@ -413,6 +388,9 @@ export async function getSourceBreakdown(
   if (type === "channel") {
     revenueGroupStage.referrer = { $first: "$session.referrer" };
     revenueGroupStage.utmMedium = { $first: "$session.utmMedium" };
+    revenueGroupStage.referrerDomain = { $first: "$_id.referrerDomain" };
+    revenueGroupStage.utmSource = { $first: "$session.utmSource" };
+    revenueGroupStage.paymentCount = { $sum: 1 };
   }
 
   const revenuePipeline = [
@@ -454,6 +432,8 @@ export async function getSourceBreakdown(
   if (type === "channel") {
     goalsGroupStage.referrer = { $first: "$session.referrer" };
     goalsGroupStage.utmMedium = { $first: "$session.utmMedium" };
+    goalsGroupStage.referrerDomain = { $first: "$_id.referrerDomain" };
+    goalsGroupStage.utmSource = { $first: "$session.utmSource" };
   }
 
   const goalsPipeline = [
@@ -485,43 +465,28 @@ export async function getSourceBreakdown(
   const goalsData = await GoalEvent.aggregate(goalsPipeline);
 
   // Step 4: Combine all data
-  // For channel type, resolve channels properly
+  // For channel type, resolve channels properly and build referrers
   if (type === "channel") {
-    // Resolve channels for sessions data
-    const resolvedSessionsMap = new Map<string, any>();
-    sessionsData.forEach((item) => {
-      const resolvedChannel = resolveChannel(
-        item._id.referrer || null,
-        item._id.utmMedium || null
-      );
-      if (!resolvedSessionsMap.has(resolvedChannel)) {
-        resolvedSessionsMap.set(resolvedChannel, {
-          uniqueVisitors: 0,
-          sessionIds: new Set(),
-        });
-      }
-      const session = resolvedSessionsMap.get(resolvedChannel);
-      session.uniqueVisitors += item.uniqueVisitors || 0;
-      if (item.sessionIds) {
-        item.sessionIds.forEach((sid: string) => session.sessionIds.add(sid));
-      }
-    });
-
-    // Resolve channels for revenue data
+    // Build revenue map by channel and referrer
     const revenueMap = new Map<string, any>();
     revenueData.forEach((item) => {
       const resolvedChannel = resolveChannel(
         item.referrer || null,
         item.utmMedium || null
       );
-      if (!revenueMap.has(resolvedChannel)) {
-        revenueMap.set(resolvedChannel, {
+      const referrerDomain = item.referrerDomain || "Direct/None";
+      const key = `${resolvedChannel}::${referrerDomain}`;
+
+      if (!revenueMap.has(key)) {
+        revenueMap.set(key, {
           revenue: 0,
+          paymentCount: 0,
           sessionsWithPayments: new Set(),
         });
       }
-      const rev = revenueMap.get(resolvedChannel);
+      const rev = revenueMap.get(key);
       rev.revenue += item.revenue || 0;
+      rev.paymentCount += item.paymentCount || 0;
       if (item.sessionsWithPayments) {
         item.sessionsWithPayments.forEach((sid: string) =>
           rev.sessionsWithPayments.add(sid)
@@ -529,20 +494,23 @@ export async function getSourceBreakdown(
       }
     });
 
-    // Resolve channels for goals data
+    // Build goals map by channel and referrer
     const goalsMap = new Map<string, any>();
     goalsData.forEach((item) => {
       const resolvedChannel = resolveChannel(
         item.referrer || null,
         item.utmMedium || null
       );
-      if (!goalsMap.has(resolvedChannel)) {
-        goalsMap.set(resolvedChannel, {
+      const referrerDomain = item.referrerDomain || "Direct/None";
+      const key = `${resolvedChannel}::${referrerDomain}`;
+
+      if (!goalsMap.has(key)) {
+        goalsMap.set(key, {
           goalCount: 0,
           uniqueVisitorsWithGoals: new Set(),
         });
       }
-      const goal = goalsMap.get(resolvedChannel);
+      const goal = goalsMap.get(key);
       goal.goalCount += item.goalCount || 0;
       if (item.uniqueVisitorsWithGoals) {
         item.uniqueVisitorsWithGoals.forEach((vid: string) =>
@@ -551,33 +519,170 @@ export async function getSourceBreakdown(
       }
     });
 
-    // Combine resolved data
-    const result = Array.from(resolvedSessionsMap.entries()).map(
-      ([channelName, sessionData]) => {
-        const revenueInfo = revenueMap.get(channelName);
-        const goalsInfo = goalsMap.get(channelName);
+    // Group sessions by channel and referrer, then build referrers
+    const channelMap = new Map<string, any>();
 
-        const uv = sessionData.uniqueVisitors || 0;
-        const revenue = revenueInfo?.revenue || 0;
-        const sessionsWithPayments =
-          revenueInfo?.sessionsWithPayments?.size || 0;
-        const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
-        const goalCount = goalsInfo?.goalCount || 0;
-        const goalConversionRate =
-          uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.size || 0) / uv : 0;
+    sessionsData.forEach((item) => {
+      const resolvedChannel = resolveChannel(
+        item._id.referrer || null,
+        item._id.utmMedium || null
+      );
+      const referrerDomain = item._id.referrerDomain || "Direct/None";
+      const key = `${resolvedChannel}::${referrerDomain}`;
 
-        return {
-          name: channelName,
-          uv,
-          revenue,
-          conversionRate,
-          goalCount,
-          goalConversionRate,
-        };
+      const revenueInfo = revenueMap.get(key);
+      const goalsInfo = goalsMap.get(key);
+
+      const uv = item.uniqueVisitors || 0;
+      const revenue = revenueInfo?.revenue || 0;
+      const paymentCount = revenueInfo?.paymentCount || 0;
+      const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.size || 0;
+      const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+      const goalCount = goalsInfo?.goalCount || 0;
+      const uniqueVisitorsWithGoals =
+        goalsInfo?.uniqueVisitorsWithGoals?.size || 0;
+      const goalConversionRate = uv > 0 ? uniqueVisitorsWithGoals / uv : 0;
+
+      // Extract URL parameters from referrer
+      const urlParams = extractUrlParams(item._id.referrer);
+
+      // Determine referrer name and type
+      let referrerName = formatReferrerName(referrerDomain);
+      let referrerType: "referrer" | "ref" | "via" | "utm_source" = "referrer";
+      let isAlternativeSource = false;
+      let originalValue = referrerDomain;
+
+      if (referrerDomain === "Direct/None" || referrerDomain === "Direct") {
+        referrerName = "Direct/None";
+        originalValue = "Direct/None";
+      } else {
+        // Check if it's an alternative source
+        const domainLower = referrerDomain.toLowerCase();
+        if (
+          domainLower.includes("producthunt") ||
+          domainLower.includes("hackernews") ||
+          domainLower.includes("reddit") ||
+          domainLower.includes("indiehackers")
+        ) {
+          isAlternativeSource = true;
+          referrerType = "ref";
+        }
       }
-    );
 
-    // Sort by unique visitors descending
+      // Get referrer image
+      const referrerImage = getReferrerImageUrl(referrerDomain);
+
+      // Initialize channel if not exists
+      if (!channelMap.has(resolvedChannel)) {
+        channelMap.set(resolvedChannel, {
+          name: resolvedChannel,
+          uv: 0,
+          revenue: 0,
+          goalCount: 0,
+          paymentCount: 0,
+          conversionRate: 0,
+          goalConversionRate: 0,
+          referrers: [],
+        });
+      }
+
+      const channel = channelMap.get(resolvedChannel);
+
+      // Add to channel totals
+      channel.uv += uv;
+      channel.revenue += revenue;
+      channel.goalCount += goalCount;
+      channel.paymentCount += paymentCount;
+
+      // Determine hasPaidMedium and paidMediumHint
+      const utmMedium = item._id.utmMedium || urlParams.utm_medium;
+      let hasPaidMedium = false;
+      let paidMediumHint: string | null = null;
+
+      if (utmMedium) {
+        const mediumLower = utmMedium.toLowerCase();
+        if (
+          mediumLower === "paid" ||
+          mediumLower === "cpc" ||
+          mediumLower === "ppc" ||
+          mediumLower === "ad" ||
+          mediumLower === "ads" ||
+          mediumLower === "sponsored" ||
+          mediumLower === "display"
+        ) {
+          hasPaidMedium = true;
+          paidMediumHint = mediumLower === "cpc" ? "cpc" : "paid";
+        }
+      }
+
+      // Create referrer object
+      const referrerObj: any = {
+        name: referrerName,
+        channel: resolvedChannel,
+        uv,
+        image: referrerImage,
+        isAlternativeSource,
+        referrerType,
+        originalValue,
+        hasPaidMedium,
+        paidMediumHint,
+        revenue,
+        paymentCount,
+        conversionRate,
+        goalCount,
+        goalConversionRate,
+      };
+
+      // Add optional URL parameters if they exist
+      if (urlParams.param_ref) referrerObj.param_ref = urlParams.param_ref;
+      if (urlParams.param_via) referrerObj.param_via = urlParams.param_via;
+      if (urlParams.utm_source) referrerObj.utm_source = urlParams.utm_source;
+      if (urlParams.utm_medium) referrerObj.utm_medium = urlParams.utm_medium;
+
+      // Also add utm_source and utm_medium from session if available
+      if (item._id.utmSource) referrerObj.utm_source = item._id.utmSource;
+      if (item._id.utmMedium) referrerObj.utm_medium = item._id.utmMedium;
+
+      channel.referrers.push(referrerObj);
+    });
+
+    // Calculate channel-level metrics and format result
+    const result = Array.from(channelMap.values()).map((channel) => {
+      const totalUv = channel.uv;
+      const totalSessionsWithPayments = channel.referrers.reduce(
+        (sum: number, ref: any) => sum + (ref.paymentCount || 0),
+        0
+      );
+      const totalUniqueVisitorsWithGoals = channel.referrers.reduce(
+        (sum: number, ref: any) => sum + (ref.goalCount || 0),
+        0
+      );
+
+      channel.conversionRate =
+        totalUv > 0 ? totalSessionsWithPayments / totalUv : 0;
+      channel.goalConversionRate =
+        totalUv > 0 ? totalUniqueVisitorsWithGoals / totalUv : 0;
+
+      // Get channel image (use first referrer's image or default)
+      if (channel.referrers.length > 0 && channel.referrers[0].image) {
+        channel.image = channel.referrers[0].image;
+      }
+
+      // Sort referrers by UV descending
+      channel.referrers.sort((a: any, b: any) => b.uv - a.uv);
+
+      return {
+        name: channel.name,
+        uv: channel.uv,
+        revenue: channel.revenue,
+        conversionRate: channel.conversionRate,
+        goalCount: channel.goalCount,
+        goalConversionRate: channel.goalConversionRate,
+        referrers: channel.referrers,
+      };
+    });
+
+    // Sort channels by UV descending
     result.sort((a, b) => b.uv - a.uv);
 
     return result;
@@ -620,11 +725,7 @@ export async function getSourceBreakdown(
   return result;
 }
 
-/**
- * Get campaign breakdown with all UTM and param parameters
- * Groups by combination of utm_source, utm_medium, utm_campaign, utm_term, utm_content,
- * param_ref, param_source, param_via
- */
+
 export async function getCampaignBreakdown(
   websiteId: string,
   startDate: Date,
@@ -1074,10 +1175,7 @@ export async function getCampaignBreakdown(
   return result;
 }
 
-/**
- * Get channel breakdown with nested referrers
- * Returns channels with referrers nested inside, matching the expected schema
- */
+
 export async function getChannelBreakdownWithReferrers(
   websiteId: string,
   startDate: Date,
@@ -1552,10 +1650,7 @@ export async function getChannelBreakdownWithReferrers(
   return channels;
 }
 
-/**
- * Get referrers breakdown as a flat list with detailed metrics
- * Includes referrers from domains, param_ref, param_via, and utm_source
- */
+
 export async function getReferrersBreakdown(
   websiteId: string,
   startDate: Date,
@@ -2324,1308 +2419,4 @@ export async function getReferrersBreakdown(
   return result;
 }
 
-/**
- * Get pages breakdown with detailed metrics
- */
-export async function getPagesBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date
-) {
-  await connectDB();
 
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  // Step 1: Get unique visitors per page from PageView
-  const pagesPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$cleanPath",
-          hostname: "$hostname",
-          visitorId: "$visitorId",
-        },
-        sessionIds: { $addToSet: "$sessionId" },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$_id.path",
-          hostname: "$_id.hostname",
-        },
-        uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
-      },
-    },
-  ];
-
-  const pagesData = await PageView.aggregate(pagesPipeline);
-
-  // Step 2: Get revenue per page from Payment (via Session -> PageView)
-  const revenuePipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$cleanPath",
-          hostname: "$pageViews.hostname",
-        },
-        revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
-      },
-    },
-  ];
-
-  const revenueData = await Payment.aggregate(revenuePipeline);
-
-  // Step 3: Get goal count per page from GoalEvent (via Session -> PageView)
-  const goalsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$cleanPath",
-          hostname: "$pageViews.hostname",
-        },
-        goalCount: { $sum: 1 },
-        uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
-      },
-    },
-  ];
-
-  const goalsData = await GoalEvent.aggregate(goalsPipeline);
-
-  // Step 4: Combine all data
-  const revenueMap = new Map(
-    revenueData.map((item) => [
-      `${item._id.path || "Unknown"}::${item._id.hostname || "Unknown"}`,
-      item,
-    ])
-  );
-  const goalsMap = new Map(
-    goalsData.map((item) => [
-      `${item._id.path || "Unknown"}::${item._id.hostname || "Unknown"}`,
-      item,
-    ])
-  );
-
-  const result = pagesData.map((item) => {
-    const path = item._id.path || "Unknown";
-    const hostname = item._id.hostname || "Unknown";
-    const key = `${path}::${hostname}`;
-
-    const revenueInfo = revenueMap.get(key);
-    const goalsInfo = goalsMap.get(key);
-
-    const uv = item.uniqueVisitors || 0;
-    const revenue = revenueInfo?.revenue || 0;
-    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
-    const goalCount = goalsInfo?.goalCount || 0;
-    const goalConversionRate =
-      uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;
-
-    return {
-      name: path,
-      hostname,
-      uv,
-      revenue,
-      conversionRate,
-      goalCount,
-      goalConversionRate,
-    };
-  });
-
-  // Sort by unique visitors descending
-  result.sort((a, b) => b.uv - a.uv);
-
-  return result;
-}
-
-/**
- * Get hostnames breakdown with detailed metrics
- */
-export async function getHostnamesBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  // Step 1: Get unique visitors per hostname from PageView
-  const hostnamesPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          hostname: "$hostname",
-          visitorId: "$visitorId",
-        },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id.hostname",
-        uniqueVisitors: { $sum: 1 },
-      },
-    },
-  ];
-
-  const hostnamesData = await PageView.aggregate(hostnamesPipeline);
-
-  // Step 2: Get revenue per hostname from Payment (via Session -> PageView)
-  const revenuePipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: "$pageViews.hostname",
-        revenue: { $sum: "$amount" },
-        paymentCount: { $sum: 1 },
-      },
-    },
-  ];
-
-  const revenueData = await Payment.aggregate(revenuePipeline);
-
-  // Step 3: Get goal count per hostname from GoalEvent (via Session -> PageView)
-  const goalsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: "$pageViews.hostname",
-        goalCount: { $sum: 1 },
-      },
-    },
-  ];
-
-  const goalsData = await GoalEvent.aggregate(goalsPipeline);
-
-  // Step 4: Combine all data
-  const revenueMap = new Map(
-    revenueData.map((item) => [item._id || "Unknown", item])
-  );
-  const goalsMap = new Map(
-    goalsData.map((item) => [item._id || "Unknown", item])
-  );
-
-  const result = hostnamesData.map((item) => {
-    const hostname = item._id || "Unknown";
-    const revenueInfo = revenueMap.get(hostname);
-    const goalsInfo = goalsMap.get(hostname);
-
-    const uv = item.uniqueVisitors || 0;
-    const revenue = revenueInfo?.revenue || 0;
-    const paymentCount = revenueInfo?.paymentCount || 0;
-    const goalCount = goalsInfo?.goalCount || 0;
-
-    return {
-      name: hostname,
-      uv,
-      revenue,
-      paymentCount,
-      goalCount,
-    };
-  });
-
-  // Sort by unique visitors descending
-  result.sort((a, b) => b.uv - a.uv);
-
-  return result;
-}
-
-/**
- * Get entry pages breakdown (first page per session) with detailed metrics
- */
-export async function getEntryPagesBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  // Step 1: Get first page view per session
-  const entryPagesPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $sort: { timestamp: 1 as const },
-    },
-    {
-      $group: {
-        _id: "$sessionId",
-        firstPath: { $first: "$cleanPath" },
-        firstHostname: { $first: "$hostname" },
-        visitorId: { $first: "$visitorId" },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$firstPath",
-          hostname: "$firstHostname",
-        },
-        uniqueVisitors: { $addToSet: "$visitorId" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: { $size: "$uniqueVisitors" },
-      },
-    },
-  ];
-
-  const entryPagesData = await PageView.aggregate(entryPagesPipeline);
-
-  // Step 2: Get revenue per entry page from Payment (via Session)
-  // For entry pages, we need to match payments to sessions and get their first page
-  const revenuePipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $sort: { "pageViews.timestamp": 1 as const },
-    },
-    {
-      $group: {
-        _id: "$sessionId",
-        firstPath: { $first: "$cleanPath" },
-        firstHostname: { $first: "$pageViews.hostname" },
-        revenue: { $sum: "$amount" },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$firstPath",
-          hostname: "$firstHostname",
-        },
-        revenue: { $sum: "$revenue" },
-        sessionsWithPayments: { $addToSet: "$_id" },
-      },
-    },
-  ];
-
-  const revenueData = await Payment.aggregate(revenuePipeline);
-
-  // Step 3: Get goal count per entry page from GoalEvent (via Session)
-  const goalsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $sort: { "pageViews.timestamp": 1 as const },
-    },
-    {
-      $group: {
-        _id: "$sessionId",
-        firstPath: { $first: "$cleanPath" },
-        firstHostname: { $first: "$pageViews.hostname" },
-        visitorId: { $first: "$visitorId" },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          path: "$firstPath",
-          hostname: "$firstHostname",
-        },
-        goalCount: { $sum: 1 },
-        uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
-      },
-    },
-  ];
-
-  const goalsData = await GoalEvent.aggregate(goalsPipeline);
-
-  // Step 4: Combine all data
-  const revenueMap = new Map(
-    revenueData.map((item) => [
-      `${item._id.path || "Unknown"}::${item._id.hostname || "Unknown"}`,
-      item,
-    ])
-  );
-  const goalsMap = new Map(
-    goalsData.map((item) => [
-      `${item._id.path || "Unknown"}::${item._id.hostname || "Unknown"}`,
-      item,
-    ])
-  );
-
-  const result = entryPagesData.map((item) => {
-    const path = item._id.path || "Unknown";
-    const hostname = item._id.hostname || "Unknown";
-    const key = `${path}::${hostname}`;
-
-    const revenueInfo = revenueMap.get(key);
-    const goalsInfo = goalsMap.get(key);
-
-    const uv = item.uniqueVisitors || 0;
-    const revenue = revenueInfo?.revenue || 0;
-    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
-    const goalCount = goalsInfo?.goalCount || 0;
-    const goalConversionRate =
-      uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;
-
-    return {
-      name: path,
-      hostname,
-      uv,
-      revenue,
-      conversionRate,
-      goalCount,
-      goalConversionRate,
-    };
-  });
-
-  // Sort by unique visitors descending
-  result.sort((a, b) => b.uv - a.uv);
-
-  return result;
-}
-
-export async function getExitLinksBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  const exitLinksPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        exitUrl: { $exists: true, $ne: null },
-        $expr: { $ne: ["$exitUrl", ""] },
-      },
-    },
-    {
-      $addFields: {
-        exitDomain: {
-          $let: {
-            vars: {
-              withoutProtocol: {
-                $replaceAll: {
-                  input: {
-                    $replaceAll: {
-                      input: "$exitUrl",
-                      find: "https://",
-                      replacement: "",
-                    },
-                  },
-                  find: "http://",
-                  replacement: "",
-                },
-              },
-            },
-            in: {
-              $arrayElemAt: [{ $split: ["$$withoutProtocol", "/"] }, 0],
-            },
-          },
-        },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          exitDomain: "$exitDomain",
-          visitorId: "$visitorId",
-        },
-        exits: { $sum: 1 },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id.exitDomain",
-        uniqueVisitors: { $addToSet: "$_id.visitorId" },
-        totalExits: { $sum: "$exits" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: { $size: "$uniqueVisitors" },
-        totalExits: 1,
-      },
-    },
-  ];
-
-  const exitLinksData = await PageView.aggregate(exitLinksPipeline);
-
-  // Step 2: Format the result with favicon URLs
-  const result = exitLinksData.map((item) => {
-    const domain = item._id || "";
-    // Generate favicon URL using DuckDuckGo's favicon service
-    const faviconUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-
-    return {
-      name: domain,
-      uv: item.uniqueVisitors || 0,
-      exits: item.totalExits || 0,
-      image: faviconUrl,
-    };
-  });
-
-  // Sort by unique visitors descending, then by exits descending
-  result.sort((a, b) => {
-    if (b.uv !== a.uv) {
-      return b.uv - a.uv;
-    }
-    return b.exits - a.exits;
-  });
-
-  return result;
-}
-
-export async function getLocationBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  type: "country" | "region" | "city" = "country"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  let sessionsGroupId: any;
-
-  if (type === "country") {
-    sessionsGroupId = { systemType: "$country", visitorId: "$visitorId" };
-  } else if (type === "region") {
-    sessionsGroupId = {
-      systemType: "$region",
-      country: "$country",
-      visitorId: "$visitorId",
-    };
-  } else {
-    sessionsGroupId = {
-      systemType: "$city",
-      country: "$country",
-      visitorId: "$visitorId",
-    };
-  }
-
-  const sessionsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: sessionsGroupId,
-        sessionIds: { $addToSet: "$_id" },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          systemType: "$_id.systemType",
-          country:
-            type === "country"
-              ? "$_id.systemType"
-              : { $ifNull: ["$_id.country", ""] },
-        },
-        uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
-      },
-    },
-  ];
-
-  const sessionsData = await Session.aggregate(sessionsPipeline);
-
-  // Step 2: Get revenue per location type from Payment (via Session)
-  let revenueGroupId: any;
-  let goalsGroupId: any;
-
-  if (type === "country") {
-    revenueGroupId = "$session.country";
-    goalsGroupId = "$session.country";
-  } else if (type === "region") {
-    revenueGroupId = "$session.region";
-    goalsGroupId = "$session.region";
-  } else {
-    revenueGroupId = "$session.city";
-    goalsGroupId = "$session.city";
-  }
-
-  const revenuePipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
-    {
-      $unwind: {
-        path: "$session",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: revenueGroupId,
-        revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
-      },
-    },
-  ];
-
-  const revenueData = await Payment.aggregate(revenuePipeline);
-
-  // Step 3: Get goal count per location type from GoalEvent (via Session)
-  const goalsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
-    {
-      $unwind: {
-        path: "$session",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: goalsGroupId,
-        goalCount: { $sum: 1 },
-        uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
-      },
-    },
-  ];
-
-  const goalsData = await GoalEvent.aggregate(goalsPipeline);
-
-  // Step 4: Combine all data
-  const revenueMap = new Map(
-    revenueData.map((item) => [item._id || "Unknown", item])
-  );
-  const goalsMap = new Map(
-    goalsData.map((item) => [item._id || "Unknown", item])
-  );
-
-  const result = sessionsData.map((item) => {
-    const locationId = item._id || {};
-    const locationCode =
-      typeof locationId === "string"
-        ? locationId
-        : locationId.systemType || "Unknown";
-    const countryCode =
-      typeof locationId === "string" ? locationId : locationId.country || "";
-
-    const revenueInfo = revenueMap.get(locationCode);
-    const goalsInfo = goalsMap.get(locationCode);
-
-    const uv = item.uniqueVisitors || 0;
-    const revenue = revenueInfo?.revenue || 0;
-    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    // Conversion rate: sessions with payments / unique visitors
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
-    const goalCount = goalsInfo?.goalCount || 0;
-    // Goal conversion rate: unique visitors with goals / unique visitors
-    const goalConversionRate =
-      uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;
-
-    // For countries, convert code to full name and get flag emoji
-    // For regions and cities, use the country code to get the flag
-    let displayName = locationCode;
-    let flag = "";
-    let flagCountryCode = countryCode;
-
-    if (type === "country") {
-      displayName = getCountryNameFromCode(locationCode);
-      flagCountryCode = locationCode;
-      flag = getFlagEmoji(locationCode);
-    } else if (countryCode) {
-      // For regions and cities, show the country flag
-      flag = getFlagEmoji(countryCode);
-    }
-
-    return {
-      name: displayName,
-      uv,
-      flag: flag || undefined,
-      image:
-        type === "country"
-          ? getLocationImageUrlFromCode(locationCode, type)
-          : flagCountryCode
-          ? getLocationImageUrlFromCode(flagCountryCode, "country")
-          : "",
-      revenue,
-      conversionRate,
-      goalCount,
-      goalConversionRate,
-      countryCode:
-        type === "country" ? locationCode : flagCountryCode || undefined,
-    };
-  });
-
-  result.sort((a, b) => b.uv - a.uv);
-
-  return result;
-}
-
-/**
- * Get system breakdown (browser, OS, device) with revenue, conversion rate, and goals
- */
-export async function getSystemBreakdown(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  type: "browser" | "os" | "device" = "browser"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  // Step 1: Get unique visitors and sessions per system type from Session
-  // Build the group _id dynamically based on type
-  let sessionsGroupId: any;
-
-  if (type === "browser") {
-    sessionsGroupId = { systemType: "$browser", visitorId: "$visitorId" };
-  } else if (type === "os") {
-    sessionsGroupId = { systemType: "$os", visitorId: "$visitorId" };
-  } else {
-    sessionsGroupId = { systemType: "$device", visitorId: "$visitorId" };
-  }
-
-  const sessionsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: sessionsGroupId,
-        sessionIds: { $addToSet: "$_id" },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id.systemType",
-        uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
-      },
-    },
-  ];
-
-  const sessionsData = await Session.aggregate(sessionsPipeline);
-
-  // Step 2: Get revenue per system type from Payment (via Session)
-  // Build the group _id dynamically based on type
-  let revenueGroupId: any;
-  let goalsGroupId: any;
-
-  if (type === "browser") {
-    revenueGroupId = "$session.browser";
-    goalsGroupId = "$session.browser";
-  } else if (type === "os") {
-    revenueGroupId = "$session.os";
-    goalsGroupId = "$session.os";
-  } else {
-    revenueGroupId = "$session.device";
-    goalsGroupId = "$session.device";
-  }
-
-  const revenuePipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
-    {
-      $unwind: {
-        path: "$session",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: revenueGroupId,
-        revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
-      },
-    },
-  ];
-
-  const revenueData = await Payment.aggregate(revenuePipeline);
-
-  // Step 3: Get goal count per system type from GoalEvent (via Session)
-  const goalsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
-    {
-      $unwind: {
-        path: "$session",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $group: {
-        _id: goalsGroupId,
-        goalCount: { $sum: 1 },
-        uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
-      },
-    },
-  ];
-
-  const goalsData = await GoalEvent.aggregate(goalsPipeline);
-
-  // Step 4: Combine all data
-  const revenueMap = new Map(
-    revenueData.map((item) => [item._id || "Unknown", item])
-  );
-  const goalsMap = new Map(
-    goalsData.map((item) => [item._id || "Unknown", item])
-  );
-
-  const result = sessionsData.map((item) => {
-    const systemName = item._id || "Unknown";
-    const revenueInfo = revenueMap.get(systemName);
-    const goalsInfo = goalsMap.get(systemName);
-
-    const uv = item.uniqueVisitors || 0;
-    const revenue = revenueInfo?.revenue || 0;
-    const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    // Conversion rate: sessions with payments / unique visitors
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
-    const goalCount = goalsInfo?.goalCount || 0;
-    // Goal conversion rate: unique visitors with goals / unique visitors
-    const goalConversionRate =
-      uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;
-
-    return {
-      name: systemName,
-      uv,
-      image: getSystemImageUrl(systemName, type),
-      revenue,
-      conversionRate,
-      goalCount,
-      goalConversionRate,
-    };
-  });
-
-  // Sort by unique visitors descending
-  result.sort((a, b) => b.uv - a.uv);
-
-  return result;
-}
-
-/**
- * Get overall metrics
- * Returns raw revenue components separately - frontend should calculate net revenue if needed
- * - revenue: total non-refunded payments (gross revenue)
- * - revenueRefund: total refunded payments
- * Note: Net revenue = revenue - revenueRefund (calculated in frontend)
- */
-export async function getMetrics(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-
-  const uniqueVisitors = await PageView.distinct("visitorId", {
-    websiteId: websiteObjectId,
-    timestamp: { $gte: startDate, $lte: endDate },
-  });
-
-  const totalPageViews = await PageView.countDocuments({
-    websiteId: websiteObjectId,
-    timestamp: { $gte: startDate, $lte: endDate },
-  });
-
-  // Get raw revenue components (not net revenue)
-  const revenueResult = await Payment.aggregate([
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalRevenue: {
-          $sum: {
-            $cond: [{ $eq: ["$refunded", false] }, "$amount", 0],
-          },
-        },
-        totalRefunds: {
-          $sum: {
-            $cond: [{ $eq: ["$refunded", true] }, "$amount", 0],
-          },
-        },
-      },
-    },
-  ]);
-
-  const totalRevenue = revenueResult[0]?.totalRevenue || 0;
-  const totalRefunds = revenueResult[0]?.totalRefunds || 0;
-
-  // Get sessions
-  const sessions = await Session.find({
-    websiteId: websiteObjectId,
-    firstVisitAt: { $gte: startDate, $lte: endDate },
-  });
-
-  const totalSessions = sessions.length;
-  const bounceRate =
-    totalSessions > 0
-      ? (sessions.filter((s) => s.bounce).length / totalSessions) * 100
-      : 0;
-
-  const avgDuration =
-    totalSessions > 0
-      ? sessions.reduce((sum, s) => {
-          let duration = s.duration;
-
-          if (duration === 0 && s.firstVisitAt && s.lastSeenAt) {
-            duration = Math.floor(
-              (s.lastSeenAt.getTime() - s.firstVisitAt.getTime()) / 1000
-            );
-          }
-          return sum + duration;
-        }, 0) / totalSessions
-      : 0;
-
-  const sessionsWithPayments = await Payment.distinct("sessionId", {
-    websiteId: websiteObjectId,
-    timestamp: { $gte: startDate, $lte: endDate },
-    refunded: false,
-  });
-
-  const conversionRate =
-    totalSessions > 0 ? (sessionsWithPayments.length / totalSessions) * 100 : 0;
-
-  // Revenue per visitor
-  const revenuePerVisitor =
-    uniqueVisitors.length > 0 ? totalRevenue / uniqueVisitors.length : 0;
-
-  return {
-    visitors: uniqueVisitors.length,
-    pageViews: totalPageViews,
-    revenue: totalRevenue,
-    revenueRefund: totalRefunds,
-    sessions: totalSessions,
-    bounceRate,
-    sessionTime: avgDuration,
-    conversionRate,
-    revenuePerVisitor,
-  };
-}
-
-export async function getVisitorsNow(websiteId: string) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-  const activeSessions = await Session.distinct("visitorId", {
-    websiteId: websiteObjectId,
-    lastSeenAt: { $gte: fiveMinutesAgo },
-  });
-
-  return activeSessions.length;
-}
-
-/**
- * Get customers and sales over time
- * Returns unique customers and total sales count per time period
- */
-export async function getCustomersAndSalesOverTime(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  granularity: Granularity = "daily"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-
-  const pipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateTrunc: {
-            date: "$timestamp",
-            unit: unit,
-          },
-        },
-        customerIds: { $addToSet: "$customerId" },
-        sales: { $sum: 1 },
-      },
-    },
-    {
-      $project: {
-        date: "$_id",
-        customers: {
-          $size: {
-            $filter: {
-              input: "$customerIds",
-              as: "customerId",
-              cond: { $ne: ["$$customerId", null] },
-            },
-          },
-        },
-        sales: 1,
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
-  ];
-
-  return await Payment.aggregate(pipeline);
-}
-
-/**
- * Get goal events over time
- */
-export async function getGoalsOverTime(
-  websiteId: string,
-  startDate: Date,
-  endDate: Date,
-  granularity: Granularity = "daily"
-) {
-  await connectDB();
-
-  const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-
-  const pipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateTrunc: {
-            date: "$timestamp",
-            unit: unit,
-          },
-        },
-        goalCount: { $sum: 1 },
-      },
-    },
-    {
-      $project: {
-        date: "$_id",
-        goalCount: 1,
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
-  ];
-
-  return await GoalEvent.aggregate(pipeline);
-}

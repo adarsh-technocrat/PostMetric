@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getVisitorsOverTime,
-  getRevenueOverTime,
-  getCustomersAndSalesOverTime,
-  getGoalsOverTime,
-  getMetrics,
-  getSourceBreakdown,
-  getPagesBreakdown,
-  getHostnamesBreakdown,
-  getEntryPagesBreakdown,
-  getExitLinksBreakdown,
-  getLocationBreakdown,
-  getSystemBreakdown,
-  getChannelBreakdownWithReferrers,
-  getReferrersBreakdown,
-  getCampaignBreakdown,
-  type Granularity,
-} from "@/utils/analytics/aggregations";
+import { getVisitorsOverTime } from "@/utils/analytics/aggregations/getVisitorsOverTime.aggregation";
+import { getRevenueOverTime } from "@/utils/analytics/aggregations/getRevenueOverTime.aggregation";
+import { getCustomersAndSalesOverTime } from "@/utils/analytics/aggregations/getCustomersAndSalesOverTime.aggregation";
+import { getGoalsOverTime } from "@/utils/analytics/aggregations/getGoalsOverTime.aggregation";
+import { getMetrics } from "@/utils/analytics/aggregations/getMetrics.aggregation";
+import { getSourceBreakdown } from "@/utils/analytics/aggregations/getSourceBreakdown.aggregation";
+import { getPagesBreakdown } from "@/utils/analytics/aggregations/getPagesBreakdown.aggregation";
+import { getHostnamesBreakdown } from "@/utils/analytics/aggregations/getHostnamesBreakdown.aggregation";
+import { getEntryPagesBreakdown } from "@/utils/analytics/aggregations/getEntryPagesBreakdown.aggregation";
+import { getExitLinksBreakdown } from "@/utils/analytics/aggregations/getExitLinksBreakdown.aggregation";
+import { getLocationBreakdown } from "@/utils/analytics/aggregations/getLocationBreakdown.aggregation";
+import { getSystemBreakdown } from "@/utils/analytics/aggregations/getSystemBreakdown.aggregation";
+import { getChannelBreakdownWithReferrers } from "@/utils/analytics/aggregations/getChannelBreakdownWithReferrers.aggregation";
+import { getReferrersBreakdown } from "@/utils/analytics/aggregations/getReferrersBreakdown.aggregation";
+import { getCampaignBreakdown } from "@/utils/analytics/aggregations/getCampaignBreakdown.aggregation";
+import type { Granularity } from "@/utils/analytics/types";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
 import { enqueueSyncJob, hasRecentSync } from "@/utils/jobs/queue";

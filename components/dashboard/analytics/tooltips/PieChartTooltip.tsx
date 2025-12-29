@@ -15,7 +15,6 @@ export interface ReferrerData {
   conversionRate?: number;
   goalCount?: number;
   goalConversionRate?: number;
-  [key: string]: any; // For additional fields like param_ref, param_via, utm_source, etc.
 }
 
 export interface BreakdownData {
@@ -32,13 +31,22 @@ export interface BreakdownData {
   referrers?: ReferrerData[];
 }
 
+interface RechartsPiePayload {
+  name?: string;
+  value?: number;
+  payload?: {
+    payload?: BreakdownData;
+    stroke?: string;
+    fill?: string;
+    cx?: string | number;
+    cy?: string | number;
+  };
+  dataKey?: string;
+}
+
 interface PieTooltipProps {
   active?: boolean;
-  payload?: Array<{
-    name?: string;
-    value?: number;
-    payload?: BreakdownData;
-  }>;
+  payload?: RechartsPiePayload[];
   allData?: BreakdownData[];
 }
 
@@ -53,22 +61,27 @@ export const PieChartTooltip = ({
     return null;
   }
 
-  // Calculate totals
-  const totalVisitors = allData.reduce((sum, item) => sum + (item.uv || 0), 0);
-  const totalRevenue = allData.reduce(
-    (sum, item) => sum + (item.revenue || 0),
-    0
-  );
+  const activePayload = payload[0];
+  // Recharts wraps our data: payload.payload.payload contains the BreakdownData
+  const activeChannel = activePayload?.payload?.payload;
 
-  // Get top sources sorted by percentage
-  const totalValue = allData.reduce((sum, item) => sum + (item.uv || 0), 0);
-  const topSources = allData
-    .map((item) => ({
-      ...item,
-      percent: totalValue > 0 ? (item.uv || 0) / totalValue : 0,
-    }))
-    .sort((a, b) => b.percent - a.percent)
-    .slice(0, 5); // Top 5 sources
+  if (!activeChannel) {
+    return null;
+  }
+
+  const channelVisitors = activeChannel?.uv || 0;
+  const channelRevenue = activeChannel?.revenue || 0;
+
+  const topReferrers = activeChannel?.referrers
+    ? [...activeChannel.referrers]
+        .sort((a, b) => (b.uv || 0) - (a.uv || 0))
+        .slice(0, 3)
+        .map((ref) => ({
+          ...ref,
+          percent:
+            channelVisitors > 0 ? ((ref.uv || 0) / channelVisitors) * 100 : 0,
+        }))
+    : [];
 
   const formatNumber = (num: number) => {
     if (num >= 1000) {
@@ -88,27 +101,13 @@ export const PieChartTooltip = ({
     })}`;
   };
 
-  const getIconUrl = (item: BreakdownData) => {
-    if (item.image) return item.image;
-    const cleanName = (item.name || "")
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .replace(/\/.*$/, "")
-      .trim();
-    if (cleanName.includes(".")) {
-      return `https://icons.duckduckgo.com/ip3/${cleanName}.ico`;
-    }
-    return null;
-  };
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[280px] max-w-[320px]">
-      {/* Top Section - Overall Metrics */}
-      <div className="space-y-2 text-xs mb-4 pb-4 border-b border-gray-100">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 min-w-[200px] max-w-[240px]">
+      <div className="space-y-1.5 text-[0.7rem] mb-2.5 pb-2.5 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <div
-              className="w-3 h-3 rounded-sm"
+              className="w-2.5 h-2.5 rounded-sm"
               style={{
                 backgroundColor: "#8dcdff",
               }}
@@ -116,14 +115,14 @@ export const PieChartTooltip = ({
             <span className="text-textSecondary">Visitors</span>
           </div>
           <span className="font-semibold text-textPrimary">
-            {formatNumber(totalVisitors)}
+            {formatNumber(channelVisitors)}
           </span>
         </div>
-        {totalRevenue > 0 && (
+        {channelRevenue > 0 && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <div
-                className="w-3 h-3 rounded-sm"
+                className="w-2.5 h-2.5 rounded-sm"
                 style={{
                   backgroundColor: "#E16540",
                 }}
@@ -131,54 +130,56 @@ export const PieChartTooltip = ({
               <span className="text-textSecondary">Revenue</span>
             </div>
             <span className="font-semibold text-textPrimary">
-              {formatCurrency(totalRevenue)}
+              {formatCurrency(channelRevenue)}
             </span>
           </div>
         )}
       </div>
-
-      {/* Bottom Section - Top Sources */}
-      <div>
-        <div className="text-textSecondary uppercase tracking-wide text-[0.7rem] opacity-75 mb-2">
-          TOP SOURCES
-        </div>
-        <div className="space-y-2">
-          {topSources.map((item, index) => {
-            const iconUrl = getIconUrl(item);
-            return (
-              <div
-                key={index}
-                className="flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {iconUrl ? (
-                    <img
-                      src={iconUrl}
-                      alt={item.name}
-                      className="w-4 h-4 rounded-full shrink-0"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="w-4 h-4 rounded-full shrink-0"
-                      style={{
-                        backgroundColor:
-                          DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-                      }}
-                    />
-                  )}
-                  <span className="text-textPrimary truncate">{item.name}</span>
+      {topReferrers.length > 0 && (
+        <div>
+          <div className="text-textSecondary uppercase tracking-wide text-[0.65rem] opacity-75 mb-1.5">
+            TOP SOURCES
+          </div>
+          <div className="space-y-1.5">
+            {topReferrers.map((referrer, index) => {
+              const referrerImage = referrer.image;
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-between text-[0.7rem]"
+                >
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    {referrerImage ? (
+                      <img
+                        src={referrerImage}
+                        alt={referrer.name}
+                        className="w-3.5 h-3.5 rounded-full shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-3.5 h-3.5 rounded-full shrink-0"
+                        style={{
+                          backgroundColor:
+                            DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+                        }}
+                      />
+                    )}
+                    <span className="text-textPrimary truncate">
+                      {referrer.name}
+                    </span>
+                  </div>
+                  <span className="font-semibold text-textPrimary ml-1.5">
+                    {referrer.percent.toFixed(0)}%
+                  </span>
                 </div>
-                <span className="font-semibold text-textPrimary ml-2">
-                  {(item.percent * 100).toFixed(0)}%
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

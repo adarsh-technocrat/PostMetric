@@ -643,7 +643,8 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     if (!analytics.breakdowns) return [];
     switch (ui.selectedSourceTab) {
       case "Channel":
-        return analytics.breakdowns.source.channel || [];
+        // Use channelsWithReferrers for Channel tab to show nested referrers
+        return analytics.breakdowns.source.channels || analytics.breakdowns.source.channel || [];
       case "Referrer":
         return analytics.breakdowns.source.referrer || [];
       case "Campaign":
@@ -651,7 +652,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
       case "Keyword":
         return analytics.breakdowns.source.keyword || [];
       default:
-        return analytics.breakdowns.source.channel || [];
+        return analytics.breakdowns.source.channels || analytics.breakdowns.source.channel || [];
     }
   };
 
