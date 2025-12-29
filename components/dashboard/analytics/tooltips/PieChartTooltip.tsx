@@ -23,6 +23,7 @@ export interface BreakdownData {
   revenue?: number;
   image?: string;
   flag?: string;
+  color?: string;
   conversionRate?: number;
   goalCount?: number;
   goalConversionRate?: number;
@@ -50,7 +51,7 @@ interface PieTooltipProps {
   allData?: BreakdownData[];
 }
 
-const DEFAULT_COLORS = ["#8dcdff", "#7888b2", "#E16540", "#94a3b8", "#cbd5e1"];
+const DEFAULT_COLORS = ["#4f6d85", "#4a6880", "#6b8aa7", "#7a99b5", "#2d3d4d"];
 
 export const PieChartTooltip = ({
   active,

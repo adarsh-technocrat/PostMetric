@@ -13,7 +13,7 @@ import {
   type BreakdownData,
 } from "@/components/dashboard/analytics/tooltips/PieChartTooltip";
 
-const DEFAULT_COLORS = ["#8dcdff", "#7888b2", "#E16540", "#94a3b8", "#cbd5e1"];
+const DEFAULT_COLORS = ["#4f6d85", "#4a6880", "#6b8aa7", "#7a99b5", "#2d3d4d"];
 
 export interface PieChartData extends BreakdownData {}
 
@@ -59,13 +59,33 @@ export function PieChart({
       payload,
     } = props;
 
-    const textRadius = outerRadius + 20;
-    const textX = cx + textRadius * Math.cos(-midAngle * (Math.PI / 180));
-    const textY = cy + textRadius * Math.sin(-midAngle * (Math.PI / 180));
+    if (percent < minPercentForLabel) {
+      return null;
+    }
+
+    const RADIAN = Math.PI / 180;
+    const angle = -midAngle * RADIAN;
+
+    // Calculate label position (further out)
+    const radius = outerRadius + 80;
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+
+    // Line start point (on pie edge)
+    const lineStartX = cx + outerRadius * Math.cos(angle);
+    const lineStartY = cy + outerRadius * Math.sin(angle);
+
+    // Elbow point (L-shape corner)
+    const elbowRadius = outerRadius + 40;
+    const elbowX = cx + elbowRadius * Math.cos(angle);
+    const elbowY = cy + elbowRadius * Math.sin(angle);
+
+    // Horizontal line extends left or right from elbow
+    const horizontalX = x > cx ? elbowX + 40 : elbowX - 40;
 
     const imageRadius = (innerRadius + outerRadius) / 2;
-    const imageX = cx + imageRadius * Math.cos(-midAngle * (Math.PI / 180));
-    const imageY = cy + imageRadius * Math.sin(-midAngle * (Math.PI / 180));
+    const imageX = cx + imageRadius * Math.cos(angle);
+    const imageY = cy + imageRadius * Math.sin(angle);
 
     const referrersWithImages = payload?.referrers
       ? payload.referrers.filter((ref: any) => ref.image).slice(0, 3)
@@ -73,66 +93,82 @@ export function PieChart({
 
     return (
       <g>
-        {percent >= minPercentForLabel && (
-          <>
-            <text
-              x={textX}
-              y={textY}
-              fill="currentColor"
-              textAnchor={textX > cx ? "start" : "end"}
-              dominantBaseline="central"
-              className="text-xs fill-textSecondary"
-            >
-              {`${name} ${(percent * 100).toFixed(0)}%`}
-            </text>
+        {/* Leader line - from pie edge to elbow point (tilted) */}
+        <line
+          x1={lineStartX}
+          y1={lineStartY}
+          x2={elbowX}
+          y2={elbowY}
+          stroke="#6b8aa7"
+          strokeWidth={2}
+        />
+        {/* Horizontal line from elbow to label (horizontal segment) */}
+        <line
+          x1={elbowX}
+          y1={elbowY}
+          x2={horizontalX}
+          y2={elbowY}
+          stroke="#6b8aa7"
+          strokeWidth={2}
+        />
 
-            {referrersWithImages.length > 0 && (
-              <g>
-                {referrersWithImages.map((referrer: any, index: number) => {
-                  const iconSize = referrersWithImages.length === 1 ? 20 : 16;
-                  const spacing = 4;
+        {/* Label text */}
+        <text
+          x={x > cx ? horizontalX + 10 : horizontalX - 10}
+          y={elbowY}
+          fill="currentColor"
+          textAnchor={x > cx ? "start" : "end"}
+          dominantBaseline="central"
+          className="text-xs fill-textSecondary"
+        >
+          {name}
+        </text>
 
-                  let iconX: number;
-                  let iconY: number;
+        {referrersWithImages.length > 0 && (
+          <g>
+            {referrersWithImages.map((referrer: any, index: number) => {
+              const iconSize = referrersWithImages.length === 1 ? 20 : 16;
+              const spacing = 4;
 
-                  if (referrersWithImages.length === 1) {
-                    iconX = imageX - iconSize / 2;
-                    iconY = imageY - iconSize / 2;
-                  } else if (referrersWithImages.length === 2) {
-                    const totalWidth = 2 * iconSize + spacing;
-                    const startX = imageX - totalWidth / 2;
-                    iconX = startX + index * (iconSize + spacing);
-                    iconY = imageY - iconSize / 2;
-                  } else {
-                    if (index === 0) {
-                      iconX = imageX - iconSize / 2;
-                      iconY = imageY - iconSize - spacing / 2;
-                    } else {
-                      const totalWidth = 2 * iconSize + spacing;
-                      const startX = imageX - totalWidth / 2;
-                      iconX = startX + (index - 1) * (iconSize + spacing);
-                      iconY = imageY + spacing / 2;
-                    }
-                  }
+              let iconX: number;
+              let iconY: number;
 
-                  return (
-                    <image
-                      key={`referrer-${index}`}
-                      x={iconX}
-                      y={iconY}
-                      width={iconSize}
-                      height={iconSize}
-                      href={referrer.image}
-                      mask="url(#circleMask)"
-                      onError={(e: any) => {
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  );
-                })}
-              </g>
-            )}
-          </>
+              if (referrersWithImages.length === 1) {
+                iconX = imageX - iconSize / 2;
+                iconY = imageY - iconSize / 2;
+              } else if (referrersWithImages.length === 2) {
+                const totalWidth = 2 * iconSize + spacing;
+                const startX = imageX - totalWidth / 2;
+                iconX = startX + index * (iconSize + spacing);
+                iconY = imageY - iconSize / 2;
+              } else {
+                if (index === 0) {
+                  iconX = imageX - iconSize / 2;
+                  iconY = imageY - iconSize - spacing / 2;
+                } else {
+                  const totalWidth = 2 * iconSize + spacing;
+                  const startX = imageX - totalWidth / 2;
+                  iconX = startX + (index - 1) * (iconSize + spacing);
+                  iconY = imageY + spacing / 2;
+                }
+              }
+
+              return (
+                <image
+                  key={`referrer-${index}`}
+                  x={iconX}
+                  y={iconY}
+                  width={iconSize}
+                  height={iconSize}
+                  href={referrer.image}
+                  mask="url(#circleMask)"
+                  onError={(e: any) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              );
+            })}
+          </g>
         )}
       </g>
     );
@@ -174,7 +210,7 @@ export function PieChart({
             cornerRadius="5%"
             innerRadius="30%"
             label={renderCustomLabel}
-            outerRadius={100}
+            outerRadius={120}
             fill="#8884d8"
             dataKey="value"
             activeShape={renderActiveShape}
@@ -182,7 +218,7 @@ export function PieChart({
             {pieData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={colors[index % colors.length]}
+                fill={entry.color || colors[index % colors.length]}
               />
             ))}
           </Pie>
