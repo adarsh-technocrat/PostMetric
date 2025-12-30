@@ -551,30 +551,36 @@ function AnalyticsChartComponent({
               maxBarSize={30}
             />
           )}
-          <Line
-            yAxisId="left"
-            type="monotone"
-            dataKey="solidLineValue"
-            stroke="#8dcdff"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            isAnimationActive={true}
-            animationBegin={0}
-            animationDuration={800}
-            dot={(props: DotProps) => (
-              <ChartDot
-                {...props}
-                currentTimeIndex={currentTimeIndex}
-                forecastData={forecastData}
-                showMentionsOnChart={showMentionsOnChart}
-                onMentionClick={onMentionClick}
-              />
-            )}
-            activeDot={(props: DotProps) => (
-              <ActiveDot {...props} onClick={onNoteClick} />
-            )}
-            connectNulls={false}
-          />
+          {showVisitors && (
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="solidLineValue"
+              stroke="#8dcdff"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              isAnimationActive={true}
+              animationBegin={0}
+              animationDuration={800}
+              dot={(props: DotProps & { key?: React.Key }) => {
+                const { key, ...restProps } = props;
+                return (
+                  <ChartDot
+                    key={key}
+                    {...restProps}
+                    currentTimeIndex={currentTimeIndex}
+                    forecastData={forecastData}
+                    showMentionsOnChart={showMentionsOnChart}
+                    onMentionClick={onMentionClick}
+                  />
+                );
+              }}
+              activeDot={(props: DotProps) => (
+                <ActiveDot {...props} onClick={onNoteClick} />
+              )}
+              connectNulls={false}
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

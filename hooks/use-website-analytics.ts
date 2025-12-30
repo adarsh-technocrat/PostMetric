@@ -69,6 +69,7 @@ export function useWebsiteAnalytics({ websiteId }: UseWebsiteAnalyticsProps) {
     selectedGoalTab: "Goal" | "Funnel" | "Journey";
     showMentionsOnChart: boolean;
     showRevenueOnChart: boolean;
+    showVisitorsOnChart: boolean;
   };
 
   const website = useAppSelector((state) => state.websites.currentWebsite) as {
