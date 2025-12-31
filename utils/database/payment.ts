@@ -62,7 +62,29 @@ export async function createPayment(data: {
 
     await payment.save();
     return payment;
-  } catch (error) {
+  } catch (error: any) {
+    // Handle duplicate key error (race condition when multiple jobs sync the same payment)
+    if (error.code === 11000) {
+      // Payment was created by another process, fetch and return it
+      const existingPayment = await Payment.findOne({
+        provider: data.provider,
+        providerPaymentId: data.providerPaymentId,
+      });
+
+      if (existingPayment) {
+        // Update renewal/refunded status if needed
+        if (
+          existingPayment.renewal !== data.renewal ||
+          existingPayment.refunded !== data.refunded
+        ) {
+          existingPayment.renewal = data.renewal;
+          existingPayment.refunded = data.refunded;
+          await existingPayment.save();
+        }
+        return existingPayment;
+      }
+    }
+
     console.error("Error creating payment:", error);
     throw error;
   }

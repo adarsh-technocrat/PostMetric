@@ -14,6 +14,7 @@
     "dev:sync:create": "tsx scripts/dev-sync.ts --create-only",
     "test:tracking": "tsx scripts/test-tracking-script.ts",
     "test:fake-payment": "tsx scripts/test-fake-payment.ts",
+    "test:cron-sync": "tsx scripts/test-cron-payment-sync.ts",
     "prepare": "husky install"
   },
   "dependencies": {

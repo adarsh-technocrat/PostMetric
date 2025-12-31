@@ -1,18 +1,66 @@
 "use client";
 
+import { useEffect, useState, useRef } from "react";
+
 interface WaitingForEventsBannerProps {
   chartData: Array<{ visitors: number }>;
   loading: boolean;
   domain?: string;
+  websiteId: string;
+  metrics?: {
+    visitors: number;
+  };
 }
 
 export function WaitingForEventsBanner({
-  chartData,
   loading,
   domain,
+  websiteId,
 }: WaitingForEventsBannerProps) {
-  const hasEvents = chartData.some((point) => point.visitors > 0);
-  const shouldShowBanner = !loading && !hasEvents;
+  const [hasAnyEvents, setHasAnyEvents] = useState<boolean | null>(null);
+  const shouldContinueCheckingRef = useRef(true);
+
+  useEffect(() => {
+    if (loading) return;
+
+    shouldContinueCheckingRef.current = true;
+
+    const checkForEvents = async () => {
+      if (!shouldContinueCheckingRef.current) return;
+
+      try {
+        const response = await fetch(`/api/websites/${websiteId}/has-events`);
+        if (response.ok) {
+          const data = await response.json();
+          const hasEvents = data.hasEvents || false;
+          setHasAnyEvents(hasEvents);
+          if (hasEvents) {
+            shouldContinueCheckingRef.current = false;
+          }
+        } else {
+          setHasAnyEvents((prev) => prev ?? false);
+        }
+      } catch (error) {
+        console.error("Error checking for events:", error);
+        setHasAnyEvents((prev) => prev ?? false);
+      }
+    };
+
+    checkForEvents();
+
+    const intervalId = setInterval(() => {
+      if (shouldContinueCheckingRef.current) {
+        checkForEvents();
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(intervalId);
+      shouldContinueCheckingRef.current = false;
+    };
+  }, [websiteId, loading]);
+
+  const shouldShowBanner = !loading && hasAnyEvents === false;
 
   if (!shouldShowBanner) {
     return null;

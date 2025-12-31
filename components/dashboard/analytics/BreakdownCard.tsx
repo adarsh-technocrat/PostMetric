@@ -98,14 +98,7 @@ export function BreakdownCard({
     }
 
     if (chartType === "horizontalBar") {
-      const dataToUse =
-        sanitizedData.length > 0
-          ? sanitizedData
-          : [
-              { name: "Sample 1", uv: 100, revenue: 0 },
-              { name: "Sample 2", uv: 80, revenue: 0 },
-              { name: "Sample 3", uv: 60, revenue: 0 },
-            ];
+      const dataToUse = sanitizedData.length > 0 ? sanitizedData : [];
       const stackedData = generateStackedData(dataToUse);
       return (
         <HorizontalStackedBarChart

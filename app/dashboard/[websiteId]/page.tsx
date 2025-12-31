@@ -130,6 +130,7 @@ export default function WebsiteAnalyticsPage({
                   chartData={chartData}
                   loading={analytics.loading}
                   domain={website?.domain}
+                  websiteId={websiteId}
                 />
                 <section className="custom-card group">
                   <MetricsList
