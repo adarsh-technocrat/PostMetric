@@ -42,8 +42,8 @@ export async function registerPaymentProviderSync(
     if (!stripeConfig?.apiKey) {
       throw new Error("Stripe API key not configured");
     }
-    // Determine sync frequency (default: hourly)
-    const frequency = stripeConfig.syncConfig?.frequency || "hourly";
+    // Determine sync frequency (default: realtime for 5-minute cron)
+    const frequency = stripeConfig.syncConfig?.frequency || "realtime";
     const enabled = stripeConfig.syncConfig?.enabled !== false;
 
     if (!enabled) {
@@ -67,12 +67,12 @@ export async function registerPaymentProviderSync(
       // First sync: Sync 2 years of historical data
       // This ensures users get their complete payment history when they first add Stripe
       endDate = new Date();
-      // Sync 3 years of historical data (can be adjusted to 2 years if needed)
+      // Sync 2 years of historical data
       startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
       syncRange = "custom";
       priority = 90; // High priority for initial historical sync
       console.log(
-        `First sync detected for website ${websiteId}, syncing 3 years of historical data`
+        `First sync detected for website ${websiteId}, syncing 2 years of historical data`
       );
     } else {
       // Regular periodic sync: Use frequency-based date range
@@ -107,7 +107,9 @@ export async function registerPaymentProviderSync(
 /**
  * Get sync date range based on frequency
  */
-function getSyncDateRange(frequency: "hourly" | "every-6-hours" | "daily"): {
+function getSyncDateRange(
+  frequency: "realtime" | "hourly" | "every-6-hours" | "daily"
+): {
   startDate: Date;
   endDate: Date;
   syncRange: SyncRange;
@@ -117,6 +119,12 @@ function getSyncDateRange(frequency: "hourly" | "every-6-hours" | "daily"): {
   let syncRange: SyncRange;
 
   switch (frequency) {
+    case "realtime":
+      // For 5-minute cron: Sync last 15 minutes with buffer
+      // This ensures we catch all payments while being efficient
+      startDate = new Date(endDate.getTime() - 15 * 60 * 1000); // 15 minutes
+      syncRange = "custom";
+      break;
     case "hourly":
       // Sync last 24 hours with 2 hour buffer to catch any missed payments
       // This ensures we don't miss payments due to timezone differences or delays
@@ -134,9 +142,9 @@ function getSyncDateRange(frequency: "hourly" | "every-6-hours" | "daily"): {
       syncRange = "last7d";
       break;
     default:
-      // Default to 24 hours with buffer
-      startDate = new Date(endDate.getTime() - 26 * 60 * 60 * 1000);
-      syncRange = "last24h";
+      // Default to realtime (15 minutes) for frequent cron jobs
+      startDate = new Date(endDate.getTime() - 15 * 60 * 1000);
+      syncRange = "custom";
   }
 
   return { startDate, endDate, syncRange };

@@ -117,3 +117,29 @@ export async function getPaymentsByWebsiteId(
     throw error;
   }
 }
+
+/**
+ * Delete all payments for a website/provider combination
+ * Used when a payment provider is disconnected
+ */
+export async function deletePaymentsByProvider(
+  websiteId: string,
+  provider: "stripe" | "lemonsqueezy" | "polar" | "paddle" | "other"
+) {
+  await connectDB();
+
+  try {
+    const result = await Payment.deleteMany({
+      websiteId,
+      provider,
+    });
+
+    console.log(
+      `Deleted ${result.deletedCount} payment records for website ${websiteId}, provider ${provider}`
+    );
+    return result.deletedCount || 0;
+  } catch (error) {
+    console.error("Error deleting payments:", error);
+    throw error;
+  }
+}

@@ -144,7 +144,7 @@ export async function GET(
       syncStatus.stripe = {
         configured: !!website.paymentProviders.stripe.apiKey,
         enabled: stripeConfig?.enabled !== false,
-        frequency: stripeConfig?.frequency || "hourly",
+        frequency: stripeConfig?.frequency || "realtime",
         lastSyncAt: stripeConfig?.lastSyncAt,
         nextSyncAt: stripeConfig?.nextSyncAt,
       };

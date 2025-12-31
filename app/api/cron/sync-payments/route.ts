@@ -282,7 +282,7 @@ async function processJob(job: any): Promise<{
       website?.paymentProviders?.stripe?.syncConfig
     ) {
       const syncConfig = website.paymentProviders.stripe.syncConfig;
-      const nextSync = calculateNextSyncDate(syncConfig.frequency || "hourly");
+      const nextSync = calculateNextSyncDate(syncConfig.frequency || "realtime");
       website.paymentProviders.stripe.syncConfig = {
         ...syncConfig,
         lastSyncAt: new Date(),

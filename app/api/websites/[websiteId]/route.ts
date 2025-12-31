@@ -161,6 +161,17 @@ export async function PUT(
       }
     }
 
+    // Initialize syncConfig for new Stripe keys before updating website
+    if (isNewStripeKey && paymentProviders?.stripe?.apiKey) {
+      // Initialize syncConfig with realtime frequency for 5-minute cron
+      if (!paymentProviders.stripe.syncConfig) {
+        paymentProviders.stripe.syncConfig = {
+          enabled: true,
+          frequency: "realtime", // Matches 5-minute cron schedule
+        };
+      }
+    }
+
     const updatedWebsite = await updateWebsite(websiteId, {
       name,
       domain,
@@ -171,9 +182,16 @@ export async function PUT(
 
     // Register/unregister background sync jobs when payment providers change
     try {
-      // If Stripe is being removed, unregister sync jobs
+      // If Stripe is being removed, unregister sync jobs and delete payment data
       if (isStripeRemoved) {
         await unregisterPaymentProviderSync(websiteId, "stripe");
+
+        // Delete all Payment records for this website/provider
+        const { deletePaymentsByProvider } = await import(
+          "@/utils/database/payment"
+        );
+        await deletePaymentsByProvider(websiteId, "stripe");
+        console.log(`Deleted all Stripe payment data for website ${websiteId}`);
       }
 
       if (isNewStripeKey && paymentProviders?.stripe?.apiKey) {

@@ -288,10 +288,12 @@ export async function hasRecentSync(
  * Calculate next sync date based on frequency
  */
 export function calculateNextSyncDate(
-  frequency: "hourly" | "every-6-hours" | "daily"
+  frequency: "realtime" | "hourly" | "every-6-hours" | "daily"
 ): Date {
   const now = new Date();
   switch (frequency) {
+    case "realtime":
+      return new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes (matches cron schedule)
     case "hourly":
       return new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
     case "every-6-hours":
@@ -299,6 +301,6 @@ export function calculateNextSyncDate(
     case "daily":
       return new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
     default:
-      return new Date(now.getTime() + 60 * 60 * 1000);
+      return new Date(now.getTime() + 5 * 60 * 1000); // Default to 5 minutes
   }
 }

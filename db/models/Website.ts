@@ -37,7 +37,7 @@ export interface IWebsite extends Document {
       webhookSecret?: string;
       syncConfig?: {
         enabled?: boolean;
-        frequency?: "hourly" | "every-6-hours" | "daily";
+        frequency?: "realtime" | "hourly" | "every-6-hours" | "daily";
         lastSyncAt?: Date;
         nextSyncAt?: Date;
       };
@@ -171,8 +171,8 @@ const WebsiteSchema = new Schema<IWebsite>(
           },
           frequency: {
             type: String,
-            enum: ["hourly", "every-6-hours", "daily"],
-            default: "hourly",
+            enum: ["realtime", "hourly", "every-6-hours", "daily"],
+            default: "realtime",
           },
           lastSyncAt: Date,
           nextSyncAt: Date,
