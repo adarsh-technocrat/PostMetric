@@ -698,9 +698,16 @@ export async function handleStripeRemoval(websiteId: string): Promise<void> {
 
 export async function handleStripeAddition(
   websiteId: string,
-  apiKey: string
+  apiKey: string,
+  stripeConfig?: NonNullable<IWebsite["paymentProviders"]>["stripe"]
 ): Promise<void> {
-  await registerPaymentProviderSync(websiteId, "stripe");
+  const configToUse: NonNullable<IWebsite["paymentProviders"]>["stripe"] =
+    stripeConfig || {
+      apiKey,
+    };
+  await registerPaymentProviderSync(websiteId, "stripe", {
+    stripe: configToUse,
+  });
 
   const baseUrl = getBaseUrl();
 
@@ -754,7 +761,11 @@ export async function processStripeConfigChanges(
     }
 
     if (changes.isNewStripeKey && newPaymentProviders?.stripe?.apiKey) {
-      await handleStripeAddition(websiteId, newPaymentProviders.stripe.apiKey);
+      await handleStripeAddition(
+        websiteId,
+        newPaymentProviders.stripe.apiKey,
+        newPaymentProviders.stripe
+      );
     }
   } catch (error) {
     console.error(

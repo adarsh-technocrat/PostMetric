@@ -5,12 +5,21 @@ import connectDB from "@/db";
 import SyncJob from "@/db/models/SyncJob";
 import { Types } from "mongoose";
 
-/**
- * Register periodic sync jobs when a payment provider is added
- */
 export async function registerPaymentProviderSync(
   websiteId: string,
-  provider: SyncJobProvider
+  provider: SyncJobProvider,
+  overrideConfig?: {
+    stripe?: {
+      apiKey?: string;
+      webhookSecret?: string;
+      syncConfig?: {
+        enabled?: boolean;
+        frequency?: "realtime" | "hourly" | "every-6-hours" | "daily";
+        lastSyncAt?: Date;
+        nextSyncAt?: Date;
+      };
+    };
+  }
 ): Promise<void> {
   const website = await getWebsiteById(websiteId);
   if (!website) {
@@ -29,17 +38,16 @@ export async function registerPaymentProviderSync(
   };
 
   const providerKey = providerKeyMap[provider];
-  const providerConfig = website.paymentProviders?.[providerKey];
-  if (!providerConfig) {
-    throw new Error(`Provider ${provider} not configured`);
-  }
 
   // For Stripe, check if API key exists and get sync config
   if (provider === "stripe") {
-    const stripeConfig = providerConfig as NonNullable<
-      typeof website.paymentProviders
-    >["stripe"];
-    if (!stripeConfig?.apiKey) {
+    // Use override config if provided, otherwise fetch from database
+    const stripeConfig =
+      overrideConfig?.stripe || website.paymentProviders?.stripe;
+    if (!stripeConfig) {
+      throw new Error(`Provider ${provider} not configured`);
+    }
+    if (!stripeConfig.apiKey) {
       throw new Error("Stripe API key not configured");
     }
     // Determine sync frequency (default: realtime for 5-minute cron)
