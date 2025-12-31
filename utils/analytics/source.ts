@@ -26,7 +26,7 @@ export async function getSourceBreakdown(
 
   if (type === "channel") {
     sessionsGroupId = {
-      sourceType: { $ifNull: ["$utmMedium", "Direct"] },
+      sourceType: { $ifNull: ["$utmMedium", "direct"] },
       referrer: "$referrer",
       utmMedium: "$utmMedium",
       visitorId: "$visitorId",
@@ -74,20 +74,20 @@ export async function getSourceBreakdown(
               },
             },
           },
-          else: "Direct",
+          else: "direct",
         },
       },
       visitorId: "$visitorId",
     };
   } else if (type === "campaign") {
     sessionsGroupId = {
-      sourceType: { $ifNull: ["$utmCampaign", "Direct"] },
+      sourceType: { $ifNull: ["$utmCampaign", "direct"] },
       visitorId: "$visitorId",
     };
   } else {
     // keyword
     sessionsGroupId = {
-      sourceType: { $ifNull: ["$utmTerm", "Direct"] },
+      sourceType: { $ifNull: ["$utmTerm", "direct"] },
       visitorId: "$visitorId",
     };
   }
@@ -149,7 +149,7 @@ export async function getSourceBreakdown(
                   },
                 },
               },
-              else: "Direct/None",
+              else: "direct",
             },
           },
         },
@@ -222,7 +222,7 @@ export async function getSourceBreakdown(
     // For channels, we'll resolve in JavaScript, so group by a temporary key
     // We'll include referrer and utmMedium to resolve later
     revenueGroupId = {
-      tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
+      tempKey: { $ifNull: ["$session.utmMedium", "direct"] },
       referrer: "$session.referrer",
       utmMedium: "$session.utmMedium",
       referrerDomain: {
@@ -269,12 +269,12 @@ export async function getSourceBreakdown(
               },
             },
           },
-          else: "Direct/None",
+          else: "direct",
         },
       },
     };
     goalsGroupId = {
-      tempKey: { $ifNull: ["$session.utmMedium", "Direct"] },
+      tempKey: { $ifNull: ["$session.utmMedium", "direct"] },
       referrer: "$session.referrer",
       utmMedium: "$session.utmMedium",
       referrerDomain: {
@@ -321,7 +321,7 @@ export async function getSourceBreakdown(
               },
             },
           },
-          else: "Direct/None",
+          else: "direct",
         },
       },
     };
@@ -367,16 +367,16 @@ export async function getSourceBreakdown(
             },
           },
         },
-        else: "Direct",
+        else: "direct",
       },
     };
     goalsGroupId = revenueGroupId;
   } else if (type === "campaign") {
-    revenueGroupId = { $ifNull: ["$session.utmCampaign", "Direct"] };
-    goalsGroupId = { $ifNull: ["$session.utmCampaign", "Direct"] };
+    revenueGroupId = { $ifNull: ["$session.utmCampaign", "direct"] };
+    goalsGroupId = { $ifNull: ["$session.utmCampaign", "direct"] };
   } else {
-    revenueGroupId = { $ifNull: ["$session.utmTerm", "Direct"] };
-    goalsGroupId = { $ifNull: ["$session.utmTerm", "Direct"] };
+    revenueGroupId = { $ifNull: ["$session.utmTerm", "direct"] };
+    goalsGroupId = { $ifNull: ["$session.utmTerm", "direct"] };
   }
 
   const revenueGroupStage: any = {
@@ -474,7 +474,7 @@ export async function getSourceBreakdown(
         item.referrer || null,
         item.utmMedium || null
       );
-      const referrerDomain = item.referrerDomain || "Direct/None";
+      const referrerDomain = item.referrerDomain || "direct";
       const key = `${resolvedChannel}::${referrerDomain}`;
 
       if (!revenueMap.has(key)) {
@@ -501,7 +501,7 @@ export async function getSourceBreakdown(
         item.referrer || null,
         item.utmMedium || null
       );
-      const referrerDomain = item.referrerDomain || "Direct/None";
+      const referrerDomain = item.referrerDomain || "direct";
       const key = `${resolvedChannel}::${referrerDomain}`;
 
       if (!goalsMap.has(key)) {
@@ -527,7 +527,7 @@ export async function getSourceBreakdown(
         item._id.referrer || null,
         item._id.utmMedium || null
       );
-      const referrerDomain = item._id.referrerDomain || "Direct/None";
+      const referrerDomain = item._id.referrerDomain || "direct";
       const key = `${resolvedChannel}::${referrerDomain}`;
 
       const revenueInfo = revenueMap.get(key);
@@ -552,9 +552,9 @@ export async function getSourceBreakdown(
       let isAlternativeSource = false;
       let originalValue = referrerDomain;
 
-      if (referrerDomain === "Direct/None" || referrerDomain === "Direct") {
+      if (referrerDomain === "direct") {
         referrerName = "Direct/None";
-        originalValue = "Direct/None";
+        originalValue = "direct";
       } else {
         // Check if it's an alternative source
         const domainLower = referrerDomain.toLowerCase();
@@ -690,14 +690,14 @@ export async function getSourceBreakdown(
 
   // For non-channel types, use original logic
   const revenueMap = new Map(
-    revenueData.map((item) => [item._id || "Direct", item])
+    revenueData.map((item) => [item._id || "direct", item])
   );
   const goalsMap = new Map(
-    goalsData.map((item) => [item._id || "Direct", item])
+    goalsData.map((item) => [item._id || "direct", item])
   );
 
   const result = sessionsData.map((item) => {
-    const sourceName = item._id?.sourceType || item._id || "Direct";
+    const sourceName = item._id?.sourceType || item._id || "direct";
     const revenueInfo = revenueMap.get(sourceName);
     const goalsInfo = goalsMap.get(sourceName);
 
@@ -1236,11 +1236,11 @@ export async function getChannelBreakdownWithReferrers(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$utmMedium", "Direct"],
+          $ifNull: ["$utmMedium", "direct"],
         },
       },
     },
@@ -1342,18 +1342,14 @@ export async function getChannelBreakdownWithReferrers(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
-        },
-        channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
         },
       },
     },
     {
       $group: {
         _id: {
-          channel: "$channel",
           referrerDomain: "$referrerDomain",
         },
         revenue: { $sum: "$amount" },
@@ -1435,18 +1431,14 @@ export async function getChannelBreakdownWithReferrers(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
-        },
-        channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
         },
       },
     },
     {
       $group: {
         _id: {
-          channel: "$channel",
           referrerDomain: "$referrerDomain",
         },
         goalCount: { $sum: 1 },
@@ -1467,7 +1459,7 @@ export async function getChannelBreakdownWithReferrers(
     const sessionReferrer = item.referrer || null;
     const sessionUtmMedium = item.utmMedium || null;
     const resolvedChannel = resolveChannel(sessionReferrer, sessionUtmMedium);
-    const referrerDomain = item._id.referrerDomain || "Direct/None";
+    const referrerDomain = item._id.referrerDomain || "direct";
     const key = `${resolvedChannel}::${referrerDomain}`;
 
     if (!revenueMap.has(key)) {
@@ -1493,7 +1485,7 @@ export async function getChannelBreakdownWithReferrers(
     const sessionReferrer = item.referrer || null;
     const sessionUtmMedium = item.utmMedium || null;
     const resolvedChannel = resolveChannel(sessionReferrer, sessionUtmMedium);
-    const referrerDomain = item._id.referrerDomain || "Direct/None";
+    const referrerDomain = item._id.referrerDomain || "direct";
     const key = `${resolvedChannel}::${referrerDomain}`;
 
     if (!goalsMap.has(key)) {
@@ -1516,7 +1508,7 @@ export async function getChannelBreakdownWithReferrers(
 
   sessionsData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
-    const referrerDomain = item.referrerDomain || "Direct/None";
+    const referrerDomain = item.referrerDomain || "direct";
     const key = `${channelName}::${referrerDomain}`;
 
     const revenueInfo = revenueMap.get(key);
@@ -1541,9 +1533,9 @@ export async function getChannelBreakdownWithReferrers(
     let isAlternativeSource = false;
     let originalValue = referrerDomain;
 
-    if (referrerDomain === "Direct/None" || referrerDomain === "Direct") {
+    if (referrerDomain === "direct") {
       referrerName = "Direct/None";
-      originalValue = "Direct/None";
+      originalValue = "direct";
     } else {
       // Check if it's an alternative source (like producthunt)
       const domainLower = referrerDomain.toLowerCase();
@@ -1616,6 +1608,53 @@ export async function getChannelBreakdownWithReferrers(
     channel.referrers.push(referrerObj);
   });
 
+  // Also process revenue entries that don't have matching sessions
+  // This ensures revenue is included even if there's no session data
+  // We need to aggregate all revenue by channel, regardless of whether sessions exist
+  revenueMap.forEach((revenueInfo, key) => {
+    const [channelName, referrerDomain] = key.split("::");
+    
+    if (channelMap.has(channelName)) {
+      const channel = channelMap.get(channelName);
+      // Check if this referrer already exists
+      const existingReferrer = channel.referrers.find(
+        (ref: any) => ref.originalValue === referrerDomain
+      );
+      
+      if (existingReferrer) {
+        // Referrer exists - revenue should have been added in sessionsData loop
+        // But double-check and ensure revenue is set (in case it wasn't matched correctly)
+        if (existingReferrer.revenue === 0 && revenueInfo.revenue > 0) {
+          existingReferrer.revenue = revenueInfo.revenue;
+          existingReferrer.paymentCount = revenueInfo.paymentCount || 0;
+          // Also update channel total
+          channel.revenue += revenueInfo.revenue;
+          channel.paymentCount += revenueInfo.paymentCount || 0;
+        }
+      } else {
+        // Referrer doesn't exist - add revenue to channel
+        if (revenueInfo.revenue > 0) {
+          channel.revenue += revenueInfo.revenue;
+          channel.paymentCount += revenueInfo.paymentCount || 0;
+        }
+      }
+    } else {
+      // Channel doesn't exist at all, create it with just revenue data
+      channelMap.set(channelName, {
+        name: channelName,
+        uv: 0,
+        revenue: revenueInfo.revenue || 0,
+        goalCount: 0,
+        paymentCount: revenueInfo.paymentCount || 0,
+        conversionRate: 0,
+        goalConversionRate: 0,
+        image: null,
+        isAlternativeSource: false,
+        referrers: [],
+      });
+    }
+  });
+
   // Calculate channel-level metrics
   const channels = Array.from(channelMap.values()).map((channel) => {
     const totalUv = channel.uv;
@@ -1627,6 +1666,15 @@ export async function getChannelBreakdownWithReferrers(
       (sum: number, ref: any) => sum + (ref.goalCount || 0),
       0
     );
+    
+    // Recalculate channel revenue from all referrers to ensure accuracy
+    // This ensures we capture all revenue, including revenue without matching sessions
+    const totalRevenueFromReferrers = channel.referrers.reduce(
+      (sum: number, ref: any) => sum + (ref.revenue || 0),
+      0
+    );
+    // Use the higher value to ensure we don't lose revenue
+    channel.revenue = Math.max(channel.revenue, totalRevenueFromReferrers);
 
     channel.conversionRate =
       totalUv > 0 ? totalSessionsWithPayments / totalUv : 0;
@@ -1734,11 +1782,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$utmMedium", "Direct"],
+          $ifNull: ["$utmMedium", "direct"],
         },
       },
     },
@@ -1808,11 +1856,11 @@ export async function getReferrersBreakdown(
 
   sessionsData.forEach((session) => {
     const channelName = resolveChannel(session.referrer, session.utmMedium);
-    const referrerDomain = session.referrerDomain || "Direct/None";
+    const referrerDomain = session.referrerDomain || "direct";
 
     // Helper to check if domain is an IP address
     const isIPAddress = (domain: string): boolean => {
-      if (!domain || domain === "Direct/None" || domain === "Direct") {
+      if (!domain || domain === "direct") {
         return false;
       }
       // Simple IP check (IPv4)
@@ -1933,11 +1981,10 @@ export async function getReferrersBreakdown(
         entry.utmMedium = session.utmMedium;
     }
 
-    // 4. Add utm_source entry (if no referrer domain or domain is Direct/None)
+    // 4. Add utm_source entry (if no referrer domain or domain is direct)
     if (
       session.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
+      (referrerDomain === "direct" ||
         isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${session.utmSource}`;
@@ -2071,11 +2118,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
+          $ifNull: ["$session.utmMedium", "direct"],
         },
       },
     },
@@ -2184,11 +2231,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
+          $ifNull: ["$session.utmMedium", "direct"],
         },
       },
     },
@@ -2232,7 +2279,7 @@ export async function getReferrersBreakdown(
 
   // Helper to check if domain is an IP address
   const isIPAddress = (domain: string): boolean => {
-    if (!domain || domain === "Direct/None" || domain === "Direct") {
+    if (!domain || domain === "direct") {
       return false;
     }
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -2241,7 +2288,7 @@ export async function getReferrersBreakdown(
 
   revenueData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
-    const referrerDomain = item.referrerDomain || "Direct/None";
+    const referrerDomain = item.referrerDomain || "direct";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
     );
@@ -2297,8 +2344,7 @@ export async function getReferrersBreakdown(
     // Add revenue to utm_source entry
     if (
       item.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
+      (referrerDomain === "direct" ||
         isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${item.utmSource}`;
@@ -2318,7 +2364,7 @@ export async function getReferrersBreakdown(
 
   goalsData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
-    const referrerDomain = item.referrerDomain || "Direct/None";
+    const referrerDomain = item.referrerDomain || "direct";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
     );
@@ -2359,8 +2405,7 @@ export async function getReferrersBreakdown(
     // Add goals to utm_source entry
     if (
       item.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
+      (referrerDomain === "direct" ||
         isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${item.utmSource}`;

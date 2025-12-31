@@ -96,11 +96,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$utmMedium", "Direct"],
+          $ifNull: ["$utmMedium", "direct"],
         },
       },
     },
@@ -170,11 +170,11 @@ export async function getReferrersBreakdown(
 
   sessionsData.forEach((session) => {
     const channelName = resolveChannel(session.referrer, session.utmMedium);
-    const referrerDomain = session.referrerDomain || "Direct/None";
+    const referrerDomain = session.referrerDomain || "direct";
 
     // Helper to check if domain is an IP address
     const isIPAddress = (domain: string): boolean => {
-      if (!domain || domain === "Direct/None" || domain === "Direct") {
+      if (!domain || domain === "direct") {
         return false;
       }
       // Simple IP check (IPv4)
@@ -295,12 +295,10 @@ export async function getReferrersBreakdown(
         entry.utmMedium = session.utmMedium;
     }
 
-    // 4. Add utm_source entry (if no referrer domain or domain is Direct/None)
+    // 4. Add utm_source entry (if no referrer domain or domain is direct)
     if (
       session.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
-        isIPAddress(referrerDomain))
+      (referrerDomain === "direct" || isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${session.utmSource}`;
       if (!referrerMap.has(utmKey)) {
@@ -433,11 +431,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
+          $ifNull: ["$session.utmMedium", "direct"],
         },
       },
     },
@@ -546,11 +544,11 @@ export async function getReferrersBreakdown(
                 },
               },
             },
-            else: "Direct/None",
+            else: "direct",
           },
         },
         channel: {
-          $ifNull: ["$session.utmMedium", "Direct"],
+          $ifNull: ["$session.utmMedium", "direct"],
         },
       },
     },
@@ -594,7 +592,7 @@ export async function getReferrersBreakdown(
 
   // Helper to check if domain is an IP address
   const isIPAddress = (domain: string): boolean => {
-    if (!domain || domain === "Direct/None" || domain === "Direct") {
+    if (!domain || domain === "direct") {
       return false;
     }
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -603,7 +601,7 @@ export async function getReferrersBreakdown(
 
   revenueData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
-    const referrerDomain = item.referrerDomain || "Direct/None";
+    const referrerDomain = item.referrerDomain || "direct";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
     );
@@ -659,9 +657,7 @@ export async function getReferrersBreakdown(
     // Add revenue to utm_source entry
     if (
       item.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
-        isIPAddress(referrerDomain))
+      (referrerDomain === "direct" || isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${item.utmSource}`;
       if (!revenueMap.has(utmKey)) {
@@ -680,7 +676,7 @@ export async function getReferrersBreakdown(
 
   goalsData.forEach((item) => {
     const channelName = resolveChannel(item.referrer, item.utmMedium);
-    const referrerDomain = item.referrerDomain || "Direct/None";
+    const referrerDomain = item.referrerDomain || "direct";
     const { paramRef, paramVia } = extractParamsFromPath(
       item.firstPageViewPath
     );
@@ -721,9 +717,7 @@ export async function getReferrersBreakdown(
     // Add goals to utm_source entry
     if (
       item.utmSource &&
-      (referrerDomain === "Direct/None" ||
-        referrerDomain === "Direct" ||
-        isIPAddress(referrerDomain))
+      (referrerDomain === "direct" || isIPAddress(referrerDomain))
     ) {
       const utmKey = `utm_source::${channelName}::${item.utmSource}`;
       if (!goalsMap.has(utmKey)) {
