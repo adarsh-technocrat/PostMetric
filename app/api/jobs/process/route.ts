@@ -3,6 +3,7 @@ import {
   dequeueSyncJob,
   updateSyncJobStatus,
   incrementJobRetry,
+  calculateNextSyncDate,
 } from "@/utils/jobs/queue";
 import { syncStripePayments } from "@/utils/integrations/stripe";
 import { getWebsiteById } from "@/utils/database/website";
@@ -128,6 +129,23 @@ async function processJob(job: any): Promise<{
 
     // Update job status
     await updateSyncJobStatus(job._id.toString(), "completed", result);
+
+    if (
+      job.type === "cron" &&
+      job.provider === "stripe" &&
+      website?.paymentProviders?.stripe?.syncConfig
+    ) {
+      const syncConfig = website.paymentProviders.stripe.syncConfig;
+      const nextSync = calculateNextSyncDate(
+        syncConfig.frequency || "realtime"
+      );
+      website.paymentProviders.stripe.syncConfig = {
+        ...syncConfig,
+        lastSyncAt: new Date(),
+        nextSyncAt: nextSync,
+      };
+      await website.save();
+    }
 
     return result;
   } catch (error: any) {
