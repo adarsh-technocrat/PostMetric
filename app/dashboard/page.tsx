@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAllUserWebsites } from "@/store/slices/websitesSlice";
 import { WebsiteCard } from "@/components/dashboard/WebsiteCard";
+import { WebsiteCardListShimmer } from "@/components/ui/card-shimmer";
 import { PlusIcon } from "@/components/icons";
 
 export default function DashboardPage() {
@@ -30,9 +31,9 @@ export default function DashboardPage() {
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/dashboard/new"
-              className={buttonVariants({ variant: "stone-outline" })}
+              className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-borderColor bg-white px-3 text-sm font-medium text-textPrimary shadow-sm hover:bg-gray-50"
             >
-              <PlusIcon className="mr-1 size-3.5" />
+              <PlusIcon className="size-3.5" />
               Website
             </Link>
           </div>
@@ -40,9 +41,7 @@ export default function DashboardPage() {
 
         <div className="relative px-4 md:px-8 pb-32">
           {loading ? (
-            <div className="mt-8 text-center text-stone-600">
-              Loading websites...
-            </div>
+            <WebsiteCardListShimmer />
           ) : websites.length === 0 ? (
             <div className="mt-8 text-center text-stone-600">
               No websites found. Create your first website to get started.

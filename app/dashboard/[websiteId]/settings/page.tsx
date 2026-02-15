@@ -14,7 +14,7 @@ import { IntegrationsSettings } from "@/components/dashboard/settings/Integratio
 import { ReportsSettings } from "@/components/dashboard/settings/ReportsSettings";
 import { ImportSettings } from "@/components/dashboard/settings/ImportSettings";
 import { WidgetsSettings } from "@/components/dashboard/settings/WidgetsSettings";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SETTINGS_TABS = [
   { id: "general", label: "General" },
@@ -121,138 +121,133 @@ export default function SettingsPage({
 
   return (
     <div className="flex flex-col gap-6 w-full h-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col gap-4 min-w-0">
-        <p className="text-stone-800 font-semibold text-lg">
-          Settings for {website?.domain || website?.name || "Loading..."}
-        </p>
-        <div className="mr-px px-0 flex min-w-0 overflow-x-hidden">
-          <div className="flex items-center border-b border-stone-200 w-full bg-stone-50 min-w-0 overflow-x-hidden">
-            <ul
-              className="flex items-center text-sm gap-1 overflow-x-auto min-w-0 scrollbar-hide"
-              style={{ zIndex: 5, WebkitOverflowScrolling: "touch" }}
-            >
-              {SETTINGS_TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <li key={tab.id} className="flex items-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex whitespace-nowrap text-center border-b-2 items-center justify-between text-sm transition-all ease-in duration-75 font-medium border-transparent h-auto py-0 ${
-                        isActive
-                          ? "text-indigo-600 dark:text-brand-600 border-indigo-400 font-semibold"
-                          : "text-stone-950"
-                      }`}
+      <p className="text-stone-800 font-semibold text-lg">
+        Settings for {website?.domain || website?.name || "Loading..."}
+      </p>
+      <section className="custom-card w-full max-w-full min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-x-2 px-0 py-1">
+          <div className="mr-px flex flex-1 min-w-0">
+            <div className="flex w-full items-center border-b border-stone-200">
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v)}
+                className="w-full"
+              >
+                <TabsList className="z-5 inline-flex h-auto w-full flex-1 justify-start items-center gap-1 overflow-x-auto rounded-none border-0 bg-transparent p-0 text-sm shadow-none">
+                  {SETTINGS_TABS.map((tab) => (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
                     >
-                      <div className="hover:bg-stone-200 rounded-[10px] px-3 py-1 mb-1">
+                      <span className="mb-1 rounded-[10px] px-3 py-1 hover:bg-stone-100">
                         {tab.label}
-                      </div>
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 min-w-0 overflow-x-hidden">
-        {activeTab === "general" && (
-          <GeneralSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "revenue" && (
-          <RevenueSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "team" && (
-          <TeamSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "security" && (
-          <SecuritySettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "exclusions" && (
-          <ExclusionsSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "api" && (
-          <APISettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "integrations" && (
-          <IntegrationsSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "reports" && (
-          <ReportsSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "import" && (
-          <ImportSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab === "widgets" && (
-          <WidgetsSettings
-            website={website}
-            websiteId={websiteId}
-            onUpdate={handleUpdate}
-          />
-        )}
-
-        {activeTab !== "general" &&
-          activeTab !== "revenue" &&
-          activeTab !== "team" &&
-          activeTab !== "security" &&
-          activeTab !== "exclusions" &&
-          activeTab !== "api" &&
-          activeTab !== "integrations" &&
-          activeTab !== "reports" &&
-          activeTab !== "import" &&
-          activeTab !== "widgets" && (
-            <div className="text-stone-500 text-center py-8">
-              This section is coming soon. Check back later for more features.
-            </div>
+        <div className="flex-1 min-w-0 overflow-x-hidden pt-4">
+          {activeTab === "general" && (
+            <GeneralSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
           )}
-      </div>
+
+          {activeTab === "revenue" && (
+            <RevenueSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "team" && (
+            <TeamSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "security" && (
+            <SecuritySettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "exclusions" && (
+            <ExclusionsSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "api" && (
+            <APISettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "integrations" && (
+            <IntegrationsSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "reports" && (
+            <ReportsSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "import" && (
+            <ImportSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab === "widgets" && (
+            <WidgetsSettings
+              website={website}
+              websiteId={websiteId}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {activeTab !== "general" &&
+            activeTab !== "revenue" &&
+            activeTab !== "team" &&
+            activeTab !== "security" &&
+            activeTab !== "exclusions" &&
+            activeTab !== "api" &&
+            activeTab !== "integrations" &&
+            activeTab !== "reports" &&
+            activeTab !== "import" &&
+            activeTab !== "widgets" && (
+              <div className="text-stone-500 text-center py-8">
+                This section is coming soon. Check back later for more features.
+              </div>
+            )}
+        </div>
+      </section>
     </div>
   );
 }

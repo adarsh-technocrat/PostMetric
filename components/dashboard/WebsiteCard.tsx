@@ -56,22 +56,22 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
   return (
     <li>
       <Link href={`/dashboard/${website._id}`}>
-        <article className="custom-card custom-card-hover p-4">
-          <div className="flex flex-row gap-2">
-            <div>
+        <article className="flex flex-col w-full min-w-0 border border-stone-200 bg-stone-50 rounded-2xl transition-colors hover:border-stone-300 hover:bg-stone-100/80">
+          <div className="flex flex-col gap-4 p-4 w-full min-w-0">
+            <div className="flex justify-between items-start">
               <DomainLogo
                 domain={website.domain}
                 iconUrl={website.iconUrl}
-                size={24}
+                size={40}
                 alt={website.name}
-                className="size-5 rounded"
+                className="size-10 rounded"
               />
             </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-stone-800">
+            <div className="flex flex-col gap-1 w-full min-w-0">
+              <h3 className="text-stone-800 font-medium text-base">
                 {website.name}
               </h3>
-              <div className="relative h-20">
+              <div className="relative h-20 w-full min-w-0">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData}>

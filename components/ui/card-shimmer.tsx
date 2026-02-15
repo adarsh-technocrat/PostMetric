@@ -68,6 +68,49 @@ export function FeedbackListShimmer() {
 }
 
 /**
+ * Shimmer placeholder for a single website card.
+ * Matches WebsiteCard layout: border, bg-stone-50, rounded-2xl, logo row + title + chart + stats.
+ */
+export function WebsiteCardShimmer() {
+  return (
+    <li>
+      <div className="flex flex-col w-full min-w-0 border border-stone-200 bg-stone-50 rounded-2xl">
+        <div className="flex flex-col gap-4 p-4 w-full min-w-0">
+          <div className="flex justify-between items-start">
+            <Skeleton className="size-10 shrink-0 rounded bg-stone-200" />
+          </div>
+          <div className="flex flex-col gap-1 w-full min-w-0">
+            <Skeleton className="h-4 w-2/3 rounded-md bg-stone-200" />
+            <div className="relative h-20 w-full min-w-0 rounded-md overflow-hidden">
+              <Skeleton className="h-full w-full rounded-md bg-stone-200" />
+            </div>
+            <div className="flex items-center justify-start gap-3 flex-wrap">
+              <Skeleton className="h-4 w-20 rounded-md bg-stone-200" />
+              <Skeleton className="h-4 w-24 rounded-md bg-stone-200" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+const WEBSITE_CARD_SHIMMER_COUNT = 6;
+
+/**
+ * Grid of website card shimmers for the dashboard loading state.
+ */
+export function WebsiteCardListShimmer() {
+  return (
+    <ul className="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+      {Array.from({ length: WEBSITE_CARD_SHIMMER_COUNT }).map((_, i) => (
+        <WebsiteCardShimmer key={i} />
+      ))}
+    </ul>
+  );
+}
+
+/**
  * Shimmer for the feedback post detail left column (upvote + title + description + meta).
  */
 export function FeedbackDetailShimmer() {

@@ -404,8 +404,10 @@ function AnalyticsChartComponent({
                   fontSize: "11px",
                 }}
                 tickFormatter={(value) => {
-                  if (value >= 1000) return `${value / 1000}k`;
-                  return value.toString();
+                  const rounded = Math.round(Number(value));
+                  if (rounded >= 1000)
+                    return `${(rounded / 1000).toFixed(rounded % 1000 === 0 ? 0 : 1)}k`;
+                  return String(rounded);
                 }}
                 tickMargin={8}
                 domain={
@@ -430,14 +432,15 @@ function AnalyticsChartComponent({
                   fontSize: "11px",
                 }}
                 tickFormatter={(value) => {
+                  const rounded = Math.round(Number(value));
                   const formatter = new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: currency,
                     currencyDisplay: "symbol",
-                    notation: value >= 1000 ? "compact" : "standard",
-                    maximumFractionDigits: value >= 1000 ? 1 : 0,
+                    notation: rounded >= 1000 ? "compact" : "standard",
+                    maximumFractionDigits: 0,
                   });
-                  return formatter.format(value);
+                  return formatter.format(rounded);
                 }}
                 tickMargin={8}
                 domain={
