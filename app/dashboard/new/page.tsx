@@ -13,8 +13,6 @@ import {
   CheckCircle2,
   Search,
   ChevronDown,
-  Code2,
-  Wallet,
 } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { createNewWebsiteWithDomain } from "@/store/slices/websitesSlice";
@@ -23,11 +21,6 @@ import timezones, { type TimeZone } from "timezones-list";
 
 const HEADER_GAP_HEIGHT = "h-14";
 const STEPPER_ITEM_GAP = "pt-10";
-const STEPS = [
-  { id: 0, title: "Domain", icon: Globe },
-  { id: 1, title: "Install script", icon: Code2 },
-  { id: 2, title: "Attribute revenue", icon: Wallet },
-] as const;
 
 function domainToName(domain: string): string {
   return domain.replace(/^www\./, "").split(".")[0];
@@ -136,7 +129,6 @@ export default function AddSitePage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  const [step, setStep] = useState(0);
   const [domain, setDomain] = useState("");
   const [timezone, setTimezone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,20 +169,11 @@ export default function AddSitePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [timezoneOpen]);
 
-  function handleNextStep(e: React.FormEvent) {
+  async function handleAddWebsite(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (step === 0) {
-      const domainValue = domain.trim();
-      if (!domainValue) return;
-      setStep(1);
-    } else if (step === 1) {
-      setStep(2);
-    }
-  }
-
-  async function handleDone() {
-    const domainValue = domain.trim();
-    if (!domainValue) return;
+    const formData = new FormData(e.currentTarget);
+    const domainValue = domain || (formData.get("domain") as string);
+    if (!domainValue || typeof domainValue !== "string") return;
 
     setIsSubmitting(true);
     try {
@@ -198,11 +181,10 @@ export default function AddSitePage() {
         createNewWebsiteWithDomain({
           domain: domainValue,
           name: domainToName(domainValue),
-          settings: timezone ? { timezone } : undefined,
         }),
       ).unwrap();
       toast.success("Website added", {
-        description: "Redirecting to your dashboard…",
+        description: "Redirecting to analytics…",
       });
       router.push(`/dashboard/${website._id}`);
     } catch (error: unknown) {
@@ -217,49 +199,12 @@ export default function AddSitePage() {
   return (
     <main className="w-full max-w-7xl flex flex-col bg-transparent">
       <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0 lg:gap-x-8 items-stretch">
-        {/* Stepper column */}
         <div className="flex w-14 shrink-0 flex-col items-center h-full min-h-0">
-          {STEPS.map((s, i) => {
-            const isCompleted = step > s.id;
-            const isCurrent = step === s.id;
-            const Icon = s.icon;
-            return (
-              <div
-                key={s.id}
-                className="flex w-14 shrink-0 flex-col items-center min-h-0 overflow-visible"
-              >
-                <div
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                    isCompleted
-                      ? "border-stone-800 bg-stone-800"
-                      : isCurrent
-                        ? "border-stone-800 bg-stone-800"
-                        : "border-stone-200 bg-white"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-white" />
-                  ) : (
-                    <Icon
-                      className={`h-3.5 w-3.5 ${
-                        isCurrent ? "text-white" : "text-stone-400"
-                      }`}
-                    />
-                  )}
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={`w-px flex-1 min-h-8 my-0.5 -mb-10 ${
-                      isCompleted ? "bg-stone-800" : "bg-stone-200"
-                    }`}
-                  />
-                )}
-              </div>
-            );
-          })}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-stone-100">
+            <Globe className="h-7 w-7 text-stone-600" />
+          </div>
+          <div className="w-px flex-1 min-h-8 bg-stone-200 mt-1" />
         </div>
-
-        {/* Content column */}
         <div className="min-w-0 flex flex-col pb-0">
           <header className="pt-0.5 shrink-0">
             <h1 className="text-2xl font-semibold text-stone-800 tracking-tight">
@@ -270,123 +215,82 @@ export default function AddSitePage() {
             </p>
           </header>
           <div className={`${HEADER_GAP_HEIGHT} shrink-0`} aria-hidden />
+        </div>
 
-          {/* Step 0: Domain */}
-          {step === 0 && (
-            <section>
-              <h2 className="text-base font-semibold text-stone-800 mb-1">
-                Domain
-              </h2>
-              <p className="text-sm text-stone-500 mb-6">
-                Domain name and region for your analytics and tracking.
-              </p>
+        <div className="flex w-14 shrink-0 flex-col items-center h-full min-h-0 -mt-px overflow-visible">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-stone-800 bg-stone-800">
+            <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+          </div>
+          <div className="w-px flex-1 min-h-8 bg-stone-200 my-0.5 -mb-10" />
+        </div>
+        <div className="min-w-0">
+          <section>
+            <h2 className="text-base font-semibold text-stone-800 mb-1">
+              Domain
+            </h2>
+            <p className="text-sm text-stone-500 mb-6">
+              Domain name and region for your analytics and tracking.
+            </p>
 
-              <form onSubmit={handleNextStep} className="space-y-5">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="domain"
-                    className="text-sm font-medium text-stone-700"
-                  >
-                    Name
-                  </Label>
-                  <div className="flex w-full items-center rounded-lg border border-stone-200 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-stone-200 focus-within:border-stone-400 transition-colors">
-                    <div className="inline-flex select-none items-center justify-center gap-2 border-r border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-500">
-                      {domain ? (
-                        <DomainLogo
-                          domain={domain}
-                          size={20}
-                          className="h-5 w-5 shrink-0 rounded drop-shadow-sm"
-                          fallback={
-                            <Globe className="size-4 shrink-0 text-stone-400" />
-                          }
-                        />
-                      ) : (
-                        <Globe className="size-4 shrink-0 text-stone-400" />
-                      )}
-                      <span>https://</span>
-                    </div>
-                    <Input
-                      id="domain"
-                      name="domain"
-                      type="text"
-                      placeholder="updates.example.com"
-                      required
-                      autoComplete="off"
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      className="flex-1 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-10 text-sm bg-white text-stone-800 placeholder:text-stone-400"
-                    />
-                    <div className="pr-3 text-stone-400">
-                      <Info className="h-4 w-4" aria-hidden />
-                    </div>
+            <form onSubmit={handleAddWebsite} className="space-y-5">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="domain"
+                  className="text-sm font-medium text-stone-700"
+                >
+                  Name
+                </Label>
+                <div className="flex w-full items-center rounded-lg border border-stone-200 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-stone-200 focus-within:border-stone-400 transition-colors">
+                  <div className="inline-flex select-none items-center justify-center gap-2 border-r border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-500">
+                    {domain ? (
+                      <DomainLogo
+                        domain={domain}
+                        size={20}
+                        className="h-5 w-5 shrink-0 rounded drop-shadow-sm"
+                        fallback={
+                          <Globe className="size-4 shrink-0 text-stone-400" />
+                        }
+                      />
+                    ) : (
+                      <Globe className="size-4 shrink-0 text-stone-400" />
+                    )}
+                    <span>https://</span>
+                  </div>
+                  <Input
+                    id="domain"
+                    name="domain"
+                    type="text"
+                    placeholder="updates.example.com"
+                    required
+                    autoComplete="off"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    className="flex-1 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-10 text-sm bg-white text-stone-800 placeholder:text-stone-400"
+                  />
+                  <div className="pr-3 text-stone-400">
+                    <Info className="h-4 w-4" aria-hidden />
                   </div>
                 </div>
+              </div>
 
-                <TimezoneSelect
-                  value={timezone}
-                  onChange={setTimezone}
-                  isOpen={timezoneOpen}
-                  onOpenChange={setTimezoneOpen}
-                  searchQuery={timezoneSearch}
-                  onSearchChange={setTimezoneSearch}
-                  filteredList={filteredTimezones}
-                  containerRef={timezoneDropdownRef}
-                  searchInputRef={timezoneSearchRef}
-                />
+              <TimezoneSelect
+                value={timezone}
+                onChange={setTimezone}
+                isOpen={timezoneOpen}
+                onOpenChange={setTimezoneOpen}
+                searchQuery={timezoneSearch}
+                onSearchChange={setTimezoneSearch}
+                filteredList={filteredTimezones}
+                containerRef={timezoneDropdownRef}
+                searchInputRef={timezoneSearchRef}
+              />
 
-                <Button
-                  type="submit"
-                  variant="stone"
-                  size="default"
-                  className="w-full sm:w-auto"
-                >
-                  Next
-                </Button>
-              </form>
-            </section>
-          )}
-
-          {/* Step 1: Install script */}
-          {step === 1 && (
-            <section>
-              <h2 className="text-base font-semibold text-stone-800 mb-1">
-                Install script
-              </h2>
-              <p className="text-sm text-stone-500 mb-6">
-                After you finish, you’ll be taken to your dashboard where you
-                can copy the tracking script and add it to your site.
-              </p>
               <Button
-                type="button"
+                type="submit"
                 variant="stone"
-                size="default"
-                className="w-full sm:w-auto"
-                onClick={() => setStep(2)}
-              >
-                Next
-              </Button>
-            </section>
-          )}
-
-          {/* Step 2: Attribute revenue + Done */}
-          {step === 2 && (
-            <section>
-              <h2 className="text-base font-semibold text-stone-800 mb-1">
-                Attribute revenue{" "}
-                <span className="font-normal text-stone-500">(Optional)</span>
-              </h2>
-              <p className="text-sm text-stone-500 mb-6">
-                Connect payment providers or add revenue events to attribute
-                revenue to your traffic and campaigns. You can set this up later
-                in your website settings.
-              </p>
-              <Button
-                type="button"
-                variant="stone"
-                size="default"
                 disabled={isSubmitting}
+                size="default"
                 className="w-full sm:w-auto"
-                onClick={handleDone}
               >
                 {isSubmitting ? (
                   <>
@@ -394,12 +298,48 @@ export default function AddSitePage() {
                     Adding…
                   </>
                 ) : (
-                  "Done"
+                  "+ Add website"
                 )}
               </Button>
-            </section>
-          )}
+            </form>
+          </section>
         </div>
+
+        <div
+          className={`flex w-14 shrink-0 flex-col items-center h-full min-h-0 overflow-visible border-t border-stone-100 ${STEPPER_ITEM_GAP}`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-stone-200 bg-white" />
+          <div className="w-px flex-1 min-h-8 bg-stone-200 my-0.5 -mb-10" />
+        </div>
+        <section
+          className={`min-w-0 ${STEPPER_ITEM_GAP} border-t border-stone-100`}
+        >
+          <h3 className="text-sm font-semibold text-stone-500">
+            Install script
+          </h3>
+          <p className="mt-1 text-xs text-stone-400">
+            After adding your domain, you’ll get a tracking script to add to
+            your site.
+          </p>
+        </section>
+
+        <div
+          className={`flex w-14 shrink-0 flex-col items-center h-full min-h-0 border-t border-stone-100 ${STEPPER_ITEM_GAP}`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-stone-200 bg-white" />
+        </div>
+        <section
+          className={`min-w-0 ${STEPPER_ITEM_GAP} border-t border-stone-100`}
+        >
+          <h3 className="text-sm font-semibold text-stone-500">
+            Attribute revenue{" "}
+            <span className="font-normal text-stone-400">(Optional)</span>
+          </h3>
+          <p className="mt-1 text-xs text-stone-400">
+            Connect payment providers or add revenue events to attribute revenue
+            to your traffic and campaigns.
+          </p>
+        </section>
       </div>
 
       <footer className="mt-10 text-center text-xs text-stone-500">
