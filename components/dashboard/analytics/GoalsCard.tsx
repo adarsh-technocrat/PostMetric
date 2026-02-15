@@ -55,7 +55,7 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
         </div>
         <div className="relative h-96">
           <div className="relative flex h-full flex-col items-center justify-center gap-6">
-            <div className="relative z-10 w-full max-w-[14rem] space-y-4 rounded-lg bg-white/20 px-4 py-2 text-center font-medium text-textPrimary backdrop-blur">
+            <div className="relative z-10 w-full max-w-md space-y-4 rounded-lg bg-white/20 px-4 py-2 text-center font-medium text-textPrimary backdrop-blur">
               <p className="font-semibold">
                 Track what visitors do on your site
               </p>
@@ -67,7 +67,7 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
                   </Link>
                 </Button>
               </div>
-              <p className="text-textSecondary mx-auto max-w-[18rem] pt-4 text-center text-sm font-normal">
+              <p className="text-textSecondary mx-auto max-w-md pt-4 text-center text-sm font-normal">
                 Revenue-related goals are automatically tracked with{" "}
                 <Link
                   href="/docs/revenue-attribution-guide"

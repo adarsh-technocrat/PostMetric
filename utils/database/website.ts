@@ -34,7 +34,7 @@ export async function getWebsiteById(websiteId: string) {
 
 export async function getWebsiteByTrackingCode(
   trackingCode: string,
-  hostname?: string
+  hostname?: string,
 ) {
   await connectDB();
 
@@ -91,17 +91,21 @@ export async function createWebsite(data: {
       exists = await Website.findOne({ trackingCode });
     }
 
+    const defaultSettings = {
+      hashPaths: false,
+      trackScroll: false,
+      trackUserIdentification: false,
+    };
     const website = new Website({
       userId: data.userId,
       domain: data.domain,
       name: data.name,
       iconUrl: data.iconUrl,
       trackingCode,
-      settings: data.settings || {
-        hashPaths: false,
-        trackScroll: false,
-        trackUserIdentification: false,
-      },
+      settings:
+        typeof data.settings === "object" && data.settings !== null
+          ? { ...defaultSettings, ...data.settings }
+          : defaultSettings,
     });
 
     await website.save();
@@ -122,7 +126,7 @@ export async function updateWebsite(
     iconUrl?: string;
     settings?: any;
     paymentProviders?: any;
-  }
+  },
 ) {
   await connectDB();
 
@@ -130,7 +134,7 @@ export async function updateWebsite(
     const website = await Website.findByIdAndUpdate(
       websiteId,
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return website;

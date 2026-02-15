@@ -126,10 +126,12 @@ export const createNewWebsiteWithDomain = createAsyncThunk(
       domain,
       name,
       iconUrl,
+      settings,
     }: {
       domain: string;
       name: string;
       iconUrl?: string;
+      settings?: { timezone?: string; [key: string]: unknown };
     },
     { rejectWithValue },
   ) => {
@@ -141,6 +143,7 @@ export const createNewWebsiteWithDomain = createAsyncThunk(
           domain,
           name,
           iconUrl: iconUrl || undefined,
+          settings: settings || undefined,
         }),
       });
 
