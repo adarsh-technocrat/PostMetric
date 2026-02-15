@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NavItem } from "./NavItem";
 import { NavSection } from "./NavSection";
@@ -20,9 +20,18 @@ import {
   Book,
   BarChart3,
   TrendingUp,
+  User,
+  DollarSign,
+  Zap,
+  Calendar,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UserMenu } from "@/components/dashboard/UserMenu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { generateUserAvatar } from "@/lib/avatar";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -30,7 +39,8 @@ import { fetchAllUserWebsites } from "@/store/slices/websitesSlice";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user: firebaseUser } = useAuth();
+  const router = useRouter();
+  const { user: firebaseUser, signOut } = useAuth();
   const dispatch = useAppDispatch();
   const websites = useAppSelector((state) => state.websites.websites) as Array<{
     _id: string;
@@ -89,6 +99,12 @@ export function Sidebar() {
   const websiteIdMatch = pathname.match(/\/dashboard\/([a-f0-9]{24})/);
   const currentWebsiteId = websiteIdMatch?.[1];
   const hasWebsiteSelected = !!currentWebsiteId;
+
+  const handleSignOut = async () => {
+    await signOut();
+    document.cookie = "firebaseToken=; path=/; max-age=0";
+    router.push("/login");
+  };
 
   return (
     <aside className="fixed max-w-72 w-full flex flex-col px-4 py-6 h-screen bg-stone-50 border-r border-stone-200">
@@ -250,76 +266,182 @@ export function Sidebar() {
             </svg>
           </Link>
 
-          {/* User Menu */}
-          <div className="user-menu-popup relative">
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                <div className="flex items-center gap-3.5 grow">
+                  {userData?.image ? (
+                    <img
+                      src={userData.image}
+                      alt={userData.name}
+                      className="size-4.5 rounded-full"
+                      width={18}
+                      height={18}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallbackAvatar = generateUserAvatar(
+                          userData.email,
+                          userData.name,
+                          { size: 18 },
+                        );
+                        target.src = fallbackAvatar;
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="size-4.5 rounded-full bg-stone-500"
+                      style={{
+                        backgroundImage: userData
+                          ? `url(${generateUserAvatar(
+                              userData.email,
+                              userData.name,
+                              { size: 18 },
+                            )})`
+                          : undefined,
+                      }}
+                    />
+                  )}
+                  <p className="text-stone-500 font-medium text-sm group-hover:text-stone-800 truncate">
+                    {userData?.name || "User"}
+                  </p>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M17 8L12 3L7 8"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <path
+                    d="M17 16L12 21L7 16"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              side="top"
+              sideOffset={-30}
+              className="w-64 rounded-xl border border-stone-200 bg-white p-0 text-stone-800 shadow-none mr-2 ml-4"
             >
-              <div className="flex items-center gap-3.5 grow">
+              <div className="flex items-center gap-2.5 rounded-t-xl bg-stone-50 px-3 py-2.5">
                 {userData?.image ? (
                   <img
                     src={userData.image}
                     alt={userData.name}
-                    className="size-4.5 rounded-full"
-                    width={18}
-                    height={18}
+                    className="size-9 shrink-0 rounded-full"
+                    width={36}
+                    height={36}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const target = e.currentTarget;
-                      const fallbackAvatar = generateUserAvatar(
+                      target.src = generateUserAvatar(
                         userData.email,
                         userData.name,
-                        { size: 18 },
+                        { size: 36 },
                       );
-                      target.src = fallbackAvatar;
                     }}
                   />
                 ) : (
                   <div
-                    className="size-4.5 rounded-full bg-stone-500"
+                    className="size-9 shrink-0 rounded-full bg-stone-200"
                     style={{
                       backgroundImage: userData
                         ? `url(${generateUserAvatar(
                             userData.email,
                             userData.name,
-                            { size: 18 },
+                            { size: 36 },
                           )})`
                         : undefined,
+                      backgroundSize: "cover",
                     }}
                   />
                 )}
-                <p className="text-stone-500 font-medium text-sm group-hover:text-stone-800 truncate">
-                  {userData?.name || "User"}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-stone-800">
+                    {userData?.name || "User"}
+                  </p>
+                  <p className="truncate text-xs text-stone-500">
+                    {userData?.email || ""}
+                  </p>
+                </div>
               </div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <path
-                  d="M17 8L12 3L7 8"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <path
-                  d="M17 16L12 21L7 16"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-            </Button>
-          </div>
+
+              {/* Nav links */}
+              <div className="py-0.5">
+                <Link
+                  href="/dashboard/account"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
+                >
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-100">
+                    <User className="size-3.5 text-stone-500" />
+                  </div>
+                  Account
+                </Link>
+                <Link
+                  href="/dashboard/billing"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
+                >
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-100">
+                    <DollarSign className="size-3.5 text-stone-500" />
+                  </div>
+                  Billing
+                </Link>
+                <Link
+                  href="/dashboard/upgrade"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
+                >
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-100">
+                    <Zap className="size-3.5 text-stone-500" />
+                  </div>
+                  Upgrade
+                </Link>
+                <Link
+                  href="https://cal.com/postmetric"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
+                >
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-100">
+                    <Calendar className="size-3.5 text-stone-500" />
+                  </div>
+                  Book A Demo
+                </Link>
+              </div>
+
+              <div className="h-px bg-stone-200" />
+
+              {/* Log out */}
+              <div className="p-1.5">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
+                >
+                  <LogOut className="size-3.5 shrink-0 text-stone-500" />
+                  Log out
+                </button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </aside>
