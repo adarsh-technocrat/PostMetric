@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getLogoDevUrl } from "@/utils/domain-logo";
 
 interface DomainLogoProps {
@@ -13,11 +14,13 @@ interface DomainLogoProps {
   alt?: string;
   /** Optional class name for the image. */
   className?: string;
+  /** Rendered when no logo URL is available or when the image fails to load. */
+  fallback?: React.ReactNode;
 }
 
 /**
  * Reusable domain logo: shows logo from logo.dev for the given domain,
- * or a custom iconUrl when provided. Renders nothing when no URL is available.
+ * or a custom iconUrl when provided. Shows fallback when unavailable or on error.
  */
 export function DomainLogo({
   domain,
@@ -25,9 +28,14 @@ export function DomainLogo({
   size = 14,
   alt,
   className = "shrink-0 rounded",
+  fallback = null,
 }: DomainLogoProps) {
+  const [failed, setFailed] = useState(false);
   const src = iconUrl || (domain ? getLogoDevUrl(domain) : null) || null;
-  if (!src) return null;
+
+  if (!src) return <>{fallback}</>;
+
+  if (failed) return <>{fallback}</>;
 
   return (
     <img
@@ -36,10 +44,7 @@ export function DomainLogo({
       width={size}
       height={size}
       className={className}
-      onError={(e) => {
-        const target = e.target as HTMLImageElement;
-        target.style.display = "none";
-      }}
+      onError={() => setFailed(true)}
     />
   );
 }

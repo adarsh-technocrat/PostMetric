@@ -187,21 +187,9 @@ export function Sidebar() {
               >
                 Integrations
               </NavItem>
-              {hasWebsiteSelected ? (
+              {hasWebsiteSelected && (
                 <NavItem
                   href={`/dashboard/${currentWebsiteId}/settings`}
-                  icon={<Settings className="w-[18px] h-[18px]" />}
-                  badge={
-                    <span className="text-lime-700 font-semibold text-[10px] px-2 py-0.5 rounded-md text-center uppercase leading-3.5 bg-lime-100">
-                      New
-                    </span>
-                  }
-                >
-                  Settings
-                </NavItem>
-              ) : (
-                <NavItem
-                  href="/dashboard/settings"
                   icon={<Settings className="w-[18px] h-[18px]" />}
                   badge={
                     <span className="text-lime-700 font-semibold text-[10px] px-2 py-0.5 rounded-md text-center uppercase leading-3.5 bg-lime-100">

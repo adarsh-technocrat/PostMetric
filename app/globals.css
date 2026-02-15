@@ -501,3 +501,19 @@ input[type="range"].volume-slider::-moz-range-thumb {
   background-color: hsl(var(--muted));
   color: hsl(var(--foreground));
 }
+
+/* Stepper timeline: moving laser beam along the line */
+@keyframes stepper-laser {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% - 1.5rem);
+    opacity: 1;
+  }
+}
+
+.stepper-laser-beam {
+  animation: stepper-laser 2.25s ease-in-out infinite;
+}

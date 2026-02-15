@@ -406,7 +406,10 @@ export function InsightsFullView({
       </span>
     </>,
     <>
-      <span>{firstVisitPct ?? "—"}% of buyers purchase on first visit</span>
+      <span>
+        {firstVisitPct != null ? `${firstVisitPct}%` : "—"} of buyers purchase
+        on first visit
+      </span>
       <span className={CAROUSEL_HIGHLIGHT_CLASS}>
         {" "}
         conversion rate {conversionRate ?? "—"}%
@@ -517,7 +520,7 @@ export function InsightsFullView({
               <div
                 className={`${STAT_GRADIENT_CLASS} text-center text-5xl font-black tracking-tight sm:text-6xl`}
               >
-                {firstVisitPct ?? "—"}
+                {firstVisitPct != null ? `${firstVisitPct}%` : "—"}
               </div>
               <p className="text-muted-foreground mt-1 text-center text-sm">
                 of buyers purchase on first visit

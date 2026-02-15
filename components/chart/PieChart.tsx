@@ -69,8 +69,8 @@ export function PieChart({
     const RADIAN = Math.PI / 180;
     const angle = -midAngle * RADIAN;
 
-    // Calculate label position (further out)
-    const radius = outerRadius + 80;
+    // Calculate label position (closer to pie for shorter lines)
+    const radius = outerRadius + 48;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
 
@@ -78,13 +78,13 @@ export function PieChart({
     const lineStartX = cx + outerRadius * Math.cos(angle);
     const lineStartY = cy + outerRadius * Math.sin(angle);
 
-    // Elbow point (L-shape corner)
-    const elbowRadius = outerRadius + 40;
+    // Elbow point (L-shape corner) – closer for shorter connector
+    const elbowRadius = outerRadius + 22;
     const elbowX = cx + elbowRadius * Math.cos(angle);
     const elbowY = cy + elbowRadius * Math.sin(angle);
 
     // Horizontal line extends left or right from elbow
-    const horizontalX = x > cx ? elbowX + 40 : elbowX - 40;
+    const horizontalX = x > cx ? elbowX + 24 : elbowX - 24;
 
     const imageRadius = (innerRadius + outerRadius) / 2;
     const imageX = cx + imageRadius * Math.cos(angle);
