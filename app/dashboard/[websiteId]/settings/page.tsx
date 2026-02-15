@@ -124,10 +124,10 @@ export default function SettingsPage({
       <p className="text-stone-800 font-semibold text-lg">
         Settings for {website?.domain || website?.name || "Loading..."}
       </p>
-      <section className="custom-card w-full max-w-full min-w-0">
+      <section className="w-full max-w-full min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-x-2 px-0 py-1">
           <div className="mr-px flex flex-1 min-w-0">
-            <div className="flex w-full items-center border-b border-stone-200">
+            <div className="flex w-full items-center border-b border-stone-200 bg-transparent">
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v)}
