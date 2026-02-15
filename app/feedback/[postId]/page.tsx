@@ -360,19 +360,20 @@ export default function FeedbackPostPage() {
       <main className="mx-auto max-w-5xl px-4 pb-24 pt-8 lg:px-6">
         <div className="flex flex-col gap-12 md:flex-row md:items-start">
           <div className="flex w-full shrink-0 gap-6 md:sticky md:top-20 md:max-w-[28rem] md:w-[28rem] md:flex-row">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={handleUpvote}
               title="Upvote post"
               className={cn(
-                "group flex shrink-0 flex-col items-center justify-center gap-0 rounded-lg border border-stone-200 bg-white px-4 py-2 text-lg text-stone-800 transition-colors hover:border-stone-300",
+                "group flex shrink-0 flex-col items-center justify-center gap-0 rounded-lg border border-stone-200 bg-white px-4 py-2 text-lg text-stone-800 hover:border-stone-300",
                 post.upvoted &&
                   "border-accent-500 bg-accent-50 text-accent-600",
               )}
             >
               <UpvoteIcon className="h-5 w-5 ease-in-out duration-150 group-hover:-translate-y-0.5" />
               <span className="tabular-nums">{post.upvoteCount}</span>
-            </button>
+            </Button>
             <section className="min-w-0 flex-1">
               <h1 className="mb-3 text-xl font-bold text-stone-900">
                 {post.title}
@@ -452,12 +453,14 @@ export default function FeedbackPostPage() {
                           {formatDate(c.createdAt)}
                         </div>
                         <span className="opacity-80">•</span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleCommentUpvote(c._id)}
                           disabled={upvotingCommentId === c._id}
                           className={cn(
-                            "group flex items-center gap-1 duration-100 hover:text-danger-500 disabled:opacity-50",
+                            "group flex items-center gap-1 duration-100 hover:text-danger-500 disabled:opacity-50 h-auto py-0 px-0",
                             c.upvoted && "text-danger-500",
                           )}
                           title="Upvote reply"
@@ -467,22 +470,24 @@ export default function FeedbackPostPage() {
                             className="size-4 duration-100 group-hover:text-danger-500"
                           />
                           <span>{c.upvoteCount}</span>
-                        </button>
+                        </Button>
                         {currentUserId &&
                           String(c.author?.id) === String(currentUserId) && (
                             <>
                               <span className="opacity-80">•</span>
-                              <button
+                              <Button
                                 type="button"
+                                variant="link"
+                                size="sm"
                                 onClick={() => handleDeleteComment(c._id)}
                                 disabled={deletingCommentId === c._id}
-                                className="min-w-0 cursor-pointer text-sm text-stone-600 underline decoration-stone-400 hover:text-stone-800 hover:decoration-stone-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="min-w-0 text-sm text-stone-600 underline decoration-stone-400 hover:text-stone-800 hover:decoration-stone-600 disabled:opacity-50 h-auto py-0 px-0"
                                 title="Delete your comment"
                               >
                                 {deletingCommentId === c._id
                                   ? "Deleting…"
                                   : "Delete"}
-                              </button>
+                              </Button>
                             </>
                           )}
                       </div>

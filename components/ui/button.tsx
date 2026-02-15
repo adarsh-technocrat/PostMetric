@@ -20,6 +20,10 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        stone:
+          "group cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border-2 transition-all ease-in duration-75 whitespace-nowrap text-center select-none disabled:shadow-none disabled:opacity-50 disabled:cursor-not-allowed gap-x-1 active:shadow-none active:scale-95 text-xs leading-4 rounded-lg px-3 py-1 h-6 text-stone-50 bg-stone-700 border-stone-800 hover:bg-stone-800 disabled:bg-stone-700 disabled:border-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-700",
+        "stone-outline":
+          "group cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border-2 transition-all ease-in duration-75 whitespace-nowrap text-center select-none disabled:shadow-none disabled:opacity-50 disabled:cursor-not-allowed gap-x-1 active:shadow-none active:scale-95 text-xs leading-4 rounded-lg px-3 py-1 h-6 text-stone-800 bg-white border-stone-200 hover:bg-stone-50 disabled:bg-white disabled:border-stone-200 dark:bg-white dark:border-stone-200 dark:text-stone-800 dark:hover:bg-stone-100 dark:disabled:bg-white dark:disabled:border-stone-200",
         embossed:
           "bg-[#5220E3] text-white rounded-[14px] relative overflow-hidden font-semibold",
         "embossed-secondary":
@@ -28,6 +32,7 @@ const buttonVariants = cva(
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
+        xs: "h-6 rounded-lg px-3 py-1 text-xs leading-4 gap-x-1 [&_svg]:size-3.5",
         lg: "h-11 rounded-md px-8",
         xl: "h-10 px-4 py-2",
         icon: "h-10 w-10",
@@ -37,11 +42,12 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
@@ -106,8 +112,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 transform: isPressed
                   ? "scale(0.98) translateY(1px)"
                   : isBouncing
-                  ? "scale(1.02) translateY(-1px)"
-                  : "scale(1) translateY(0)",
+                    ? "scale(1.02) translateY(-1px)"
+                    : "scale(1) translateY(0)",
                 boxShadow:
                   variant === "embossed"
                     ? isPressed
@@ -124,13 +130,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                         inset 0 3px 1px rgba(255, 255, 255, 0.36)
                       `
                     : isPressed
-                    ? `
+                      ? `
                       inset -1px 0px 0.5px rgba(0, 0, 0, 0.2),
                       inset 1px 0px 1px rgba(255, 255, 255, 0.4),
                       inset 0 -2px 1px rgba(0, 0, 0, 0.3),
                       inset 0 1px 1px rgba(255, 255, 255, 0.5)
                     `
-                    : `
+                      : `
                       inset -2px -1px 0.5px rgba(0, 0, 0, 0.15),
                       inset 2px 1px 1px rgba(255, 255, 255, 0.5),
                       inset 0 -4px 1px rgba(0, 0, 0, 0.25),
@@ -145,7 +151,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       />
     );
-  }
+  },
 );
 Button.displayName = "Button";
 

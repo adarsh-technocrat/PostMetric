@@ -14,6 +14,7 @@ import { IntegrationsSettings } from "@/components/dashboard/settings/Integratio
 import { ReportsSettings } from "@/components/dashboard/settings/ReportsSettings";
 import { ImportSettings } from "@/components/dashboard/settings/ImportSettings";
 import { WidgetsSettings } from "@/components/dashboard/settings/WidgetsSettings";
+import { Button } from "@/components/ui/button";
 
 const SETTINGS_TABS = [
   { id: "general", label: "General" },
@@ -134,9 +135,11 @@ export default function SettingsPage({
                 const isActive = activeTab === tab.id;
                 return (
                   <li key={tab.id} className="flex items-center">
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex whitespace-nowrap text-center border-b-2 items-center justify-between text-sm transition-all ease-in duration-75 font-medium border-transparent ${
+                      className={`flex whitespace-nowrap text-center border-b-2 items-center justify-between text-sm transition-all ease-in duration-75 font-medium border-transparent h-auto py-0 ${
                         isActive
                           ? "text-indigo-600 dark:text-brand-600 border-indigo-400 font-semibold"
                           : "text-stone-950"
@@ -145,7 +148,7 @@ export default function SettingsPage({
                       <div className="hover:bg-stone-200 rounded-[10px] px-3 py-1 mb-1">
                         {tab.label}
                       </div>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

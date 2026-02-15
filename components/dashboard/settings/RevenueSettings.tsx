@@ -297,9 +297,11 @@ export function RevenueSettings({
             }}
           >
             {PAYMENT_PROVIDERS.map((provider) => (
-              <button
+              <Button
                 key={provider.id}
                 role="tab"
+                type="button"
+                variant="ghost"
                 onClick={() => setSelectedProvider(provider.id)}
                 className={`flex cursor-pointer select-none items-center justify-center gap-1 rounded-lg px-1 py-1 text-sm font-medium transition-all md:gap-1.5 md:px-2 md:py-1.5 ${
                   selectedProvider === provider.id
@@ -311,7 +313,7 @@ export function RevenueSettings({
                   <span className="shrink-0">{provider.icon}</span>
                 )}
                 <span className="truncate">{provider.label}</span>
-              </button>
+              </Button>
             ))}
           </div>
 

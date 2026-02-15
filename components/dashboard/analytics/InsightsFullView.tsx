@@ -14,6 +14,7 @@ import { Monitor, Globe, Target, Link2, Layout, Wallet } from "lucide-react";
 import Image from "next/image";
 import type { ConversionMetricsPayload } from "@/types/conversion-metrics";
 import { getFlagEmoji } from "@/utils/tracking/geolocation";
+import { Button } from "@/components/ui/button";
 import { DomainLogo } from "@/components/ui/domain-logo";
 
 const CAROUSEL_INTERVAL_MS = 4500;
@@ -790,12 +791,14 @@ export function InsightsFullView({
             </div>
             <div className="mt-3 flex items-center justify-center gap-1.5">
               {Array.from({ length: carouselSlideCount }, (_, i) => (
-                <button
+                <Button
                   key={i}
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => goToSlide(i)}
                   aria-label={`Go to insight ${i + 1}`}
-                  className={`rounded-full transition-all duration-200 size-1.5 hover:scale-125 ${
+                  className={`rounded-full transition-all duration-200 size-1.5 hover:scale-125 min-w-0 min-h-0 p-0 ${
                     i === carouselIndex
                       ? "size-2 bg-foreground"
                       : "bg-muted-foreground/10 hover:bg-muted-foreground/20"

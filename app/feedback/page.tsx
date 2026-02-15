@@ -294,33 +294,39 @@ export default function FeedbackPage() {
       <main className="mx-auto max-w-5xl px-4 pb-24 pt-4 lg:px-6">
         <section className="mb-2 hidden justify-end md:flex">
           <div role="tablist" className="grid grid-cols-3 gap-1">
-            <button
+            <Button
+              type="button"
               role="tab"
+              variant="ghost"
               aria-selected={sort === "hot"}
               className={tabClass("hot")}
               onClick={() => setSort("hot")}
             >
               <HotIcon className="h-4 w-4 shrink-0" />
               Hot
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               role="tab"
+              variant="ghost"
               aria-selected={sort === "top"}
               className={tabClass("top")}
               onClick={() => setSort("top")}
             >
               <TopIcon className="h-4 w-4 shrink-0" />
               Top
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               role="tab"
+              variant="ghost"
               aria-selected={sort === "recent"}
               className={tabClass("recent")}
               onClick={() => setSort("recent")}
             >
               <RecentIcon className="h-4 w-4 shrink-0" />
               Recent
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -385,33 +391,39 @@ export default function FeedbackPage() {
 
           <section className="w-full md:hidden -mb-10">
             <div role="tablist" className="grid grid-cols-3 gap-1">
-              <button
+              <Button
+                type="button"
                 role="tab"
+                variant="ghost"
                 aria-selected={sort === "hot"}
                 className={tabClass("hot")}
                 onClick={() => setSort("hot")}
               >
                 <HotIcon className="h-4 w-4 shrink-0" />
                 Hot
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 role="tab"
+                variant="ghost"
                 aria-selected={sort === "top"}
                 className={tabClass("top")}
                 onClick={() => setSort("top")}
               >
                 <TopIcon className="h-4 w-4 shrink-0" />
                 Top
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 role="tab"
+                variant="ghost"
                 aria-selected={sort === "recent"}
                 className={tabClass("recent")}
                 onClick={() => setSort("recent")}
               >
                 <RecentIcon className="h-4 w-4 shrink-0" />
                 Recent
-              </button>
+              </Button>
             </div>
           </section>
 
@@ -464,19 +476,20 @@ export default function FeedbackPage() {
                       </div>
                     </div>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={(e) => handleUpvote(e, post._id)}
                     title="Upvote post"
                     className={cn(
-                      "group flex shrink-0 flex-col items-center justify-center gap-0 rounded-lg border border-stone-200 bg-white px-4 py-2 text-center text-lg text-stone-800 transition-colors hover:border-stone-300",
+                      "group flex shrink-0 flex-col items-center justify-center gap-0 rounded-lg border border-stone-200 bg-white px-4 py-2 text-center text-lg text-stone-800 hover:border-stone-300",
                       post.upvoted &&
                         "border-accent-500 bg-accent-50 text-accent-600",
                     )}
                   >
                     <UpvoteIcon className="h-5 w-5 ease-in-out duration-150 group-hover:-translate-y-0.5" />
                     <span className="tabular-nums">{post.upvoteCount}</span>
-                  </button>
+                  </Button>
                 </Link>
               ))
             )}

@@ -24,7 +24,7 @@ export default async function DashboardLayout({
       await connectDB();
       const user = await User.findById(session.user.id);
       daysRemaining = calculateTrialDaysRemaining(
-        user?.subscription?.trialEndsAt
+        user?.subscription?.trialEndsAt,
       );
       subscriptionStatus = user?.subscription?.status;
       subscriptionPlan = user?.subscription?.plan;
@@ -33,8 +33,7 @@ export default async function DashboardLayout({
         subscriptionPlan !== "free" &&
         subscriptionPlan !== undefined;
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 
   const displayDays =
     daysRemaining !== null
@@ -50,7 +49,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="antialiased font-sans min-h-screen bg-stone-50">
-      <div className="max-w-7xl mx-auto flex w-full min-h-screen">
+      <div className="max-w-[1600px] mx-auto flex w-full min-h-screen">
         <Sidebar />
         <main className="ml-72 px-4 py-6 grow w-full min-h-screen">
           {/* Trial Banner */}

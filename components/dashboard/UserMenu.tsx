@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { useEffect, useState } from "react";
 import { generateUserAvatar } from "@/lib/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,9 +77,10 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-textPrimary hover:bg-gray-100 transition-colors"
+        <Button
           type="button"
+          variant="ghost"
+          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-textPrimary hover:bg-gray-100 h-auto"
         >
           {userData.image ? (
             <img
@@ -113,7 +115,7 @@ export function UserMenu() {
           <span className="capitalize text-textPrimary">
             {userData.name || userData.email}
           </span>
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>

@@ -17,9 +17,11 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
             <div className="relative">
               <div role="tablist" className="tabs tabs-sm ml-1">
                 {(["Goal", "Funnel", "Journey"] as const).map((tab) => (
-                  <button
+                  <Button
                     key={tab}
                     role="tab"
+                    type="button"
+                    variant="ghost"
                     className={`group tab relative h-8! gap-1 px-2! font-medium duration-100 ${
                       selectedTab === tab
                         ? "tab-active text-textPrimary"
@@ -28,7 +30,7 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
                     onClick={() => onTabChange(tab)}
                   >
                     <span>{tab}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

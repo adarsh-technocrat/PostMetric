@@ -150,11 +150,12 @@ export function TimezoneSelector({
 
             <div className="max-h-60 overflow-auto overscroll-y-contain border-t border-t-border/30">
               {filteredTimezones.map((timezone) => (
-                <button
+                <Button
                   key={timezone}
                   type="button"
+                  variant="ghost"
                   onClick={() => handleTimezoneSelect(timezone)}
-                  className={`block w-full px-4 py-1.5 text-left text-sm transition-colors ${
+                  className={`block w-full px-4 py-1.5 text-left text-sm ${
                     value === timezone ? "bg-accent" : "hover:bg-secondary/50"
                   }`}
                 >
@@ -166,7 +167,7 @@ export function TimezoneSelector({
                       {getTimezoneTime(timezone)}
                     </span>
                   </div>
-                </button>
+                </Button>
               ))}
               {filteredTimezones.length === 0 && (
                 <div className="py-8 text-center text-muted-foreground">

@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function SidebarWebsiteSelector() {
@@ -45,11 +46,12 @@ export function SidebarWebsiteSelector() {
     <div className="flex items-center gap-1 w-full min-w-0">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className={cn(
-              "flex items-center gap-2 min-w-0 flex-1 p-2 rounded-xl text-left",
-              "hover:bg-stone-100 transition-colors outline-none focus:ring-2 focus:ring-stone-300 focus:ring-offset-1",
+              "flex items-center gap-2 min-w-0 flex-1 p-2 rounded-xl text-left h-auto",
+              "hover:bg-stone-100 transition-colors",
               "border border-transparent hover:border-stone-200",
             )}
             title="Switch website"
@@ -69,7 +71,7 @@ export function SidebarWebsiteSelector() {
               {websiteName}
             </span>
             <ChevronDown className="w-4 h-4 shrink-0 text-stone-400" />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"

@@ -7,6 +7,7 @@ import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase/client";
 import { useState, Suspense } from "react";
 import { formatTrialPeriodHyphenated } from "@/lib/config";
+import { Button } from "@/components/ui/button";
 
 function LoginForm() {
   const router = useRouter();
@@ -53,7 +54,7 @@ function LoginForm() {
     e.preventDefault();
     if (!email) return;
     setError(
-      "Email authentication is not yet implemented with Firebase. Please use Google sign-in."
+      "Email authentication is not yet implemented with Firebase. Please use Google sign-in.",
     );
   };
 
@@ -115,11 +116,12 @@ function LoginForm() {
             </div>
           ) : (
             <>
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleGoogleAuth}
                 disabled={isLoading}
-                className="mb-4 flex w-full items-center justify-center gap-3 rounded border border-stone-200 bg-white px-4 py-3 text-xs font-semibold font-mono uppercase text-stone-700 transition-all hover:bg-stone-50 hover:border-stone-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mb-4 flex w-full items-center justify-center gap-3 rounded border border-stone-200 bg-white px-4 py-3 text-xs font-semibold font-mono uppercase text-stone-700 hover:bg-stone-50 hover:border-stone-300"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -140,7 +142,7 @@ function LoginForm() {
                   />
                 </svg>
                 {isLoading ? "Signing in..." : "Sign in with Google"}
-              </button>
+              </Button>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -174,13 +176,13 @@ function LoginForm() {
                   />
                 </div>
 
-                <button
+                <Button
                   type="submit"
                   disabled={isLoading || !email}
-                  className="w-full rounded border border-stone-800 bg-stone-800 px-4 py-3 text-xs font-semibold font-mono uppercase text-white transition-all hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded border border-stone-800 bg-stone-800 px-4 py-3 text-xs font-semibold font-mono uppercase text-white hover:bg-stone-700"
                 >
                   {isLoading ? "Sending..." : "Sign in with magic link"}
-                </button>
+                </Button>
               </form>
             </>
           )}

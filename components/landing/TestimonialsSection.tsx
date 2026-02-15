@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export function TestimonialsSection() {
   return (
     <div className="flex flex-col py-24 px-4 lg:px-6 gap-12 border-b border-stone-200">
@@ -30,7 +32,12 @@ export function TestimonialsSection() {
 
           {/* Play Button Overlay */}
           <div className="absolute inset-0 flex items-center justify-center z-20">
-            <button className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200"
+            >
               <svg
                 className="w-8 h-8 text-stone-800 ml-1"
                 fill="currentColor"
@@ -38,7 +45,7 @@ export function TestimonialsSection() {
               >
                 <path d="M8 5v14l11-7z" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Content Overlay */}
@@ -157,7 +164,12 @@ export function TestimonialsSection() {
           />
 
           <div className="absolute inset-0 flex items-center justify-center z-20">
-            <button className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200"
+            >
               <svg
                 className="w-6 h-6 text-stone-800 ml-1"
                 fill="currentColor"
@@ -165,7 +177,7 @@ export function TestimonialsSection() {
               >
                 <path d="M8 5v14l11-7z" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/80 to-transparent z-20">
@@ -236,7 +248,12 @@ export function TestimonialsSection() {
           />
 
           <div className="absolute inset-0 flex items-center justify-center z-20">
-            <button className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-stone-200"
+            >
               <svg
                 className="w-5 h-5 text-stone-800 ml-1"
                 fill="currentColor"
@@ -244,7 +261,7 @@ export function TestimonialsSection() {
               >
                 <path d="M8 5v14l11-7z" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-white text-[10px] font-mono z-20">
@@ -295,9 +312,12 @@ export function TestimonialsSection() {
       {/* CTA Footer */}
       <div className="flex flex-col items-center gap-6 pt-8">
         <p className="text-stone-500 text-sm">Join 1,000+ happy customers</p>
-        <button className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700 transition-all">
+        <Button
+          type="button"
+          className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700"
+        >
           Start your free trial
-        </button>
+        </Button>
       </div>
     </div>
   );

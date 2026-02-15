@@ -407,11 +407,12 @@ export function GeneralSettings({
         <CardContent>
           <div className="grid grid-cols-4 gap-2.5 p-4 md:grid-cols-6">
             {COLOR_OPTIONS.map((color) => (
-              <button
+              <Button
                 key={color}
                 type="button"
+                variant="ghost"
                 onClick={() => handleSaveColorScheme(color)}
-                className="group relative flex h-8 w-full duration-150 ease-in-out"
+                className="group relative flex h-8 w-full duration-150 ease-in-out p-0"
               >
                 <div
                   className={`flex h-8 w-full items-center justify-center rounded-lg duration-150 ${
@@ -421,7 +422,7 @@ export function GeneralSettings({
                   }`}
                   style={{ backgroundColor: color }}
                 />
-              </button>
+              </Button>
             ))}
           </div>
         </CardContent>

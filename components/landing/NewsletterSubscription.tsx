@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function NewsletterSubscription() {
   const [email, setEmail] = useState("");
@@ -53,13 +54,13 @@ export function NewsletterSubscription() {
           disabled={status === "loading"}
           className="flex-1 px-4 py-3 border border-stone-200 rounded-l-lg text-sm placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 focus:border-stone-800 font-mono bg-white disabled:opacity-50 disabled:cursor-not-allowed"
         />
-        <button
+        <Button
           type="submit"
           disabled={status === "loading" || !email}
-          className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded-r-lg text-xs hover:bg-stone-700 transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+          className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded-r-lg text-xs hover:bg-stone-700 whitespace-nowrap rounded-l-none"
         >
           {status === "loading" ? "SUBSCRIBING..." : "SUBSCRIBE"}
-        </button>
+        </Button>
       </form>
 
       {message && (
@@ -68,8 +69,8 @@ export function NewsletterSubscription() {
             status === "success"
               ? "text-green-600"
               : status === "error"
-              ? "text-red-600"
-              : "text-stone-500"
+                ? "text-red-600"
+                : "text-stone-500"
           }`}
         >
           {message}

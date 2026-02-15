@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
+import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 
 export function Navbar() {
@@ -112,7 +113,12 @@ export function Navbar() {
             <UserMenu />
           </div>
         )}
-        <button className="flex gap-4 justify-end lg:hidden">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="flex gap-4 justify-end lg:hidden"
+        >
           <svg
             width="24"
             height="24"
@@ -125,7 +131,7 @@ export function Navbar() {
           >
             <path d="M3 12h18M3 6h18M3 18h18" />
           </svg>
-        </button>
+        </Button>
       </div>
     </header>
   );

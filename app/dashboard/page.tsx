@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAllUserWebsites } from "@/store/slices/websitesSlice";
@@ -30,14 +30,9 @@ export default function DashboardPage() {
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/dashboard/new"
-              className={buttonVariants({
-                variant: "outline",
-                size: "sm",
-                className:
-                  "border-stone-200 bg-white text-stone-800 hover:bg-stone-50",
-              })}
+              className={buttonVariants({ variant: "stone-outline" })}
             >
-              <PlusIcon className="size-4" />
+              <PlusIcon className="mr-1 size-3.5" />
               Website
             </Link>
           </div>
@@ -84,12 +79,15 @@ export default function DashboardPage() {
             />
           </div>
           <div className="absolute -right-8 -top-8 z-50 duration-150 md:-right-5 md:-top-5">
-            <button
-              className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 text-textPrimary flex items-center justify-center shadow-md border border-gray-200 transition-colors"
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 text-textPrimary shadow-md border border-gray-200"
               onClick={() => setShowVideo(false)}
             >
               <XIcon className="size-5 text-textPrimary" />
-            </button>
+            </Button>
           </div>
         </div>
       )} */}

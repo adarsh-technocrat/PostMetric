@@ -21,6 +21,7 @@ import {
   BarChart3,
   TrendingUp,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { generateUserAvatar } from "@/lib/avatar";
@@ -204,9 +205,10 @@ export function Sidebar() {
           </div>
         </nav>
         <div className="flex flex-col gap-2 items-stretch">
-          <button
+          <Button
             type="button"
-            className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg transition-colors cursor-pointer"
+            variant="ghost"
+            className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg"
             onClick={() => {
               // Command palette coming soon
             }}
@@ -217,7 +219,7 @@ export function Sidebar() {
                 CMD + K
               </p>
             </div>
-          </button>
+          </Button>
 
           <Link
             className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg transition-colors"
@@ -250,9 +252,10 @@ export function Sidebar() {
 
           {/* User Menu */}
           <div className="user-menu-popup relative">
-            <button
+            <Button
               type="button"
-              className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg transition-colors cursor-pointer"
+              variant="ghost"
+              className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg"
             >
               <div className="flex items-center gap-3.5 grow">
                 {userData?.image ? (
@@ -315,7 +318,7 @@ export function Sidebar() {
                   vectorEffect="non-scaling-stroke"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

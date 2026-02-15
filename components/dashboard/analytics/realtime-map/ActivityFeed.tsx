@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useRef } from "react";
 import { Eye, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   formatTimeAgo,
   generateVisitorName,
@@ -155,13 +156,16 @@ export function ActivityFeed({
               </span>
             </span>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
             title="Show all events"
-            className="group btn btn-square btn-ghost btn-xs hover:bg-gray-200"
+            className="group btn-square btn-xs hover:bg-gray-200 h-8 w-8"
             onClick={onClearSelection}
           >
             <X className="size-4 duration-100 group-hover:text-gray-900" />
-          </button>
+          </Button>
         </div>
       )}
       <div

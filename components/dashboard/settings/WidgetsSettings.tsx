@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/ui/code-block";
 
 interface WidgetsSettingsProps {
@@ -24,7 +25,7 @@ export function WidgetsSettings({
 }: WidgetsSettingsProps) {
   const [enabled, setEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<"realtime" | "preview" | "chart">(
-    "preview"
+    "preview",
   );
   const [revenueColor, setRevenueColor] = useState("#e78468");
   const [visitorsColor, setVisitorsColor] = useState("#8dcdff");
@@ -32,7 +33,7 @@ export function WidgetsSettings({
   const [codeFormat, setCodeFormat] = useState<"html" | "jsx">("html");
 
   const widgetUrl = `/widgets/${websiteId}/analytics?mainTextSize=16&primaryColor=${encodeURIComponent(
-    revenueColor
+    revenueColor,
   )}&secondaryColor=${encodeURIComponent(visitorsColor)}`;
 
   const generateEmbedCode = () => {
@@ -87,36 +88,42 @@ export function WidgetsSettings({
             />
             <div className="relative">
               <div className="tabs tabs-md w-full border-b border-base-content/10 bg-transparent">
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveTab("realtime")}
-                  className={`tab tabs-lg flex-1 font-medium transition-all ${
+                  className={`tab tabs-lg flex-1 font-medium transition-all h-auto ${
                     activeTab === "realtime"
                       ? "rounded-none! border-b-2 border-b-base-content text-base-content"
                       : "text-base-secondary opacity-60 hover:opacity-100"
                   }`}
                 >
                   Realtime
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveTab("preview")}
-                  className={`tab tabs-lg flex-1 font-medium transition-all ${
+                  className={`tab tabs-lg flex-1 font-medium transition-all h-auto ${
                     activeTab === "preview"
                       ? "rounded-none! border-b-2 border-b-base-content text-base-content"
                       : "text-base-secondary opacity-60 hover:opacity-100"
                   }`}
                 >
                   Preview
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveTab("chart")}
-                  className={`tab tabs-lg flex-1 font-medium transition-all ${
+                  className={`tab tabs-lg flex-1 font-medium transition-all h-auto ${
                     activeTab === "chart"
                       ? "rounded-none! border-b-2 border-b-base-content text-base-content"
                       : "text-base-secondary opacity-60 hover:opacity-100"
                   }`}
                 >
                   Chart
-                </button>
+                </Button>
               </div>
               <div className="flex items-center justify-center p-6 min-w-0">
                 <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -56,16 +56,17 @@ function TimezoneSelect({
     <div className="space-y-2">
       <Label className="text-sm font-medium text-stone-700">Region</Label>
       <div className="relative" ref={containerRef}>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => onOpenChange(!isOpen)}
-          className="flex h-10 w-full items-center justify-between rounded-lg border border-stone-200 bg-stone-50/50 px-3 py-2 text-left text-sm text-stone-800 transition-colors hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-200 focus:ring-offset-0"
+          className="flex h-10 w-full items-center justify-between rounded-lg border border-stone-200 bg-stone-50/50 px-3 py-2 text-left text-sm text-stone-800 hover:bg-stone-50"
         >
           <span className="truncate">
             {selected?.name ?? "Select timezone"}
           </span>
           <ChevronDown className="h-4 w-4 shrink-0 text-stone-400" />
-        </button>
+        </Button>
         {isOpen && (
           <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-stone-200 bg-white shadow-lg">
             <div className="border-b border-stone-100 p-2">
@@ -94,22 +95,23 @@ function TimezoneSelect({
                 </p>
               ) : (
                 filteredList.map((tz) => (
-                  <button
+                  <Button
                     key={tz.tzCode}
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       onChange(tz.tzCode);
                       onOpenChange(false);
                       onSearchChange("");
                     }}
-                    className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                    className={`block w-full rounded-md px-3 py-2 text-left text-sm ${
                       value === tz.tzCode
                         ? "bg-stone-100 text-stone-800 font-medium"
                         : "text-stone-700 hover:bg-stone-50"
                     }`}
                   >
                     {tz.name}
-                  </button>
+                  </Button>
                 ))
               )}
             </div>
@@ -283,14 +285,12 @@ export default function AddSitePage() {
                 searchInputRef={timezoneSearchRef}
               />
 
-              <button
+              <Button
                 type="submit"
+                variant="stone"
                 disabled={isSubmitting}
-                className={buttonVariants({
-                  size: "default",
-                  className:
-                    "w-full sm:w-auto bg-stone-800 hover:bg-stone-700 text-white font-medium shadow-sm disabled:opacity-70 disabled:pointer-events-none",
-                })}
+                size="default"
+                className="w-full sm:w-auto"
               >
                 {isSubmitting ? (
                   <>
@@ -300,7 +300,7 @@ export default function AddSitePage() {
                 ) : (
                   "+ Add website"
                 )}
-              </button>
+              </Button>
             </form>
           </section>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface PricingContentProps {
   showHeader?: boolean;
@@ -13,7 +14,7 @@ export function PricingContent({
   showBillingToggle = true,
 }: PricingContentProps) {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
-    "monthly"
+    "monthly",
   );
   const [selectedVolume, setSelectedVolume] = useState("10K");
 
@@ -119,10 +120,12 @@ export function PricingContent({
                   <div className="flex items-center justify-center w-full">
                     <div className="grid grid-cols-12 w-full justify-around relative isolate">
                       {volumes.map((volume) => (
-                        <button
+                        <Button
                           key={volume}
+                          type="button"
+                          variant="ghost"
                           onClick={() => setSelectedVolume(volume)}
-                          className="relative flex flex-col items-center justify-items-start cursor-pointer group gap-1 w-full"
+                          className="relative flex flex-col items-center justify-items-start cursor-pointer group gap-1 w-full h-auto py-0"
                         >
                           <p
                             className={`text-xs transition-colors duration-200 leading-5 ${
@@ -142,7 +145,7 @@ export function PricingContent({
                               }`}
                             ></div>
                           </div>
-                        </button>
+                        </Button>
                       ))}
                       <div className="w-full absolute bottom-2.5 -z-10">
                         <div className="h-0.5 bg-stone-200 w-full"></div>
@@ -185,26 +188,30 @@ export function PricingContent({
               {showBillingToggle && (
                 <div className="flex items-center justify-center w-full px-4 md:px-6">
                   <div className="relative inline-flex items-center rounded border border-stone-200 bg-stone-50 p-1">
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
                       onClick={() => setBillingPeriod("monthly")}
-                      className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded ${
+                      className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded h-auto ${
                         billingPeriod === "monthly"
                           ? "bg-white text-stone-800"
                           : "text-stone-500"
                       }`}
                     >
                       Monthly
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
                       onClick={() => setBillingPeriod("yearly")}
-                      className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded ${
+                      className={`px-4 py-2 text-xs font-medium font-mono uppercase transition-all rounded h-auto ${
                         billingPeriod === "yearly"
                           ? "bg-white text-stone-800"
                           : "text-stone-500"
                       }`}
                     >
                       Yearly
-                    </button>
+                    </Button>
                     {billingPeriod === "yearly" && (
                       <div className="absolute -top-8 right-0 flex items-center gap-1.5">
                         <span className="whitespace-nowrap text-xs font-medium text-stone-600">

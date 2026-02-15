@@ -9,7 +9,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Button } from "@/components/ui/button";
+import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   HorizontalStackedBarChart,
   MapChart,
@@ -147,47 +148,47 @@ export function BreakdownCard({
   return (
     <section className="custom-card w-full max-w-full" id={title}>
       <div className="w-full">
-        <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-textPrimary/5 px-1 py-1">
-          <div className="flex items-baseline gap-0">
-            <div role="tablist" className="tabs tabs-sm ml-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  role="tab"
-                  className={`tab h-8! px-2! font-medium duration-100 ${
-                    selectedTab === tab
-                      ? "tab-active text-textPrimary"
-                      : "text-textSecondary opacity-50 hover:text-textPrimary hover:opacity-80"
-                  }`}
-                  onClick={() => onTabChange(tab)}
-                >
-                  <div className="flex items-center gap-1.5">{tab}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="inline-flex flex-nowrap items-center gap-0.5 px-1.5 text-xs font-medium border-borderColor bg-white text-textPrimary hover:bg-gray-50 h-auto py-1"
-            >
-              <span className="-mr-0.5 inline-block max-w-20 truncate">
-                All
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="size-3.5 opacity-50 duration-200 group-hover:opacity-100"
+        <div className="flex flex-wrap items-start justify-between gap-x-2 px-0 py-1">
+          <div className="mr-px flex flex-1 min-w-0">
+            <div className="flex w-full items-center border-b border-stone-200">
+              <Tabs
+                value={selectedTab}
+                onValueChange={onTabChange}
+                className="w-full"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-            </Button>
+                <TabsList className="z-5 inline-flex h-auto w-full flex-1 justify-start items-center gap-1 overflow-x-auto rounded-none border-0 bg-transparent p-0 text-sm shadow-none">
+                  {tabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab}
+                      value={tab}
+                      className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
+                    >
+                      <span className="mb-1 rounded-[10px] px-3 py-1 hover:bg-stone-100">
+                        {tab}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              <div className="flex shrink-0 items-center gap-1 pb-1 pr-2">
+                <button
+                  type="button"
+                  className="inline-flex h-auto flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-medium text-textPrimary hover:bg-stone-100"
+                >
+                  <span className="-mr-0.5 inline-block max-w-20 truncate">
+                    All
+                  </span>
+                  <ChevronDown className="size-3.5 opacity-60" />
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-auto flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-medium text-textPrimary hover:bg-stone-100"
+                >
+                  <span className="inline-block truncate">Visitors</span>
+                  <ArrowUpDown className="size-3.5 opacity-60" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div className="relative h-96 w-full max-w-full overflow-hidden">

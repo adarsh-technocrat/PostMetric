@@ -228,28 +228,31 @@ export function MusicPlayer({
           <div className="relative z-20">
             <Popover>
               <PopoverTrigger asChild>
-                <button
+                <Button
                   type="button"
-                  className="group flex items-center gap-1 whitespace-nowrap rounded-md bg-base-300 px-2 py-0.5 text-xs duration-100 hover:bg-primary/10"
+                  variant="ghost"
+                  className="group flex items-center gap-1 whitespace-nowrap rounded-md bg-base-300 px-2 py-0.5 text-xs duration-100 hover:bg-primary/10 h-auto"
                 >
                   <span>{currentTrack.genre}</span>
                   <ChevronDown className="size-3 opacity-60 transition-transform group-hover:opacity-100" />
-                </button>
+                </Button>
               </PopoverTrigger>
               <PopoverContent className="w-48 p-2">
                 <div className="space-y-1">
                   {MUSIC_TRACKS.map((track, index) => (
-                    <button
+                    <Button
                       key={track.id}
+                      type="button"
+                      variant="ghost"
                       onClick={() => handleGenreChange(index)}
-                      className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 transition-colors ${
+                      className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 h-auto ${
                         index === currentTrackIndex
                           ? "bg-primary/10 font-medium"
                           : ""
                       }`}
                     >
                       {track.genre}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </PopoverContent>

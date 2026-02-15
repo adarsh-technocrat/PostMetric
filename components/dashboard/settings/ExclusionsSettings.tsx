@@ -273,14 +273,16 @@ export function ExclusionsSettings({
                   className="badge badge-outline flex items-center gap-1"
                 >
                   {ip}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRemoveIp(ip)}
-                    className="ml-1 hover:text-destructive"
+                    className="ml-1 hover:text-destructive h-auto py-0 px-1 min-w-0"
                     disabled={loading}
                   >
                     ×
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -340,14 +342,16 @@ export function ExclusionsSettings({
                   className="badge badge-outline flex items-center gap-1"
                 >
                   {path}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRemovePath(path)}
-                    className="ml-1 hover:text-destructive"
+                    className="ml-1 hover:text-destructive h-auto py-0 px-1 min-w-0"
                     disabled={loading}
                   >
                     ×
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -394,14 +398,16 @@ export function ExclusionsSettings({
                   className="badge badge-outline flex items-center gap-1"
                 >
                   {hostname}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRemoveHostname(hostname)}
-                    className="ml-1 hover:text-destructive"
+                    className="ml-1 hover:text-destructive h-auto py-0 px-1 min-w-0"
                     disabled={loading}
                   >
                     ×
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -459,14 +465,16 @@ export function ExclusionsSettings({
                     className="badge badge-outline flex items-center gap-1"
                   >
                     {country?.name || countryCode}
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="xs"
                       onClick={() => handleRemoveCountry(countryCode)}
-                      className="ml-1 hover:text-destructive"
+                      className="ml-1 hover:text-destructive h-auto py-0 px-1 min-w-0"
                       disabled={loading}
                     >
                       ×
-                    </button>
+                    </Button>
                   </div>
                 );
               })}

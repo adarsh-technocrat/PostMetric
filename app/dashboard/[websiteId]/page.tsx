@@ -84,7 +84,7 @@ export default function WebsiteAnalyticsPage({
 
   return (
     <>
-      <main className="mx-auto min-h-screen max-w-7xl pb-32">
+      <main className="mx-auto min-h-screen w-full max-w-full pb-32">
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center mt-6">
           <div className="flex w-full flex-col items-center gap-4 sm:flex-row">
             <WebsiteSelector websiteId={websiteId} website={website} />
