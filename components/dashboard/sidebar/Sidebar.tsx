@@ -8,18 +8,10 @@ import { NavItem } from "./NavItem";
 import { NavSection } from "./NavSection";
 import {
   LayoutDashboard,
-  Sparkles,
-  Download,
-  Megaphone,
-  Filter,
-  Bell,
-  Code,
-  Plug,
   Settings,
   Command,
   Book,
   BarChart3,
-  TrendingUp,
   User,
   DollarSign,
   Zap,
@@ -135,89 +127,23 @@ export function Sidebar() {
               Dashboard
             </NavItem>
 
-            {/* Website-specific sections - only show when a website is selected */}
+            {/* Website-specific - only show when a website is selected */}
             {hasWebsiteSelected && (
-              <>
-                <NavSection title="Analytics" color="amber">
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}`}
-                    icon={<BarChart3 className="w-[18px] h-[18px]" />}
-                  >
-                    Analytics
-                  </NavItem>
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}?insights=true`}
-                    icon={<Sparkles className="w-[18px] h-[18px]" />}
-                    onClick={() => {
-                      // AI Insights feature coming soon
-                    }}
-                  >
-                    AI Insights
-                  </NavItem>
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}/export`}
-                    icon={<Download className="w-[18px] h-[18px]" />}
-                  >
-                    Export & Reports
-                  </NavItem>
-                </NavSection>
-                <NavSection title="Growth" color="rose">
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}/campaigns`}
-                    icon={<Megaphone className="w-[18px] h-[18px]" />}
-                  >
-                    Campaigns
-                  </NavItem>
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}/funnels`}
-                    icon={<Filter className="w-[18px] h-[18px]" />}
-                  >
-                    Funnels
-                  </NavItem>
-                  <NavItem
-                    href={`/dashboard/${currentWebsiteId}/roi`}
-                    icon={<TrendingUp className="w-[18px] h-[18px]" />}
-                  >
-                    Marketing ROI
-                  </NavItem>
-                </NavSection>
-              </>
-            )}
-
-            {/* Global sections - always visible */}
-            <NavSection title="Tools & Settings" color="lime">
-              <NavItem
-                href="/dashboard/alerts"
-                icon={<Bell className="w-[18px] h-[18px]" />}
-              >
-                Alerts & Notifications
-              </NavItem>
-              <NavItem
-                href="/dashboard/api-keys"
-                icon={<Code className="w-[18px] h-[18px]" />}
-              >
-                API Keys
-              </NavItem>
-              <NavItem
-                href="/dashboard/integrations"
-                icon={<Plug className="w-[18px] h-[18px]" />}
-              >
-                Integrations
-              </NavItem>
-              {hasWebsiteSelected && (
+              <NavSection title="Website" color="amber">
+                <NavItem
+                  href={`/dashboard/${currentWebsiteId}`}
+                  icon={<BarChart3 className="w-[18px] h-[18px]" />}
+                >
+                  Analytics
+                </NavItem>
                 <NavItem
                   href={`/dashboard/${currentWebsiteId}/settings`}
                   icon={<Settings className="w-[18px] h-[18px]" />}
-                  badge={
-                    <span className="text-lime-700 font-semibold text-[10px] px-2 py-0.5 rounded-md text-center uppercase leading-3.5 bg-lime-100">
-                      New
-                    </span>
-                  }
                 >
                   Settings
                 </NavItem>
-              )}
-            </NavSection>
+              </NavSection>
+            )}
           </div>
         </nav>
         <div className="flex flex-col gap-2 items-stretch">
@@ -225,9 +151,7 @@ export function Sidebar() {
             type="button"
             variant="ghost"
             className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg"
-            onClick={() => {
-              // Command palette coming soon
-            }}
+            onClick={() => {}}
           >
             <div className="flex items-center gap-3.5 grow">
               <Command className="w-4 h-4" />
