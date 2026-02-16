@@ -25,6 +25,26 @@ type CreatedWebsite = { _id: string; domain: string; trackingCode?: string };
 const HEADER_GAP_HEIGHT = "h-14";
 const STEPPER_ITEM_GAP = "pt-10";
 
+const TRACKING_SCRIPT_PLACEHOLDER = `<script
+  defer
+  data-website-id="pmid_xxxx"
+  data-domain="your-domain.com"
+  src="https://your-domain.com/js/script.js"
+></script>`;
+
+function getTrackingScriptCode(
+  websiteId: string,
+  domain: string,
+  scriptOrigin: string,
+): string {
+  return `<script
+  defer
+  data-website-id="${websiteId}"
+  data-domain="${domain}"
+  src="${scriptOrigin}/js/script.js"
+></script>`;
+}
+
 function domainToName(domain: string): string {
   return domain.replace(/^www\./, "").split(".")[0];
 }
@@ -367,15 +387,19 @@ export default function AddSitePage() {
                   <p className="mt-1 text-sm text-stone-500 mb-4">
                     Paste this snippet in the &lt;head&gt; of your website.
                   </p>
-                  <CodeBlock
-                    code={`<script
-  defer
-  data-website-id="${websiteId}"
-  data-domain="${createdWebsite.domain}"
-  src="${scriptOrigin}/js/script.js"
-></script>`}
-                    language="markup"
-                  />
+                  <div className="code-editor-light relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+                    <CodeBlock
+                      code={getTrackingScriptCode(
+                        websiteId,
+                        createdWebsite.domain,
+                        scriptOrigin,
+                      )}
+                      language="markup"
+                      showCopyButton={true}
+                      onCopy={() => toast.success("Copied to clipboard")}
+                      className="bg-transparent! border-0"
+                    />
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button variant="stone" size="default" asChild>
                       <Link href={`/dashboard/${createdWebsite._id}`}>
@@ -392,10 +416,59 @@ export default function AddSitePage() {
               );
             })()
           ) : (
-            <p className="mt-1 text-xs text-stone-400">
-              After adding your domain, you’ll get a tracking script to add to
-              your site.
-            </p>
+            <>
+              <p className="mt-1 text-sm text-stone-500 mb-4">
+                After adding your domain, you’ll get a tracking script to add to
+                your site.
+              </p>
+              <div
+                className="code-editor-light relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50 pointer-events-none select-none"
+                aria-hidden
+                style={{
+                  maskImage:
+                    "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+                }}
+              >
+                <CodeBlock
+                  code={TRACKING_SCRIPT_PLACEHOLDER}
+                  language="markup"
+                  showCopyButton={false}
+                  className="bg-transparent! border-0"
+                />
+                {/* Fading gradient blur: light blur from mid, stronger toward bottom */}
+                <div
+                  className="absolute inset-0 backdrop-blur-sm"
+                  style={{
+                    maskImage:
+                      "linear-gradient(to bottom, transparent 15%, black 55%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, transparent 15%, black 55%)",
+                  }}
+                />
+                <div
+                  className="absolute inset-0 backdrop-blur-md"
+                  style={{
+                    maskImage:
+                      "linear-gradient(to bottom, transparent 40%, black 85%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, transparent 40%, black 85%)",
+                  }}
+                />
+                <div
+                  className="absolute inset-0 backdrop-blur-lg"
+                  style={{
+                    maskImage:
+                      "linear-gradient(to bottom, transparent 65%, black 100%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, transparent 65%, black 100%)",
+                  }}
+                />
+                {/* Gradient fade to blend with page background (border and box dissolve at bottom) */}
+                <div className="absolute inset-0 top-1/4 bg-gradient-to-b from-transparent via-stone-50/40 to-[hsl(var(--background))]" />
+              </div>
+            </>
           )}
         </section>
 

@@ -182,7 +182,7 @@ export function TimezoneSelector({
       {onSubmit && (
         <div className="flex justify-end">
           <Button
-            variant="ghost"
+            variant="stone"
             size="sm"
             type="submit"
             disabled={disabled}

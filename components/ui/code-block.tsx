@@ -24,6 +24,7 @@ interface CodeBlockProps {
   code: string;
   language?: string;
   showCopyButton?: boolean;
+  onCopy?: () => void;
   className?: string;
 }
 
@@ -31,6 +32,7 @@ export function CodeBlock({
   code,
   language = "markup",
   showCopyButton = true,
+  onCopy,
   className = "",
 }: CodeBlockProps) {
   const codeRef = useRef<HTMLElement>(null);
@@ -55,7 +57,7 @@ export function CodeBlock({
     if (code) {
       try {
         await navigator.clipboard.writeText(code);
-        // You could add a toast notification here if needed
+        onCopy?.();
       } catch (err) {
         // Failed to copy code
       }

@@ -56,7 +56,7 @@ export function ProjectSettings() {
                 rows={4}
               />
             </div>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" variant="stone" disabled={saving}>
               {saving ? "Saving..." : "Save Changes"}
             </Button>
           </form>

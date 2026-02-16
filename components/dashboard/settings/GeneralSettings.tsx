@@ -325,7 +325,7 @@ export function GeneralSettings({
               </p>
               <Button
                 type="submit"
-                variant="ghost"
+                variant="stone"
                 size="sm"
                 disabled={loading}
               >
@@ -386,7 +386,7 @@ export function GeneralSettings({
             <div className="flex justify-end">
               <Button
                 type="submit"
-                variant="ghost"
+                variant="stone"
                 size="sm"
                 disabled={loading}
               >
@@ -463,7 +463,7 @@ export function GeneralSettings({
                 </svg>
                 <span>Add goals</span>
               </Link>
-              <Button type="submit" variant="ghost" size="sm">
+              <Button type="submit" variant="stone" size="sm">
                 Save
               </Button>
             </div>
@@ -491,7 +491,7 @@ export function GeneralSettings({
             <div className="flex justify-end">
               <Button
                 type="submit"
-                variant="ghost"
+                variant="stone"
                 size="sm"
                 disabled={loading}
               >

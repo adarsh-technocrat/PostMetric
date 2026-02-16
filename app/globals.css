@@ -122,6 +122,30 @@
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Light code editor (Add website script block) – dark text on light bg */
+  .code-editor-light code,
+  .code-editor-light .token {
+    color: #44403c !important;
+  }
+  .code-editor-light .token.punctuation {
+    color: #78716c !important;
+  }
+  .code-editor-light .token.attr-name {
+    color: #b45309 !important;
+  }
+  .code-editor-light .token.attr-value {
+    color: #15803d !important;
+  }
+  .code-editor-light .token.tag {
+    color: #7c2d12 !important;
+  }
+  .code-editor-light .token.string {
+    color: #15803d !important;
+  }
+  .code-editor-light .token.keyword {
+    color: #7c2d12 !important;
+  }
 }
 
 /* Dialog enter/exit - ease-in-out */
