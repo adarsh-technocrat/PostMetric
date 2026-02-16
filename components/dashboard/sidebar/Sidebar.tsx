@@ -99,7 +99,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed max-w-72 w-full flex flex-col px-4 py-6 h-screen bg-stone-50 border-r border-stone-200">
+    <aside className="fixed max-w-72 w-full flex flex-col px-4 py-6 h-screen bg-stone-50">
       <Link
         aria-label="Go to home"
         className="w-fit hover:opacity-70 pt-0 pb-6 ml-1 sticky top-0 z-10 flex items-center gap-2"

@@ -120,7 +120,7 @@ export default function SettingsPage({
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full h-full min-w-0 overflow-x-hidden">
+    <div className="flex flex-col gap-6 w-full max-w-4xl h-full min-w-0 overflow-x-hidden">
       <p className="text-stone-800 font-semibold text-lg">
         Settings for {website?.domain || website?.name || "Loading..."}
       </p>
