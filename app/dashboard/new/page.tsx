@@ -19,31 +19,15 @@ import { createNewWebsiteWithDomain } from "@/store/slices/websitesSlice";
 import { DomainLogo } from "@/components/ui/domain-logo";
 import { CodeBlock } from "@/components/ui/code-block";
 import timezones, { type TimeZone } from "timezones-list";
+import {
+  TRACKING_SCRIPT_PLACEHOLDER,
+  getTrackingScriptCode,
+} from "@/utils/tracking-script";
 
 type CreatedWebsite = { _id: string; domain: string; trackingCode?: string };
 
 const HEADER_GAP_HEIGHT = "h-14";
 const STEPPER_ITEM_GAP = "pt-10";
-
-const TRACKING_SCRIPT_PLACEHOLDER = `<script
-  defer
-  data-website-id="pmid_xxxx"
-  data-domain="your-domain.com"
-  src="https://your-domain.com/js/script.js"
-></script>`;
-
-function getTrackingScriptCode(
-  websiteId: string,
-  domain: string,
-  scriptOrigin: string,
-): string {
-  return `<script
-  defer
-  data-website-id="${websiteId}"
-  data-domain="${domain}"
-  src="${scriptOrigin}/js/script.js"
-></script>`;
-}
 
 function domainToName(domain: string): string {
   return domain.replace(/^www\./, "").split(".")[0];
@@ -393,6 +377,7 @@ export default function AddSitePage() {
                         websiteId,
                         createdWebsite.domain,
                         scriptOrigin,
+                        {},
                       )}
                       language="markup"
                       showCopyButton={true}

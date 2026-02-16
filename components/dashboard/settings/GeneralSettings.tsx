@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppDispatch } from "@/store/hooks";
@@ -27,6 +28,13 @@ import {
 } from "@/components/ui/select";
 import { TimezoneSelector } from "./TimezoneSelector";
 import { CodeBlock } from "@/components/ui/code-block";
+import { getTrackingScriptCode } from "@/utils/tracking-script";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const COLOR_OPTIONS = [
   "#EF4444", // red
@@ -245,45 +253,62 @@ export function GeneralSettings({
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <input
+              id="allow-localhost-debugging"
               type="checkbox"
-              className="checkbox checkbox-xs rounded"
+              className="checkbox checkbox-xs rounded cursor-pointer"
               checked={allowLocalhost}
               onChange={(e) => setAllowLocalhost(e.target.checked)}
             />
-            <label className="text-sm text-textSecondary cursor-pointer">
+            <label
+              htmlFor="allow-localhost-debugging"
+              className="text-sm text-textSecondary cursor-pointer flex items-center gap-0.5"
+            >
               Allow localhost debugging{" "}
-              <span
-                className="group -m-1 cursor-pointer p-1 inline-flex items-center"
-                title="Postmetric does not set the cookie on localhost to avoid polluting your own data. To override this for debugging, check this box."
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="size-3 opacity-60 duration-100 group-hover:opacity-100"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </span>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex cursor-pointer p-1 rounded opacity-60 hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        className="size-3"
+                        aria-hidden
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    Postmetric does not set the cookie on localhost to avoid
+                    polluting your own data. To override this for debugging,
+                    check this box.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </label>
           </div>
-          <CodeBlock
-            code={`<script
-  defer
-  data-website-id="${trackingCode}"
-  data-domain="${domain}"${
-    allowLocalhost ? '\n  data-allow-localhost="true"' : ""
-  }
-  src="${
-    typeof window !== "undefined" ? window.location.origin : ""
-  }/js/script.js"
-></script>`}
-            language="markup"
-          />
+          <div className="code-editor-light relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+            <CodeBlock
+              code={getTrackingScriptCode(
+                trackingCode,
+                domain,
+                typeof window !== "undefined" ? window.location.origin : "",
+                { allowLocalhost },
+              )}
+              language="markup"
+              showCopyButton={true}
+              onCopy={() => toast.success("Copied to clipboard")}
+              className="bg-transparent! border-0"
+            />
+          </div>
           <p className="text-xs text-textSecondary">
             Tip:{" "}
             <Link
@@ -361,7 +386,7 @@ export function GeneralSettings({
               value={additionalDomain}
               onChange={(e) => setAdditionalDomain(e.target.value)}
             />
-            <Button type="submit" variant="ghost" size="sm">
+            <Button type="submit" variant="stone" size="sm">
               Add
             </Button>
           </form>
