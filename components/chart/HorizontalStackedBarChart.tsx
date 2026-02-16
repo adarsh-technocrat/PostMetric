@@ -10,11 +10,17 @@ export interface HorizontalStackedBarChartData {
   [key: string]: string | number | null | undefined;
 }
 
+const REFERENCE_HEIGHT_PX = 384; // h-96
+
 interface HorizontalStackedBarChartProps {
   data: HorizontalStackedBarChartData[];
   config: ChartConfig;
   height?: string;
   maxItems?: number;
+  /** When true (default when maxItems is set), fix bar height so each row has the same pixel height. */
+  preserveBarSize?: boolean;
+  /** When set, use this count (e.g. 10) for bar height when preserveBarSize, so bar size is consistent when showing more items (e.g. in a details view). */
+  barSizeReferenceCount?: number;
   showCard?: boolean;
 }
 
@@ -23,15 +29,24 @@ export function HorizontalStackedBarChart({
   config,
   height = "h-96",
   maxItems = 10,
+  preserveBarSize = true,
+  barSizeReferenceCount,
   showCard = true,
 }: HorizontalStackedBarChartProps) {
   // Get the data keys from config (excluding name, icon)
   const dataKeys = Object.keys(config).filter(
-    (key) => key !== "name" && key !== "icon"
+    (key) => key !== "name" && key !== "icon",
   );
 
   // Limit data to maxItems
   const displayData = data.slice(0, maxItems);
+  const sizeRef = barSizeReferenceCount ?? maxItems;
+  const useFixedHeight =
+    preserveBarSize && sizeRef > 0 && displayData.length > 0;
+  const barHeightPx = useFixedHeight ? REFERENCE_HEIGHT_PX / sizeRef : 0;
+  const contentHeightPx = useFixedHeight
+    ? displayData.length * barHeightPx
+    : undefined;
 
   const getTotal = (item: HorizontalStackedBarChartData): number => {
     return dataKeys.reduce((sum, key) => {
@@ -59,7 +74,12 @@ export function HorizontalStackedBarChart({
 
   const getBarColor = (key: string): string => {
     const keyConfig = config[key];
-    if (key === "revenue" && keyConfig && "color" in keyConfig && keyConfig.color) {
+    if (
+      key === "revenue" &&
+      keyConfig &&
+      "color" in keyConfig &&
+      keyConfig.color
+    ) {
       return keyConfig.color;
     }
     if (key === "revenue") {
@@ -77,7 +97,10 @@ export function HorizontalStackedBarChart({
   };
 
   const chartContent = (
-    <div className={`relative w-full max-w-full ${height}`}>
+    <div
+      className={`relative w-full max-w-full ${contentHeightPx ? "" : height}`}
+      style={contentHeightPx != null ? { height: contentHeightPx } : undefined}
+    >
       <div className="absolute right-4 top-0 flex h-full flex-col py-4 z-10">
         {displayData.map((item, index) => {
           const total = getTotal(item);
@@ -85,7 +108,11 @@ export function HorizontalStackedBarChart({
             <div
               key={index}
               className="relative flex items-center justify-end text-sm font-medium text-foreground"
-              style={{ height: `${100 / displayData.length}%` }}
+              style={
+                contentHeightPx != null
+                  ? { height: barHeightPx }
+                  : { height: `${100 / displayData.length}%` }
+              }
             >
               {total.toLocaleString()}
             </div>
@@ -95,7 +122,10 @@ export function HorizontalStackedBarChart({
 
       <ChartContainer
         config={config}
-        className={`h-full w-full max-w-full ${height}`}
+        className="h-full w-full max-w-full"
+        style={
+          contentHeightPx != null ? { height: contentHeightPx } : undefined
+        }
       >
         <BarChart
           data={displayData}

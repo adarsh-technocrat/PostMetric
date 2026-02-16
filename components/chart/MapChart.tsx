@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
-import { scaleLinear } from "d3-scale";
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 
@@ -10,65 +9,36 @@ countries.registerLocale(enLocale);
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-interface MapData {
-  name: string;
-  uv?: number;
-  value?: number;
-  revenue?: number;
-  flag?: string;
-  countryCode?: string;
-}
-
 interface MapChartProps {
-  data: MapData[];
+  data?: unknown[];
   height?: string;
 }
 
-function getCountryCode(countryName: string): string | null {
-  const code = countries.getAlpha2Code(countryName, "en");
-  if (code) return code;
-  if (countryName.length === 2) {
-    return countryName.toUpperCase();
-  }
+const DEFAULT_FILL = "#f1f5f9";
+const DEFAULT_STROKE = "#cbd5e1";
+const HOVER_FILL = "#e2e8f0";
 
-  const nameVariations: Record<string, string> = {
-    "United States": "US",
-    "United States of America": "US",
-    "United Kingdom": "GB",
-    UK: "GB",
-    Russia: "RU",
-    "South Korea": "KR",
-    "North Korea": "KP",
-    "Czech Republic": "CZ",
-    Czechia: "CZ",
-  };
-
-  if (nameVariations[countryName]) {
-    return nameVariations[countryName];
-  }
-
-  return null;
+function isAntarctica(geo: { properties: Record<string, unknown> }): boolean {
+  const p = geo.properties;
+  const code = (p.ISO_A2 ??
+    p.ISO_A2_EH ??
+    p.iso_a2 ??
+    p.iso_a2_eh ??
+    "") as string;
+  const code3 = (p.ISO_A3 ?? p.iso_a3 ?? "") as string;
+  const name = (
+    (p.name ?? p.NAME ?? p.NAME_LONG ?? "") as string
+  ).toLowerCase();
+  if (
+    String(code).toUpperCase() === "AQ" ||
+    String(code3).toUpperCase() === "ATA"
+  )
+    return true;
+  if (name.includes("antarctica")) return true;
+  return false;
 }
 
-export function MapChart({ data, height = "h-96" }: MapChartProps) {
-  const countryDataMap = new Map<string, number>();
-
-  data.forEach((item) => {
-    const countryCode = item.countryCode || getCountryCode(item.name);
-    if (countryCode) {
-      const value = item.uv || item.value || 0;
-      const existing = countryDataMap.get(countryCode.toUpperCase()) || 0;
-      countryDataMap.set(countryCode.toUpperCase(), existing + value);
-    }
-  });
-
-  const values = Array.from(countryDataMap.values());
-  const maxValue = values.length > 0 ? Math.max(...values) : 0;
-
-  const colorScale = scaleLinear<string>()
-    .domain([0, maxValue])
-    .range(["#e0f2fe", "#0ea5e9", "#0369a1"]);
-
+export function MapChart({ height = "h-96" }: MapChartProps) {
   const [tooltipContent, setTooltipContent] = useState<string>("");
   const [tooltipPosition, setTooltipPosition] = useState<{
     x: number;
@@ -76,70 +46,66 @@ export function MapChart({ data, height = "h-96" }: MapChartProps) {
   } | null>(null);
 
   return (
-    <div className={`relative w-full ${height}`}>
+    <div
+      className={`relative w-full ${height} flex items-center justify-center p-4`}
+    >
       <ComposableMap
+        projection="geoMercator"
         projectionConfig={{
-          scale: 147,
-          center: [0, 20],
+          scale: 165,
+          center: [0, 15],
         }}
         className="w-full h-full"
       >
         <Geographies geography={geoUrl}>
           {({ geographies }) =>
-            geographies.map((geo) => {
-              const countryCode =
-                geo.properties.ISO_A2 || geo.properties.ISO_A2_EH;
-              const value = countryDataMap.get(countryCode) || 0;
-              const fillColor = value > 0 ? colorScale(value) : "#f1f5f9";
-              const strokeColor = value > 0 ? "#0ea5e9" : "#cbd5e1";
+            geographies
+              .filter((geo) => !isAntarctica(geo))
+              .map((geo) => {
+                const countryCode =
+                  geo.properties.ISO_A2 || geo.properties.ISO_A2_EH;
+                const countryName =
+                  countries.getName(countryCode, "en") || countryCode;
 
-              return (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  fill={fillColor}
-                  stroke={strokeColor}
-                  strokeWidth={0.5}
-                  style={{
-                    default: {
-                      outline: "none",
-                    },
-                    hover: {
-                      fill: value > 0 ? "#0284c7" : "#e2e8f0",
-                      outline: "none",
-                      cursor: "pointer",
-                    },
-                    pressed: {
-                      fill: value > 0 ? "#0369a1" : "#cbd5e1",
-                      outline: "none",
-                    },
-                  }}
-                  onMouseEnter={(event) => {
-                    const countryName =
-                      countries.getName(countryCode, "en") || countryCode;
-                    setTooltipContent(
-                      `${countryName}: ${value.toLocaleString()} visitor${
-                        value !== 1 ? "s" : ""
-                      }`
-                    );
-                    setTooltipPosition({
-                      x: event.clientX,
-                      y: event.clientY,
-                    });
-                  }}
-                  onMouseMove={(event) => {
-                    setTooltipPosition({
-                      x: event.clientX,
-                      y: event.clientY,
-                    });
-                  }}
-                  onMouseLeave={() => {
-                    setTooltipContent("");
-                    setTooltipPosition(null);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill={DEFAULT_FILL}
+                    stroke={DEFAULT_STROKE}
+                    strokeWidth={0.5}
+                    style={{
+                      default: { outline: "none" },
+                      hover: {
+                        fill: HOVER_FILL,
+                        outline: "none",
+                        cursor: "pointer",
+                      },
+                      pressed: {
+                        fill: "#cbd5e1",
+                        outline: "none",
+                      },
+                    }}
+                    onMouseEnter={(event) => {
+                      setTooltipContent(countryName);
+                      setTooltipPosition({
+                        x: event.clientX,
+                        y: event.clientY,
+                      });
+                    }}
+                    onMouseMove={(event) => {
+                      setTooltipPosition({
+                        x: event.clientX,
+                        y: event.clientY,
+                      });
+                    }}
+                    onMouseLeave={() => {
+                      setTooltipContent("");
+                      setTooltipPosition(null);
+                    }}
+                  />
+                );
+              })
           }
         </Geographies>
       </ComposableMap>
@@ -152,30 +118,6 @@ export function MapChart({ data, height = "h-96" }: MapChartProps) {
           }}
         >
           {tooltipContent}
-        </div>
-      )}
-      {maxValue > 0 && (
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md border border-gray-200">
-          <div className="text-xs font-medium text-gray-700 mb-2">Visitors</div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: colorScale(0) }}
-              />
-              <span className="text-xs text-gray-600">0</span>
-            </div>
-            <div className="flex-1 h-2 bg-gradient-to-r from-blue-100 via-blue-400 to-blue-700 rounded" />
-            <div className="flex items-center gap-1">
-              <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: colorScale(maxValue) }}
-              />
-              <span className="text-xs text-gray-600">
-                {maxValue.toLocaleString()}
-              </span>
-            </div>
-          </div>
         </div>
       )}
     </div>

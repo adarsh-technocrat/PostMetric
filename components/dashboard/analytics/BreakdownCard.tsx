@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,8 +10,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Scan } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   HorizontalStackedBarChart,
   MapChart,
@@ -81,6 +88,7 @@ export function BreakdownCard({
   colors = DEFAULT_COLORS,
   colorScheme = "#E78468",
 }: BreakdownCardProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const chartConfig = getChartConfig(colorScheme);
   const sanitizedData = data
     .map((item) => ({
@@ -118,6 +126,7 @@ export function BreakdownCard({
           config={chartConfig}
           height="h-96"
           maxItems={10}
+          preserveBarSize={true}
           showCard={false}
         />
       );
@@ -202,6 +211,47 @@ export function BreakdownCard({
             </ResponsiveContainer>
           )}
         </div>
+
+        <div className="px-4 pb-4 min-h-[2.5rem] flex items-center justify-center">
+          {chartType === "horizontalBar" && (
+            <button
+              type="button"
+              className="text-base-secondary link inline-flex select-none items-center gap-1 text-xs uppercase tracking-wide no-underline opacity-80 duration-100 hover:text-base-content hover:opacity-100"
+              onClick={() => setDetailsOpen(true)}
+            >
+              <Scan className="lucide lucide-scan size-3.5" />
+              <span className="font-semibold">Details</span>
+            </button>
+          )}
+        </div>
+
+        {chartType === "horizontalBar" && (
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{title} – Details</DialogTitle>
+              </DialogHeader>
+              <div className="overflow-auto flex-1 min-h-0 -mx-1 px-1">
+                {(() => {
+                  const dataToUse =
+                    sanitizedData.length > 0 ? sanitizedData : [];
+                  const stackedData = generateStackedData(dataToUse);
+                  return (
+                    <HorizontalStackedBarChart
+                      data={stackedData}
+                      config={chartConfig}
+                      height="h-96"
+                      maxItems={stackedData.length}
+                      preserveBarSize={true}
+                      barSizeReferenceCount={10}
+                      showCard={false}
+                    />
+                  );
+                })()}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </section>
   );
