@@ -2,6 +2,7 @@ import { getSession } from "@/lib/get-session";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
 import type { Session } from "@/lib/get-session";
+import { isDemoWebsite } from "@/lib/demo-website";
 
 interface ValidateAccessResult {
   valid: boolean;
@@ -11,7 +12,7 @@ interface ValidateAccessResult {
 
 /**
  * Unified authentication helper for realtime endpoints
- * Supports both authenticated (session) and public (shareId) access
+ * Supports authenticated (session), public (shareId), and demo website access
  */
 export async function validateRealtimeAccess(
   websiteId: string,
@@ -23,6 +24,11 @@ export async function validateRealtimeAccess(
 
   if (!website) {
     return { valid: false, error: "Website not found" };
+  }
+
+  // Demo website: allow unauthenticated read-only access
+  if (isDemoWebsite(websiteId)) {
+    return { valid: true, website };
   }
 
   // Public access via shareId

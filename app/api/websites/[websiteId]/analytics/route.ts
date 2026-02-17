@@ -9,6 +9,7 @@ import { getMetrics } from "@/utils/analytics/aggregations/getMetrics.aggregatio
 import type { Granularity } from "@/utils/analytics/types";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
+import { isDemoWebsite } from "@/lib/demo-website";
 import { getDateRangeForPeriod } from "@/lib/date-time-conversion";
 import { type TimeZone } from "timezones-list";
 
@@ -240,18 +241,20 @@ export async function GET(
 ) {
   try {
     const { websiteId } = await params;
-    const userId = await getUserId();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const website = await getWebsiteById(websiteId);
     if (!website) {
       return NextResponse.json({ error: "Website not found" }, { status: 404 });
     }
 
-    if (website.userId.toString() !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const isDemo = isDemoWebsite(websiteId);
+    if (!isDemo) {
+      const userId = await getUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (website.userId.toString() !== userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
     }
 
     const searchParams = request.nextUrl.searchParams;

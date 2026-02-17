@@ -7,6 +7,7 @@ import {
 import { getUserId } from "@/lib/get-session";
 import { isValidObjectId } from "@/utils/validation";
 import { sanitizeWebsiteForFrontend } from "@/utils/database/website-sanitize";
+import { isDemoWebsite } from "@/lib/demo-website";
 
 export async function GET(
   request: NextRequest,
@@ -27,9 +28,12 @@ export async function GET(
       return NextResponse.json({ error: "Website not found" }, { status: 404 });
     }
 
-    const userId = await getUserId();
-    if (!userId || website.userId.toString() !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const isDemo = isDemoWebsite(websiteId);
+    if (!isDemo) {
+      const userId = await getUserId();
+      if (!userId || website.userId.toString() !== userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
     }
 
     const sanitizedWebsite = sanitizeWebsiteForFrontend(website);

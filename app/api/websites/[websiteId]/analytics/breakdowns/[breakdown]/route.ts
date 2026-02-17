@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
+import { isDemoWebsite } from "@/lib/demo-website";
 import { getDateRangeForPeriod } from "@/lib/date-time-conversion";
 import { getSourceBreakdown } from "@/utils/analytics/aggregations/getSourceBreakdown.aggregation";
 import { getReferrersBreakdown } from "@/utils/analytics/aggregations/getReferrersBreakdown.aggregation";
@@ -35,18 +36,20 @@ export async function GET(
       );
     }
 
-    const userId = await getUserId();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const website = await getWebsiteById(websiteId);
     if (!website) {
       return NextResponse.json({ error: "Website not found" }, { status: 404 });
     }
 
-    if (website.userId.toString() !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const isDemo = isDemoWebsite(websiteId);
+    if (!isDemo) {
+      const userId = await getUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (website.userId.toString() !== userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
     }
 
     const searchParams = request.nextUrl.searchParams;

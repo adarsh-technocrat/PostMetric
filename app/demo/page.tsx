@@ -23,8 +23,7 @@ import {
   useWebsiteAnalytics,
   type WebsiteSettings,
 } from "@/hooks/use-website-analytics";
-
-const DEMO_WEBSITE_ID = "693b22d002658800833f4159";
+import { DEMO_WEBSITE_ID } from "@/lib/demo-website";
 
 export default function DemoPage() {
   const dispatch = useAppDispatch();
