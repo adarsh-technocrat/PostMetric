@@ -29,6 +29,8 @@ interface RealtimeMapDialogProps {
   websiteName?: string;
   websiteDomain?: string;
   websiteIconUrl?: string;
+  /** When true, hides the Share button (e.g. for demo/embed). */
+  readOnly?: boolean;
 }
 
 export function RealtimeMapDialog({
@@ -38,6 +40,7 @@ export function RealtimeMapDialog({
   websiteName = "PostMetric",
   websiteDomain,
   websiteIconUrl,
+  readOnly = false,
 }: RealtimeMapDialogProps) {
   const {
     visitors,
@@ -119,15 +122,17 @@ export function RealtimeMapDialog({
                   Real-time
                 </div>
                 <div className="ml-auto flex items-center gap-1 max-md:hidden">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    title="Share realtime map"
-                    onClick={() => setShareDialogOpen(true)}
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      title="Share realtime map"
+                      onClick={() => setShareDialogOpen(true)}
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"

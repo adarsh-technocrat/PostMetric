@@ -8,11 +8,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface GoalsCardProps {
   selectedTab: "Goal" | "Funnel" | "Journey";
   onTabChange: (tab: "Goal" | "Funnel" | "Journey") => void;
+  /** When true, hides "Add goal" actions (e.g. for demo/embed). */
+  readOnly?: boolean;
 }
 
 const GOAL_TABS = ["Goal", "Funnel", "Journey"] as const;
 
-export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
+export function GoalsCard({
+  selectedTab,
+  onTabChange,
+  readOnly = false,
+}: GoalsCardProps) {
   return (
     <section className="custom-card w-full max-w-full" id="CustomEvent">
       <div className="w-full">
@@ -40,16 +46,18 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
                   ))}
                 </TabsList>
               </Tabs>
-              <div className="flex shrink-0 items-center gap-1 pb-1">
-                <Link
-                  href="/docs/custom-goals"
-                  target="_blank"
-                  className="inline-flex h-auto flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-medium text-textPrimary hover:bg-stone-100"
-                >
-                  <span className="inline-block truncate">Add goal</span>
-                  <Plus className="size-3.5 opacity-60" />
-                </Link>
-              </div>
+              {!readOnly && (
+                <div className="flex shrink-0 items-center gap-1 pb-1">
+                  <Link
+                    href="/docs/custom-goals"
+                    target="_blank"
+                    className="inline-flex h-auto flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-medium text-textPrimary hover:bg-stone-100"
+                  >
+                    <span className="inline-block truncate">Add goal</span>
+                    <Plus className="size-3.5 opacity-60" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -59,14 +67,16 @@ export function GoalsCard({ selectedTab, onTabChange }: GoalsCardProps) {
               <p className="font-semibold">
                 Track what visitors do on your site
               </p>
-              <div className="flex justify-center">
-                <Button variant="stone" size="sm" asChild>
-                  <Link href="/docs/custom-goals" target="_blank">
-                    <Plus className="size-4" />
-                    Add goal
-                  </Link>
-                </Button>
-              </div>
+              {!readOnly && (
+                <div className="flex justify-center">
+                  <Button variant="stone" size="sm" asChild>
+                    <Link href="/docs/custom-goals" target="_blank">
+                      <Plus className="size-4" />
+                      Add goal
+                    </Link>
+                  </Button>
+                </div>
+              )}
               <p className="text-textSecondary mx-auto max-w-md pt-4 text-center text-sm font-normal">
                 Revenue-related goals are automatically tracked with{" "}
                 <Link
