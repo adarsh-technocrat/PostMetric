@@ -16,11 +16,11 @@ export function CTASection() {
     <div className="flex lg:flex-row flex-col px-6 lg:px-12 py-12 gap-8 border-y border-stone-200 bg-white items-center">
       <div className="flex flex-col gap-4 flex-1">
         <h2 className="text-stone-800 font-normal text-3xl font-cooper leading-tight text-center lg:text-start">
-          Ready to grow your revenue?
+          Ready to turn insights into action?
         </h2>
         <p className="text-stone-500 font-normal text-base leading-relaxed text-center lg:text-start max-w-xl">
-          Join 1,000+ makers who are using Postmetric to understand their
-          business and grow their revenue.
+          Join 1,000+ makers who use Postmetric to see their analytics and get
+          clear next steps to convert more visitors into paying customers.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-center lg:justify-start mt-2">
           <Link

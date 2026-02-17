@@ -9,11 +9,11 @@ export function RevenueTrackingSection() {
         </p>
         <div className="flex flex-col gap-2 items-center max-w-md">
           <h3 className="text-stone-800 font-normal text-3xl font-cooper text-center leading-tight">
-            Connect revenue to sources
+            Connect revenue to sources—then act on it
           </h3>
           <p className="text-stone-500 font-normal text-sm text-center leading-relaxed">
-            See exactly how much revenue each marketing channel generates. Opti
-            mize your ad spend and focus on what brings in cash.
+            See how much each channel generates and get suggested next steps to
+            turn more visitors into paying customers.
           </p>
         </div>
       </div>

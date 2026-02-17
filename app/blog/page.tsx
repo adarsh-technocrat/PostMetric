@@ -20,8 +20,8 @@ export default function BlogPage() {
               The Postmetric Blog
             </h1>
             <p className="text-stone-500 text-lg lg:text-xl leading-relaxed max-w-xl">
-              Learn how to track revenue, understand your customers, and grow
-              your business with actionable analytics insights.
+              Insights that turn into action—revenue, channels, and clear next
+              steps to convert more visitors into paying customers.
             </p>
             <div className="mt-6 w-full max-w-md">
               <NewsletterSubscription />

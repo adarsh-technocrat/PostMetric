@@ -12,9 +12,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "PostMetric | Find out which marketing channels drive your revenue",
+  title: "PostMetric | See the data. Get the next move.",
   description:
-    "Track what drives revenue, not vanity metrics. See which channels bring paying customers.",
+    "Every tool shows you the numbers. We tell you what to do with them—actionable next steps and nudges that convert visitors into paying customers.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",

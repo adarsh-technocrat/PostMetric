@@ -20,13 +20,13 @@ export function HeroSection() {
       </div>
 
       <div className="flex flex-col gap-4 items-center max-w-3xl">
-        <h1 className="font-cooper text-[32px] lg:text-[56px] leading-tight lg:leading-[1.1] text-center text-balance text-stone-900">
-          Find out which marketing channels drive your revenue
+        <h1 className="font-cooper text-[28px] lg:text-[48px] leading-tight lg:leading-[1.15] text-center text-balance text-stone-900">
+          Most Analytics Tools Show Problems. Postmetric Solves Them.
         </h1>
         <h2 className="text-center text-balance lg:whitespace-pre-line whitespace-normal leading-relaxed text-stone-500 text-lg lg:text-xl max-w-2xl">
-          Postmetric is the analytics tool for entrepreneurs. From first click
-          to customer, it helps you understand where the money is and how to
-          increase your revenue without bombarding you with data.
+          See the data. Get the next move. We tell you what to do with the
+          numbers—clear next steps and nudges that convert visitors into paying
+          customers.
         </h2>
       </div>
 

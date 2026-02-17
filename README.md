@@ -1,12 +1,13 @@
 # PostMetric
 
-A privacy-focused web analytics platform that helps you understand your website visitors, track revenue attribution, and measure custom goals.
+A privacy-focused analytics platform that doesn’t just show you the data—it analyzes your traffic and revenue and nudges you with clear, actionable next steps so you can convert more visitors into paying customers.
 
 ## Features
 
 - 📊 **Comprehensive Analytics** - Track page views, sessions, unique visitors, and more
 - 💰 **Revenue Attribution** - Link revenue to specific visitors and marketing campaigns
 - 🎯 **Custom Goals** - Track any user action as a conversion goal
+- 🔧 **Action Builder** - Turn alerts into actions; build workflows that run when something changes so you can act on the signal, not just see it
 - 🔗 **Integrations** - Twitter/X, GitHub, Google Search Console
 - 🛡️ **Privacy-First** - No cookies required, GDPR compliant
 - ⚡ **Real-time** - Live visitor counts and updates

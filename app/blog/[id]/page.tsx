@@ -155,11 +155,12 @@ export default async function BlogDetailPage({
         <div className="w-full px-6 lg:px-12 py-12 lg:py-16 border-b border-stone-200 bg-stone-900">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="font-cooper text-2xl lg:text-3xl text-white leading-tight mb-3">
-              Ready to see which channels drive your revenue?
+              Ready to turn your analytics into action?
             </h2>
             <p className="text-stone-300 text-base lg:text-lg leading-relaxed mb-8">
-              Join 1,000+ makers using Postmetric to track revenue attribution,
-              understand their customers, and grow with actionable insights.
+              Join 1,000+ makers who use Postmetric to see their data and get
+              clear next steps—so you know what to do to convert more visitors
+              into paying customers.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
               <Link

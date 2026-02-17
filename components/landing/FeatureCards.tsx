@@ -24,8 +24,8 @@ export function FeatureCards() {
               Revenue Attribution
             </h3>
             <p className="text-stone-500 font-normal text-sm leading-6">
-              Know exactly which marketing channels are bringing in paying
-              customers. Stop guessing and start scaling what works.
+              See which channels bring paying customers—and get suggested
+              actions to double down on what works and fix what doesn’t.
             </p>
           </div>
         </div>

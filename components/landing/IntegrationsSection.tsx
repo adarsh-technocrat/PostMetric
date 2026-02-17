@@ -1,71 +1,25 @@
 import Image from "next/image";
 
+// Simple Icons CDN – reliable, consistent SVG logos (slug/color format)
+const ICON_BASE = "https://cdn.simpleicons.org";
 const INTEGRATIONS = [
-  {
-    name: "Next.js",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-nextjs.3a58dc60.png&w=256&q=75",
-  },
-  {
-    name: "React",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-reactrouter.b724a1f1.png&w=256&q=75",
-  },
-  {
-    name: "Vue",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-vuejs.010f3bde.png&w=256&q=75",
-  },
-  {
-    name: "PHP",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-php.858345a0.png&w=256&q=75",
-  },
-  {
-    name: "Laravel",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-laravel.dd822c6e.png&w=256&q=75",
-  },
-  {
-    name: "WordPress",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-wp.e47770d1.png&w=256&q=75",
-  },
-  {
-    name: "Webflow",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-webflow.baf6b80a.png&w=256&q=75",
-  },
-  {
-    name: "Framer",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-framer.06f8bb07.png&w=256&q=75",
-  },
-  {
-    name: "Shopify",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-shopify.a664161d.png&w=256&q=75",
-  },
-  {
-    name: "Squarespace",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-squarespace.0cda12b3.png&w=256&q=75",
-  },
-  {
-    name: "Wix",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-wix.34f61b06.png&w=256&q=75",
-  },
-  {
-    name: "Ghost",
-    image:
-      "https://datafa.st/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ficon-ghostcms.36b39cb0.png&w=256&q=75",
-  },
+  { name: "Next.js", slug: "nextdotjs", color: "000000" },
+  { name: "React", slug: "react", color: "61DAFB" },
+  { name: "Vue", slug: "vuedotjs", color: "4FC08D" },
+  { name: "PHP", slug: "php", color: "777BB4" },
+  { name: "Laravel", slug: "laravel", color: "FF2D20" },
+  { name: "WordPress", slug: "wordpress", color: "21759B" },
+  { name: "Webflow", slug: "webflow", color: "4353FF" },
+  { name: "Framer", slug: "framer", color: "0055FF" },
+  { name: "Shopify", slug: "shopify", color: "7AB55C" },
+  { name: "Squarespace", slug: "squarespace", color: "000000" },
+  { name: "Wix", slug: "wix", color: "0C6EFC" },
+  { name: "Ghost", slug: "ghost", color: "15171A" },
 ];
 
 export function IntegrationsSection() {
   return (
-    <div className="flex flex-col w-full px-4 lg:px-6 gap-10 items-center py-24">
+    <div className="flex flex-col w-full px-4 lg:px-6 gap-10 items-center py-24 border-b border-stone-200">
       <div className="flex flex-col gap-4 items-center max-w-2xl">
         <p className="text-stone-800 font-normal text-xs uppercase font-mono leading-4 tracking-wider">
           Integrations
@@ -85,16 +39,17 @@ export function IntegrationsSection() {
         <div className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-8">
           {INTEGRATIONS.map((integration, index) => (
             <div
-              key={index}
-              className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all"
+              key={integration.slug}
+              className="group flex flex-col items-center gap-3 p-5 bg-white rounded-xl border border-stone-200 transition-all"
             >
-              <div className="w-10 h-10 flex items-center justify-center">
+              <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
                 <Image
-                  src={integration.image}
+                  src={`${ICON_BASE}/${integration.slug}/${integration.color}`}
                   alt={integration.name}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 object-contain grayscale hover:grayscale-0 transition-all"
+                  width={48}
+                  height={48}
+                  className="object-contain w-full h-full grayscale opacity-90 transition-all group-hover:grayscale-0 group-hover:opacity-100"
+                  unoptimized
                 />
               </div>
               <span className="text-xs font-medium text-stone-600 text-center">

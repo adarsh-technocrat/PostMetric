@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
         hostname: "img.logo.dev",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.simpleicons.org",
+        pathname: "/**",
+      },
     ],
     // Allow unoptimized images for dynamic domain favicons
     unoptimized: false,

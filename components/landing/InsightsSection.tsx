@@ -9,11 +9,11 @@ export function InsightsSection() {
         </p>
         <div className="flex flex-col gap-2 items-center max-w-md">
           <h3 className="text-stone-800 font-normal text-3xl font-cooper text-center leading-tight">
-            Understand your audience
+            Understand your audience—and what to do next
           </h3>
           <p className="text-stone-500 font-normal text-sm text-center leading-relaxed">
-            Visualize your traffic sources, user behavior, and conversion paths.
-            Make data-driven decisions to improve your marketing ROI.
+            Visualize traffic, behavior, and conversion paths. Get clear
+            recommendations so you can act on the data, not just view it.
           </p>
         </div>
       </div>
