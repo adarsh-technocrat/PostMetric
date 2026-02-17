@@ -1,3 +1,4 @@
+import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { NewsletterSubscription } from "@/components/landing/NewsletterSubscription";
@@ -8,7 +9,9 @@ export default function BlogPage() {
   return (
     <div className="flex flex-col w-full items-center min-h-screen  antialiased font-sans">
       <Navbar />
-      <main className="items-center w-full max-w-4xl border-x border-stone-200 flex flex-col bg-white">
+      <main
+        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
+      >
         {/* Hero Section */}
         <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
           <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">

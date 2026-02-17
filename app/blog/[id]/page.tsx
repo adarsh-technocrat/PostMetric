@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { NewsletterSubscription } from "@/components/landing/NewsletterSubscription";
@@ -84,7 +85,9 @@ export default async function BlogDetailPage({
   return (
     <div className="flex flex-col w-full items-center min-h-screen antialiased font-sans">
       <Navbar />
-      <main className="items-center w-full max-w-4xl border-x border-stone-200 flex flex-col bg-white">
+      <main
+        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
+      >
         {/* Back + Article */}
         <article className="w-full border-b border-stone-200">
           <div className="px-6 lg:px-12 pt-10 lg:pt-14">

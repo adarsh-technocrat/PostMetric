@@ -1,3 +1,4 @@
+import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 
@@ -87,7 +88,8 @@ const changelogEntries: ChangelogEntry[] = [
       },
       {
         type: "added",
-        description: "Multiple granularity options (Hourly, Daily, Weekly, Monthly)",
+        description:
+          "Multiple granularity options (Hourly, Daily, Weekly, Monthly)",
       },
     ],
   },
@@ -214,7 +216,9 @@ export default function ChangelogPage() {
   return (
     <div className="flex flex-col w-full items-center min-h-screen antialiased font-sans bg-stone-50">
       <Navbar />
-      <main className="items-center w-full max-w-4xl border-x border-stone-200 flex flex-col bg-white">
+      <main
+        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
+      >
         {/* Hero Section */}
         <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
           <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">
@@ -252,7 +256,7 @@ export default function ChangelogPage() {
                     </h2>
                     <span
                       className={`px-2 py-1 rounded text-xs font-mono uppercase border ${getTypeColor(
-                        entry.type
+                        entry.type,
                       )}`}
                     >
                       {entry.type}
@@ -303,4 +307,3 @@ export default function ChangelogPage() {
     </div>
   );
 }
-

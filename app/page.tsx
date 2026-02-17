@@ -1,3 +1,4 @@
+import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { DashboardPreview } from "@/components/landing/DashboardPreview";
@@ -16,15 +17,21 @@ export default function Home() {
     <div className="antialiased font-sans bg-stone-50">
       <div className="w-full flex flex-col items-center">
         <Navbar />
-        <div className="max-w-5xl w-full border-x border-stone-200 flex flex-col bg-transparent">
+        <div
+          className={`${LANDING_MAX_W} w-full border-x border-stone-200 flex flex-col bg-transparent`}
+        >
           <HeroSection />
           <DashboardPreview />
           <FeatureCards />
         </div>
-        <div className="max-w-5xl w-full border-x border-stone-200 bg-stone-50">
+        <div
+          className={`${LANDING_MAX_W} w-full border-x border-stone-200 bg-stone-50`}
+        >
           <IntegrationsSection />
         </div>
-        <div className="max-w-5xl w-full border-x border-stone-200 bg-transparent">
+        <div
+          className={`${LANDING_MAX_W} w-full border-x border-stone-200 bg-transparent`}
+        >
           <InsightsSection />
           <RevenueTrackingSection />
           <FeaturesGrid />

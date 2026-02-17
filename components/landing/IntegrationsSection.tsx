@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LANDING_MAX_W } from "@/lib/landing-layout";
 
 // Simple Icons CDN – reliable, consistent SVG logos (slug/color format)
 const ICON_BASE = "https://cdn.simpleicons.org";
@@ -35,7 +36,7 @@ export function IntegrationsSection() {
         </div>
       </div>
 
-      <div className="w-full max-w-5xl">
+      <div className={`w-full ${LANDING_MAX_W}`}>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-8">
           {INTEGRATIONS.map((integration, index) => (
             <div
