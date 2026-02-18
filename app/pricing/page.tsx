@@ -8,9 +8,10 @@ export default function PricingPage() {
     <div className="flex flex-col w-full items-center min-h-screen bg-stone-50">
       <Navbar />
       <main
-        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col gap-20 lg:gap-30`}
+        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-stone-50`}
       >
         <PricingPageContent />
+        <div className="w-full border-b border-stone-200" />
         <Footer />
       </main>
     </div>
