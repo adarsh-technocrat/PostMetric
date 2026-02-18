@@ -110,7 +110,6 @@ export function PricingContent({
             />
           </div>
 
-          {/* Billing Period Toggle */}
           {showBillingToggle && (
             <div className="flex items-center justify-center w-full px-4 md:px-6 py-4">
               <div
@@ -173,7 +172,6 @@ export function PricingContent({
             </div>
           )}
 
-          {/* Pricing Plans */}
           <div className="flex flex-col w-full items-center">
             <div className="grid grid-cols-1 md:grid-cols-2 max-w-full w-full border-t border-stone-200">
               {plans.map((plan, index) => (

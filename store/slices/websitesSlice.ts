@@ -180,7 +180,6 @@ export const deleteWebsiteById = createAsyncThunk(
   },
 );
 
-// API Keys Thunks
 export const fetchAllApiKeysForWebsite = createAsyncThunk(
   "websites/fetchAllApiKeysForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
@@ -265,7 +264,6 @@ export const deleteApiKeyByIdFromWebsite = createAsyncThunk(
   },
 );
 
-// Team Management Thunks
 export const fetchAllTeamMembersForWebsite = createAsyncThunk(
   "websites/fetchAllTeamMembersForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
@@ -392,7 +390,6 @@ export const removeTeamMemberFromWebsite = createAsyncThunk(
   },
 );
 
-// Notifications Thunks
 export const fetchNotificationSettingsForWebsite = createAsyncThunk(
   "websites/fetchNotificationSettingsForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
@@ -460,7 +457,6 @@ export const updateNotificationSettingsForWebsite = createAsyncThunk(
   },
 );
 
-// Import Thunk
 export const importPlausibleDataForWebsite = createAsyncThunk(
   "websites/importPlausibleDataForWebsite",
   async (
@@ -540,23 +536,19 @@ interface WebsitesState {
   currentWebsite: Website | null;
   loading: boolean;
   error: string | null;
-  // API Keys state
   apiKeys: ApiKey[];
   apiKeysLoading: boolean;
   apiKeysError: string | null;
-  // Team state
   teamMembers: TeamMember[];
   teamOwner: any | null;
   teamLoading: boolean;
   teamError: string | null;
-  // Notifications state
   notifications: {
     weeklySummary: boolean;
     trafficSpike: boolean;
   } | null;
   notificationsLoading: boolean;
   notificationsError: string | null;
-  // Update operation states
   updating: boolean;
   creating: boolean;
 }
@@ -608,7 +600,6 @@ const websitesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch All User Websites
       .addCase(fetchAllUserWebsites.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -622,7 +613,6 @@ const websitesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Fetch Website Details By ID
       .addCase(fetchWebsiteDetailsById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -636,7 +626,6 @@ const websitesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Update Website Settings And Configuration
       .addCase(updateWebsiteSettingsAndConfiguration.pending, (state) => {
         state.updating = true;
         state.error = null;
@@ -646,7 +635,6 @@ const websitesSlice = createSlice({
         (state, action) => {
           state.updating = false;
           state.currentWebsite = action.payload;
-          // Update in websites array if it exists
           const index = state.websites.findIndex(
             (w) => w._id === action.payload._id,
           );
@@ -663,7 +651,6 @@ const websitesSlice = createSlice({
           state.error = action.payload as string;
         },
       )
-      // Connect Stripe Revenue
       .addCase(connectStripeRevenue.pending, (state) => {
         state.updating = true;
         state.error = null;
@@ -683,7 +670,6 @@ const websitesSlice = createSlice({
         state.updating = false;
         state.error = action.payload as string;
       })
-      // Disconnect Stripe Revenue
       .addCase(disconnectStripeRevenue.pending, (state) => {
         state.updating = true;
         state.error = null;
@@ -703,7 +689,6 @@ const websitesSlice = createSlice({
         state.updating = false;
         state.error = action.payload as string;
       })
-      // Create New Website With Domain
       .addCase(createNewWebsiteWithDomain.pending, (state) => {
         state.creating = true;
         state.error = null;
@@ -718,7 +703,6 @@ const websitesSlice = createSlice({
         state.creating = false;
         state.error = action.payload as string;
       })
-      // Delete Website By ID
       .addCase(deleteWebsiteById.pending, (state) => {
         state.updating = true;
         state.error = null;
@@ -735,7 +719,6 @@ const websitesSlice = createSlice({
         state.updating = false;
         state.error = action.payload as string;
       })
-      // Fetch All API Keys For Website
       .addCase(fetchAllApiKeysForWebsite.pending, (state) => {
         state.apiKeysLoading = true;
         state.apiKeysError = null;
@@ -749,21 +732,18 @@ const websitesSlice = createSlice({
         state.apiKeysLoading = false;
         state.apiKeysError = action.payload as string;
       })
-      // Create New API Key For Website
       .addCase(createNewApiKeyForWebsite.pending, (state) => {
         state.apiKeysLoading = true;
         state.apiKeysError = null;
       })
       .addCase(createNewApiKeyForWebsite.fulfilled, (state, action) => {
         state.apiKeysLoading = false;
-        // Don't add to array since we need to fetch again to get the list
         state.apiKeysError = null;
       })
       .addCase(createNewApiKeyForWebsite.rejected, (state, action) => {
         state.apiKeysLoading = false;
         state.apiKeysError = action.payload as string;
       })
-      // Delete API Key By ID From Website
       .addCase(deleteApiKeyByIdFromWebsite.pending, (state) => {
         state.apiKeysLoading = true;
         state.apiKeysError = null;
@@ -779,7 +759,6 @@ const websitesSlice = createSlice({
         state.apiKeysLoading = false;
         state.apiKeysError = action.payload as string;
       })
-      // Fetch All Team Members For Website
       .addCase(fetchAllTeamMembersForWebsite.pending, (state) => {
         state.teamLoading = true;
         state.teamError = null;
@@ -794,7 +773,6 @@ const websitesSlice = createSlice({
         state.teamLoading = false;
         state.teamError = action.payload as string;
       })
-      // Invite Team Member To Website
       .addCase(inviteTeamMemberToWebsite.pending, (state) => {
         state.teamLoading = true;
         state.teamError = null;
@@ -807,7 +785,6 @@ const websitesSlice = createSlice({
         state.teamLoading = false;
         state.teamError = action.payload as string;
       })
-      // Update Team Member Role For Website
       .addCase(updateTeamMemberRoleForWebsite.pending, (state) => {
         state.teamLoading = true;
         state.teamError = null;
@@ -826,7 +803,6 @@ const websitesSlice = createSlice({
         state.teamLoading = false;
         state.teamError = action.payload as string;
       })
-      // Remove Team Member From Website
       .addCase(removeTeamMemberFromWebsite.pending, (state) => {
         state.teamLoading = true;
         state.teamError = null;
@@ -842,7 +818,6 @@ const websitesSlice = createSlice({
         state.teamLoading = false;
         state.teamError = action.payload as string;
       })
-      // Fetch Notification Settings For Website
       .addCase(fetchNotificationSettingsForWebsite.pending, (state) => {
         state.notificationsLoading = true;
         state.notificationsError = null;
@@ -862,7 +837,6 @@ const websitesSlice = createSlice({
           state.notificationsError = action.payload as string;
         },
       )
-      // Update Notification Settings For Website
       .addCase(updateNotificationSettingsForWebsite.pending, (state) => {
         state.notificationsLoading = true;
         state.notificationsError = null;
@@ -882,7 +856,6 @@ const websitesSlice = createSlice({
           state.notificationsError = action.payload as string;
         },
       )
-      // Import Plausible Data For Website
       .addCase(importPlausibleDataForWebsite.pending, (state) => {
         state.updating = true;
         state.error = null;

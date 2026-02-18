@@ -16,7 +16,6 @@ export default function PrivacyPage() {
       <main
         className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
       >
-        {/* Hero */}
         <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
           <div className="flex flex-col gap-4 max-w-3xl">
             <h1 className="font-cooper text-[32px] lg:text-[48px] leading-tight text-stone-900">
@@ -32,7 +31,6 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        {/* Content */}
         <article className="w-full px-6 lg:px-12 py-12 lg:py-16">
           <div className="max-w-3xl space-y-12">
             <section>

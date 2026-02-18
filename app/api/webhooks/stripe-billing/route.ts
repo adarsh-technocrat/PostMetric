@@ -12,17 +12,6 @@ const stripe =
     apiVersion: "2025-11-17.clover",
   });
 
-/**
- * Webhook handler for Postmetric's own Stripe account (billing/subscriptions)
- * Configure this endpoint in Stripe Dashboard: Developers > Webhooks
- * URL: https://your-domain.com/api/webhooks/stripe-billing
- *
- * Events to listen for:
- * - checkout.session.completed
- * - customer.subscription.updated
- * - customer.subscription.deleted
- * - invoice.payment_succeeded (optional backup)
- */
 export async function POST(request: NextRequest) {
   if (!stripe) {
     return NextResponse.json(
@@ -144,9 +133,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       if (sub.current_period_end) {
         subscription.currentPeriodEnd = new Date(sub.current_period_end * 1000);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   user.subscription = subscription;
@@ -222,9 +209,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await user.save();
 }
 
-async function handleInvoicePaymentFailed(_invoice: Stripe.Invoice) {
-  // Optionally send email, show banner, or retry logic
-}
+async function handleInvoicePaymentFailed(_invoice: Stripe.Invoice) {}
 
 function mapPlanIdToDbPlan(
   planId: string,

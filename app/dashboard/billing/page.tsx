@@ -22,7 +22,6 @@ export default function BillingPage() {
 
   return (
     <div className="flex flex-col w-full items-center pb-20">
-      {/* Header with Manage Billing */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full max-w-4xl mb-6">
         {showSuccess && (
           <p className="text-sm text-lime-600 font-medium">
@@ -34,12 +33,10 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Pricing - same UI as /pricing */}
       <div className="w-full max-w-4xl mx-auto">
         <PricingContent showHeader={false} showBillingToggle={true} />
       </div>
 
-      {/* FAQ Section */}
       <div className="w-full max-w-4xl mt-12 md:mt-16">
         <FAQ items={billingFAQItems} />
       </div>

@@ -183,7 +183,6 @@ export function RevenueSettings({
 
   return (
     <section className="space-y-4">
-      {/* Payment Provider Setup */}
       <Card className="custom-card">
         <CardHeader>
           <CardTitle>Payment providers</CardTitle>
@@ -453,7 +452,6 @@ export function RevenueSettings({
         </CardContent>
       </Card>
 
-      {/* Currency Selector */}
       <Card className="custom-card">
         <form onSubmit={handleSaveCurrency}>
           <CardHeader>

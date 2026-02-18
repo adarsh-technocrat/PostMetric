@@ -13,7 +13,6 @@ export default function BlogPage() {
         className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col gap-20 lg:gap-30`}
       >
         <div className="flex flex-col w-full">
-          {/* Hero Section */}
           <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
             <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-xs font-mono text-stone-600 mb-2">
@@ -33,7 +32,6 @@ export default function BlogPage() {
             </div>
           </div>
 
-          {/* Blog Posts */}
           <div className="w-full border-b border-stone-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-stone-200">
               {blogPosts.map((post) => (

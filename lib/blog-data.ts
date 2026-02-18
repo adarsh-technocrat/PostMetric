@@ -7,9 +7,7 @@ export interface BlogPost {
   date: string;
   readTime: string;
   category: string;
-  /** Hero image URL (e.g. Unsplash). Optional; detail page shows hero when set. */
   heroImage?: string;
-  /** Alt text for hero image. */
   heroImageAlt?: string;
 }
 

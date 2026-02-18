@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * Archives unused Stripe products (e.g. orphaned from re-running create-stripe-products.sh)
- * Keeps only products that have prices referenced in .env.local
- *
- * Usage: pnpm tsx scripts/cleanup-stripe-products.ts
- *        pnpm tsx scripts/cleanup-stripe-products.ts --dry-run  # preview only
- */
 
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
@@ -74,7 +67,6 @@ async function main() {
     return;
   }
 
-  // Get product IDs for our prices
   const usedProductIds = new Set<string>();
   for (const priceId of priceIds) {
     try {
@@ -94,7 +86,6 @@ async function main() {
     [...usedProductIds].join(", "),
   );
 
-  // List all products
   const allProducts: Stripe.Product[] = [];
   for await (const product of stripe.products.list({ limit: 100 })) {
     allProducts.push(product);

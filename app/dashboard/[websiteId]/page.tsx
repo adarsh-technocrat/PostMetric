@@ -103,7 +103,6 @@ export default function WebsiteAnalyticsPage({
               availableGranularities={availableGranularities}
               onGranularityChange={setSelectedGranularity}
             />
-            {/* Refresh Button */}
             <Button
               variant="outline"
               size="icon"

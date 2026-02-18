@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Prism from "prismjs";
 
-// Import Prism components for syntax highlighting
 if (typeof window !== "undefined") {
   try {
     require("prismjs/components/prism-markup");
@@ -14,9 +13,7 @@ if (typeof window !== "undefined") {
     require("prismjs/components/prism-json");
     require("prismjs/components/prism-bash");
     require("prismjs/components/prism-css");
-  } catch (e) {
-    // Prism components already loaded or failed to load
-  }
+  } catch (e) {}
 }
 import { Button } from "@/components/ui/button";
 
@@ -41,15 +38,11 @@ export function CodeBlock({
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Ensure Prism is loaded before highlighting
     if (codeRef.current && typeof window !== "undefined") {
-      // Small delay to ensure Prism components are loaded
       const timer = setTimeout(() => {
         try {
           Prism.highlightElement(codeRef.current!);
-        } catch (error) {
-          // Prism highlighting error
-        }
+        } catch (error) {}
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -66,9 +59,7 @@ export function CodeBlock({
           setCopied(false);
           copyTimeoutRef.current = null;
         }, 2000);
-      } catch (err) {
-        // Failed to copy code
-      }
+      } catch (err) {}
     }
   };
 

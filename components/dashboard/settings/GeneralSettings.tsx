@@ -37,16 +37,16 @@ import {
 } from "@/components/ui/tooltip";
 
 const COLOR_OPTIONS = [
-  "#EF4444", // red
-  "#E78468", // orange (primary)
-  "#EC4899", // pink
-  "#F59E0B", // amber
-  "#10B981", // green
-  "#14B8A6", // teal
-  "#3B82F6", // blue
-  "#6366F1", // indigo
-  "#8B5CF6", // purple
-  "#64748B", // slate
+  "#EF4444",
+  "#E78468",
+  "#EC4899",
+  "#F59E0B",
+  "#10B981",
+  "#14B8A6",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#64748B",
 ];
 
 interface GeneralSettingsProps {
@@ -86,7 +86,6 @@ export function GeneralSettings({
   const [additionalDomain, setAdditionalDomain] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Initialize from website data
   useEffect(() => {
     if (website) {
       setDomain(website.domain || "");
@@ -109,7 +108,6 @@ export function GeneralSettings({
       ).unwrap();
       onUpdate();
     } catch (error) {
-      // Error updating domain
     } finally {
       setLoading(false);
     }
@@ -132,7 +130,6 @@ export function GeneralSettings({
       ).unwrap();
       onUpdate();
     } catch (error) {
-      // Error updating nickname
     } finally {
       setLoading(false);
     }
@@ -155,7 +152,6 @@ export function GeneralSettings({
       ).unwrap();
       onUpdate();
     } catch (error) {
-      // Error updating timezone
     } finally {
       setLoading(false);
     }
@@ -178,7 +174,6 @@ export function GeneralSettings({
       ).unwrap();
       onUpdate();
     } catch (error) {
-      // Error updating color scheme
     } finally {
       setLoading(false);
     }
@@ -205,16 +200,12 @@ export function GeneralSettings({
         }),
       ).unwrap();
       onUpdate();
-    } catch (error) {
-      // Error updating public dashboard
-    }
+    } catch (error) {}
   };
 
-  // Ensure tracking code always has pmid_ prefix when displaying
   const getTrackingCodeForDisplay = () => {
     const code =
       website?.trackingCode || websiteId || "pmid_" + websiteId?.slice(0, 20);
-    // Add prefix if it doesn't already have it
     if (code && !code.startsWith("pmid_")) {
       return "pmid_" + code;
     }
@@ -225,7 +216,6 @@ export function GeneralSettings({
 
   return (
     <section className="space-y-4">
-      {/* Analytics Script */}
       <Card className="custom-card">
         <CardHeader>
           <CardTitle>Analytics script</CardTitle>
@@ -323,7 +313,6 @@ export function GeneralSettings({
         </CardContent>
       </Card>
 
-      {/* Domain */}
       <Card className="custom-card">
         <form onSubmit={handleSaveDomain}>
           <CardHeader>
@@ -361,7 +350,6 @@ export function GeneralSettings({
         </form>
       </Card>
 
-      {/* Additional Domains */}
       <Card className="custom-card">
         <CardHeader>
           <CardTitle>Additional domains</CardTitle>
@@ -393,7 +381,6 @@ export function GeneralSettings({
         </CardContent>
       </Card>
 
-      {/* Timezone */}
       <Card className="custom-card overflow-visible">
         <form onSubmit={handleSaveTimezone}>
           <CardHeader>
@@ -496,7 +483,6 @@ export function GeneralSettings({
         </form>
       </Card>
 
-      {/* Website Nickname */}
       <Card className="custom-card">
         <form onSubmit={handleSaveNickname}>
           <CardHeader>
@@ -527,7 +513,6 @@ export function GeneralSettings({
         </form>
       </Card>
 
-      {/* Public Dashboard */}
       <Card className="custom-card">
         <div className="p-4">
           <div className="flex items-center justify-between">
@@ -547,7 +532,6 @@ export function GeneralSettings({
         </div>
       </Card>
 
-      {/* Delete Button */}
       <div className="flex justify-end">
         <Button
           variant="ghost"
@@ -562,9 +546,7 @@ export function GeneralSettings({
               try {
                 await dispatch(deleteWebsiteById(websiteId)).unwrap();
                 router.push("/dashboard");
-              } catch (error) {
-                // Error deleting website
-              }
+              } catch (error) {}
             }
           }}
         >

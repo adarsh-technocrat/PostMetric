@@ -1,6 +1,5 @@
 import Image from "next/image";
 
-// Simple Icons CDN – reliable, consistent SVG logos (slug/color format)
 const ICON_BASE = "https://cdn.simpleicons.org";
 const INTEGRATIONS = [
   { name: "Next.js", slug: "nextdotjs", color: "000000" },

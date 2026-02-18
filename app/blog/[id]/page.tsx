@@ -88,7 +88,6 @@ export default async function BlogDetailPage({
       <main
         className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
       >
-        {/* Back + Article */}
         <article className="w-full border-b border-stone-200">
           <div className="px-6 lg:px-12 pt-10 lg:pt-14">
             <Link
@@ -154,7 +153,6 @@ export default async function BlogDetailPage({
           </div>
         </article>
 
-        {/* Product signup CTA */}
         <div className="w-full px-6 lg:px-12 py-12 lg:py-16 border-b border-stone-200 bg-stone-900">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="font-cooper text-2xl lg:text-3xl text-white leading-tight mb-3">
@@ -185,7 +183,6 @@ export default async function BlogDetailPage({
           </div>
         </div>
 
-        {/* Newsletter */}
         <div className="w-full px-6 lg:px-12 py-12 lg:py-16 border-b border-stone-200 bg-stone-50/50">
           <div className="max-w-xl mx-auto text-center">
             <h2 className="font-cooper text-xl lg:text-2xl text-stone-900 mb-2">

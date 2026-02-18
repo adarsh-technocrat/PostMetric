@@ -29,7 +29,6 @@ interface RealtimeMapDialogProps {
   websiteName?: string;
   websiteDomain?: string;
   websiteIconUrl?: string;
-  /** When true, hides the Share button (e.g. for demo/embed). */
   readOnly?: boolean;
 }
 
@@ -76,11 +75,9 @@ export function RealtimeMapDialog({
 
   const toggleMusic = useCallback(() => {
     if (!isMusicPlayerActive) {
-      // First time clicking - activate the player and start playing
       setIsMusicPlayerActive(true);
       setIsMusicPlaying(true);
     } else {
-      // Toggle play/pause
       setIsMusicPlaying((prev) => !prev);
     }
   }, [isMusicPlayerActive]);

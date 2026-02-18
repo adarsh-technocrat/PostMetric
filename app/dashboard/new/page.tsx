@@ -422,7 +422,6 @@ export default function AddSitePage() {
                   showCopyButton={false}
                   className="bg-transparent! border-0"
                 />
-                {/* Fading gradient blur: light blur from mid, stronger toward bottom */}
                 <div
                   className="absolute inset-0 backdrop-blur-sm"
                   style={{
@@ -450,7 +449,6 @@ export default function AddSitePage() {
                       "linear-gradient(to bottom, transparent 65%, black 100%)",
                   }}
                 />
-                {/* Gradient fade to blend with page background (border and box dissolve at bottom) */}
                 <div className="absolute inset-0 top-1/4 bg-gradient-to-b from-transparent via-stone-50/40 to-[hsl(var(--background))]" />
               </div>
             </>

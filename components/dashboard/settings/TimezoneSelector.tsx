@@ -54,7 +54,6 @@ export function TimezoneSelector({
     return () => clearInterval(interval);
   }, [value]);
 
-  // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -68,7 +67,6 @@ export function TimezoneSelector({
 
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
-      // Focus search input when dropdown opens
       setTimeout(() => {
         inputRef.current?.focus();
       }, 0);
@@ -79,7 +77,6 @@ export function TimezoneSelector({
     };
   }, [open]);
 
-  // Close dropdown on Escape key
   React.useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && open) {

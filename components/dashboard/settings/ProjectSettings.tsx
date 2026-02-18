@@ -21,7 +21,6 @@ export function ProjectSettings() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // TODO: Implement save functionality
     setTimeout(() => {
       setSaving(false);
     }, 1000);

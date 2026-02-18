@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 export function TestimonialsSection() {
   return (
     <div className="flex flex-col py-24 px-4 lg:px-6 gap-12">
-      {/* Section Header */}
       <div className="flex flex-col gap-4 items-center text-center">
         <p className="text-stone-800 font-normal text-xs uppercase font-mono leading-4 tracking-wider">
           Wall of Love
@@ -19,9 +18,7 @@ export function TestimonialsSection() {
         </div>
       </div>
 
-      {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 auto-rows-auto">
-        {/* Item 1: Large Video Testimonial (Spans 2 cols, 2 rows on desktop) */}
         <div className="lg:col-span-2 lg:row-span-2 group relative border border-stone-200 bg-stone-50 overflow-hidden transition-all">
           <div className="absolute inset-0 bg-stone-900/5 group-hover:bg-stone-900/0 transition-colors z-10"></div>
           <img
@@ -30,7 +27,6 @@ export function TestimonialsSection() {
             className="w-full h-full object-cover min-h-[320px] lg:min-h-[480px]"
           />
 
-          {/* Play Button Overlay */}
           <div className="absolute inset-0 flex items-center justify-center z-20">
             <Button
               type="button"
@@ -48,7 +44,6 @@ export function TestimonialsSection() {
             </Button>
           </div>
 
-          {/* Content Overlay */}
           <div className="absolute bottom-0 left-0 w-full p-6 lg:p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-20">
             <div className="flex flex-col gap-2">
               <p className="text-white font-cooper text-xl lg:text-2xl leading-tight">
@@ -72,7 +67,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Item 2: Text Testimonial */}
         <div className="bg-white p-6 lg:p-8 border border-stone-200 flex flex-col justify-between gap-6 hover:border-stone-300 transition-colors">
           <div className="flex flex-col gap-4">
             <div className="flex gap-1 text-brand-600">
@@ -113,7 +107,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Item 3: Text Testimonial */}
         <div className="bg-white p-6 lg:p-8 border border-stone-200 flex flex-col justify-between gap-6 hover:border-stone-300 transition-colors">
           <div className="flex flex-col gap-4">
             <div className="flex gap-1 text-brand-600">
@@ -154,7 +147,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Item 4: Vertical Video Testimonial */}
         <div className="row-span-2 group relative border border-stone-200 bg-stone-50 overflow-hidden transition-all">
           <div className="absolute inset-0 bg-stone-900/10 group-hover:bg-stone-900/0 transition-colors z-10"></div>
           <img
@@ -192,7 +184,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Item 5: Text Testimonial (Wide) */}
         <div className="md:col-span-2 bg-white p-6 lg:p-8 border border-stone-200 flex flex-col md:flex-row items-center gap-6 hover:border-stone-300 transition-colors">
           <div className="flex-1 flex flex-col gap-4">
             <div className="flex gap-1 text-brand-600">
@@ -238,7 +229,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Item 6: Small Video Testimonial */}
         <div className="group relative border border-stone-200 bg-stone-50 overflow-hidden transition-all h-64 lg:h-auto">
           <div className="absolute inset-0 bg-stone-900/10 group-hover:bg-stone-900/0 transition-colors z-10"></div>
           <img
@@ -309,7 +299,6 @@ export function TestimonialsSection() {
         </div>
       </div>
 
-      {/* CTA Footer */}
       <div className="flex flex-col items-center gap-6 pt-8">
         <p className="text-stone-500 text-sm">Join 1,000+ happy customers</p>
         <Button

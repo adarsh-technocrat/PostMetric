@@ -123,7 +123,6 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Light code editor (Add website script block) – dark text on light bg */
   .code-editor-light code,
   .code-editor-light .token {
     color: #44403c !important;
@@ -148,7 +147,6 @@
   }
 }
 
-/* Dialog enter/exit - ease-in-out */
 @keyframes dialog-overlay-in {
   from {
     opacity: 0;
@@ -165,7 +163,6 @@
     opacity: 0;
   }
 }
-/* Content: opacity + scale only so position is never affected */
 @keyframes dialog-content-in {
   from {
     opacity: 0;
@@ -192,14 +189,12 @@
 .dialog-overlay[data-state="closed"] {
   animation: dialog-overlay-out 0.2s ease-in-out forwards;
 }
-/* Centered dialogs: scale + translate animation */
 .dialog-content-panel:not(.dialog-content-fullscreen)[data-state="open"] {
   animation: dialog-content-in 0.3s ease-in-out forwards;
 }
 .dialog-content-panel:not(.dialog-content-fullscreen)[data-state="closed"] {
   animation: dialog-content-out 0.2s ease-in-out forwards;
 }
-/* Fullscreen dialogs: opacity only so position/size are not overridden */
 .dialog-content-fullscreen[data-state="open"] {
   animation: dialog-overlay-in 0.3s ease-in-out forwards;
 }
@@ -241,7 +236,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Tabs styling */
 .tabs {
   display: flex;
   gap: 0.5rem;
@@ -264,7 +258,6 @@
   font-size: 0.875rem;
 }
 
-/* Join divider styling */
 .join-divider {
   display: inline-flex;
 }
@@ -291,7 +284,6 @@
   border-radius: 0.375rem;
 }
 
-/* Checkbox styling */
 .checkbox {
   appearance: none;
   width: 1rem;
@@ -322,7 +314,6 @@
   border-color: hsl(var(--secondary));
 }
 
-/* Loading spinner */
 .loading-spinner {
   border: 2px solid currentColor;
   border-top-color: transparent;
@@ -349,7 +340,6 @@
   animation: dropIn 0.1s ease-in-out;
 }
 
-/* Progress bar glow effect */
 @keyframes glow {
   0%, 100% {
     opacity: 1;
@@ -451,7 +441,6 @@ input[type="range"].volume-slider::-moz-range-thumb {
   animation-play-state: paused;
 }
 
-/* Mapbox popup styling - match VisitorPopupContent container */
 .mapbox-popup-custom {
   max-width: 500px !important;
 }
@@ -489,12 +478,10 @@ input[type="range"].volume-slider::-moz-range-thumb {
   }
 }
 
-/* Fade out animation when popup is closing */
 .mapbox-popup-custom.mapboxgl-popup-closing .mapboxgl-popup-content {
   animation: fadeOut 0.15s ease-in-out;
 }
 
-/* Remove top-left border radius for top-left anchor */
 .mapbox-popup-custom.mapboxgl-popup-anchor-top-left .mapboxgl-popup-content {
   border-top-left-radius: 0;
 }
@@ -526,7 +513,6 @@ input[type="range"].volume-slider::-moz-range-thumb {
   color: hsl(var(--foreground));
 }
 
-/* Stepper timeline: moving laser beam along the line */
 @keyframes stepper-laser {
   0% {
     top: 0;

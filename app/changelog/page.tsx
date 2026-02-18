@@ -220,7 +220,6 @@ export default function ChangelogPage() {
         className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col gap-20 lg:gap-30`}
       >
         <div className="flex flex-col w-full">
-          {/* Hero Section */}
           <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
             <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-xs font-mono text-stone-600 mb-2">
@@ -237,7 +236,6 @@ export default function ChangelogPage() {
             </div>
           </div>
 
-          {/* Changelog Entries */}
           <div className="w-full">
             <div className="flex flex-col">
               {changelogEntries.map((entry, index) => (
@@ -249,7 +247,6 @@ export default function ChangelogPage() {
                       : ""
                   }`}
                 >
-                  {/* Version Header */}
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h2 className="text-2xl lg:text-3xl font-cooper text-stone-900">
@@ -268,7 +265,6 @@ export default function ChangelogPage() {
                     </p>
                   </div>
 
-                  {/* Changes List */}
                   <div className="flex flex-col gap-3">
                     {entry.changes.map((change, changeIndex) => (
                       <div
@@ -295,7 +291,6 @@ export default function ChangelogPage() {
               ))}
             </div>
 
-            {/* Empty State for Future Updates */}
             <div className="px-6 lg:px-12 py-16 text-center border-t border-stone-200">
               <p className="text-stone-500 text-sm font-mono">
                 More updates coming soon...

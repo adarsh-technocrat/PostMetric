@@ -39,7 +39,6 @@ export async function getWebsiteByTrackingCode(
   await connectDB();
 
   try {
-    // Strip pmid_ prefix if present for lookup (DB stores without prefix)
     const codeForLookup = trackingCode.startsWith("pmid_")
       ? trackingCode.substring(5)
       : trackingCode;
@@ -115,9 +114,6 @@ export async function createWebsite(data: {
   }
 }
 
-/**
- * Update website
- */
 export async function updateWebsite(
   websiteId: string,
   updates: {
@@ -143,9 +139,6 @@ export async function updateWebsite(
   }
 }
 
-/**
- * Delete website
- */
 export async function deleteWebsite(websiteId: string) {
   await connectDB();
 

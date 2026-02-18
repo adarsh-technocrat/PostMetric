@@ -127,7 +127,6 @@ export function Sidebar() {
               Dashboard
             </NavItem>
 
-            {/* Website-specific - only show when a website is selected */}
             {hasWebsiteSelected && (
               <NavSection title="Website" color="amber">
                 <NavItem
@@ -309,7 +308,6 @@ export function Sidebar() {
                 </div>
               </div>
 
-              {/* Nav links */}
               <div className="py-0.5">
                 <Link
                   href="/dashboard/account"
@@ -353,7 +351,6 @@ export function Sidebar() {
 
               <div className="h-px bg-stone-200" />
 
-              {/* Log out */}
               <div className="p-1.5">
                 <button
                   type="button"

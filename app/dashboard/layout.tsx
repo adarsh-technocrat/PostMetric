@@ -52,7 +52,6 @@ export default async function DashboardLayout({
       <div className="max-w-[1600px] mx-auto flex w-full min-h-screen">
         <Sidebar />
         <main className="ml-72 px-4 py-6 grow w-full min-h-screen">
-          {/* Trial Banner */}
           {displayDays > 0 && (
             <Link
               href="/dashboard/billing"

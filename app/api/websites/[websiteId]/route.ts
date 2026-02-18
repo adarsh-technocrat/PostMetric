@@ -115,7 +115,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify ownership
     const website = await getWebsiteById(websiteId);
     if (!website) {
       return NextResponse.json({ error: "Website not found" }, { status: 404 });

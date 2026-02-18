@@ -13,17 +13,14 @@ import { isDemoWebsite } from "@/lib/demo-website";
 import { getDateRangeForPeriod } from "@/lib/date-time-conversion";
 import { type TimeZone } from "timezones-list";
 
-/** Payment amounts are stored in cents; convert to dollars for API response. */
 const CENTS_TO_DOLLARS = 1 / 100;
 
-/** Truncate to start of hour in timezone so buckets align with $dateTrunc(unit: "hour", timezone). */
 function startOfHourInTimezone(date: Date, timezone: string): Date {
   const zoned = toZonedTime(date, timezone);
   zoned.setMinutes(0, 0, 0);
   return fromZonedTime(zoned, timezone);
 }
 
-/** Start of month in timezone (aligns with $dateTrunc unit "month"). */
 function startOfMonthInTimezone(date: Date, timezone: string): Date {
   const zoned = toZonedTime(date, timezone);
   zoned.setDate(1);
@@ -31,7 +28,6 @@ function startOfMonthInTimezone(date: Date, timezone: string): Date {
   return fromZonedTime(zoned, timezone);
 }
 
-/** Start of week (Monday) in timezone (aligns with $dateTrunc unit "week"). */
 function startOfWeekInTimezone(date: Date, timezone: string): Date {
   const y = parseInt(formatInTimeZone(date, timezone, "yyyy"), 10);
   const mo = parseInt(formatInTimeZone(date, timezone, "MM"), 10);

@@ -64,11 +64,9 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
-    // Allow unoptimized images for dynamic domain favicons
     unoptimized: false,
   },
   webpack: (config, { isServer }) => {
-    // Fix for Mapbox GL
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -76,7 +74,6 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Handle Mapbox GL worker files
     config.module.rules.push({
       test: /\.worker\.js$/,
       type: "asset/resource",
@@ -84,7 +81,6 @@ const nextConfig: NextConfig = {
 
     return config;
   },
-  // Turbopack config - empty for now, webpack config above will be used with --webpack flag
   turbopack: {},
 };
 

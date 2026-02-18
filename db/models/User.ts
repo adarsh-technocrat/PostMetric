@@ -11,7 +11,7 @@ export interface IUser extends Document {
     currentPeriodEnd?: Date;
     stripeCustomerId?: string;
     stripeSubscriptionId?: string;
-    volume?: string; // VolumeKey from pricing-tiers
+    volume?: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -60,7 +60,6 @@ const UserSchema = new Schema<IUser>(
   },
 );
 
-// Prevent model re-compilation during hot reload in development
 const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 

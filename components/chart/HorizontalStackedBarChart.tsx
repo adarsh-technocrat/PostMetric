@@ -10,16 +10,14 @@ export interface HorizontalStackedBarChartData {
   [key: string]: string | number | null | undefined;
 }
 
-const REFERENCE_HEIGHT_PX = 384; // h-96
+const REFERENCE_HEIGHT_PX = 384;
 
 interface HorizontalStackedBarChartProps {
   data: HorizontalStackedBarChartData[];
   config: ChartConfig;
   height?: string;
   maxItems?: number;
-  /** When true (default when maxItems is set), fix bar height so each row has the same pixel height. */
   preserveBarSize?: boolean;
-  /** When set, use this count (e.g. 10) for bar height when preserveBarSize, so bar size is consistent when showing more items (e.g. in a details view). */
   barSizeReferenceCount?: number;
   showCard?: boolean;
 }
@@ -33,12 +31,10 @@ export function HorizontalStackedBarChart({
   barSizeReferenceCount,
   showCard = true,
 }: HorizontalStackedBarChartProps) {
-  // Get the data keys from config (excluding name, icon)
   const dataKeys = Object.keys(config).filter(
     (key) => key !== "name" && key !== "icon",
   );
 
-  // Limit data to maxItems
   const displayData = data.slice(0, maxItems);
   const sizeRef = barSizeReferenceCount ?? maxItems;
   const useFixedHeight =
@@ -58,7 +54,6 @@ export function HorizontalStackedBarChart({
   const getIconUrl = (item: HorizontalStackedBarChartData): string | null => {
     if (item.icon) return item.icon;
 
-    // Try to extract domain from name
     const cleanName = item.name
       .replace(/^https?:\/\//, "")
       .replace(/^www\./, "")
@@ -156,11 +151,7 @@ export function HorizontalStackedBarChart({
                 fill={barColor}
                 fillOpacity={barOpacity}
                 maxBarSize={30}
-                radius={
-                  isLast
-                    ? [0, radius, radius, 0] // Rounded on right side (top-right and bottom-right)
-                    : [0, 0, 0, 0] // No radius for bars that aren't the rightmost
-                }
+                radius={isLast ? [0, radius, radius, 0] : [0, 0, 0, 0]}
               >
                 {isFirst && (
                   <LabelList
@@ -190,10 +181,8 @@ export function HorizontalStackedBarChart({
                         );
                       }
 
-                      // Regular label rendering for non-campaign data
                       return (
                         <g>
-                          {/* Icon */}
                           {iconUrl ? (
                             <image
                               x={x}
@@ -202,7 +191,6 @@ export function HorizontalStackedBarChart({
                               height={18}
                               href={iconUrl}
                               onError={(e: any) => {
-                                // Fallback if icon fails to load
                                 e.target.style.display = "none";
                               }}
                             />

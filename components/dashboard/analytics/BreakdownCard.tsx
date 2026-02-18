@@ -35,7 +35,6 @@ interface BreakdownCardProps {
   onTabChange: (tab: string) => void;
   chartType?: "bar" | "pie" | "horizontalBar";
   colors?: string[];
-  /** Website color scheme for revenue in breakdown charts (hex). Defaults to #E78468. */
   colorScheme?: string;
 }
 

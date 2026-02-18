@@ -8,7 +8,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface GoalsCardProps {
   selectedTab: "Goal" | "Funnel" | "Journey";
   onTabChange: (tab: "Goal" | "Funnel" | "Journey") => void;
-  /** When true, hides "Add goal" actions (e.g. for demo/embed). */
   readOnly?: boolean;
 }
 

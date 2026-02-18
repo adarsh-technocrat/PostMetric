@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 interface VolumeSelectorProps {
   value: VolumeKey;
   onChange: (volume: VolumeKey) => void;
-  /** When true, hides the default label (useful when parent provides its own) */
   hideLabel?: boolean;
 }
 
@@ -30,7 +29,6 @@ export function VolumeSelector({
         </p>
       )}
 
-      {/* Desktop: Scale with ticks */}
       <div className="hidden sm:flex flex-col items-center gap-4 w-full">
         <div className="flex items-center justify-center w-full">
           <div
@@ -74,7 +72,6 @@ export function VolumeSelector({
         </div>
       </div>
 
-      {/* Mobile: Dropdown */}
       <div className="sm:hidden w-full max-w-xs mx-auto">
         <select
           value={displayValue}

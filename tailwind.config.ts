@@ -71,9 +71,8 @@ const config: Config = {
           800: "#282828",
           900: "#111827",
         },
-        // Success/Positive (Green)
         success: {
-          DEFAULT: "#10B981", // Green for positive indicators, checkmarks
+          DEFAULT: "#10B981",
           50: "#ECFDF5",
           100: "#D1FAE5",
           200: "#A7F3D0",
@@ -85,9 +84,8 @@ const config: Config = {
           800: "#065F46",
           900: "#064E3B",
         },
-        // Danger/Negative (Red)
         danger: {
-          DEFAULT: "#EF4444", // Red for negative indicators, errors
+          DEFAULT: "#EF4444",
           50: "#FEF2F2",
           100: "#FEE2E2",
           200: "#FECACA",
@@ -99,27 +97,23 @@ const config: Config = {
           800: "#991B1B",
           900: "#7F1D1D",
         },
-        // Background colors
         background: {
-          DEFAULT: "#FFFFFF", // White background for most sections
-          secondary: "#FBFAF9", // Off-white for subtle backgrounds
-          dark: "#282828", // Dark background for footer
+          DEFAULT: "#FFFFFF",
+          secondary: "#FBFAF9",
+          dark: "#282828",
         },
-        // Text colors
         text: {
-          primary: "#282828", // Dark text for headings and body
-          secondary: "#9CA3AF", // Gray text for secondary content
-          muted: "#6B7280", // Muted text
-          inverse: "#FFFFFF", // White text for dark backgrounds
+          primary: "#282828",
+          secondary: "#9CA3AF",
+          muted: "#6B7280",
+          inverse: "#FFFFFF",
         },
-        // Border colors
         border: {
-          DEFAULT: "#E5E7EB", // Light gray for borders
-          light: "#E0E0E0", // Lighter gray
-          medium: "#CCCCCC", // Medium gray
-          dark: "#9CA3AF", // Darker gray
+          DEFAULT: "#E5E7EB",
+          light: "#E0E0E0",
+          medium: "#CCCCCC",
+          dark: "#9CA3AF",
         },
-        // Legacy aliases for backward compatibility
         secondary: "#282828",
         textPrimary: "#282828",
         textSecondary: "#9CA3AF",
@@ -139,8 +133,8 @@ const config: Config = {
         ],
       },
       borderRadius: {
-        card: "0.75rem", // Consistent rounded corners for cards
-        button: "0.5rem", // Rounded corners for buttons
+        card: "0.75rem",
+        button: "0.5rem",
       },
       boxShadow: {
         card: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
@@ -150,8 +144,8 @@ const config: Config = {
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       },
       spacing: {
-        section: "5rem", // Generous vertical spacing between sections
-        "card-padding": "1.5rem", // Consistent padding for cards
+        section: "5rem",
+        "card-padding": "1.5rem",
         30: "7.5rem",
         100: "25rem",
       },

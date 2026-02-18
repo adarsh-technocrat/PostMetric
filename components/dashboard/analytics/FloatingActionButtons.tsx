@@ -28,9 +28,7 @@ interface FloatingActionButtonsProps {
   onOpenInsights?: () => void;
   onOpenAlerts?: () => void;
   feedbackUrl?: string;
-  /** Set to false to hide the Alerts FAB (e.g. in demo/embed). Default true. */
   showAlerts?: boolean;
-  /** Set to false to hide the Suggest a feature FAB (e.g. in demo/embed). Default true. */
   showFeedback?: boolean;
 }
 
