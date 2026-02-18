@@ -9,6 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        popular: "#625fff",
         brand: {
           50: "#F5F5FF",
           100: "#EBEBFF",

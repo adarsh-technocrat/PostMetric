@@ -214,91 +214,93 @@ function getChangeLabel(type: ChangelogEntry["changes"][0]["type"]) {
 
 export default function ChangelogPage() {
   return (
-    <div className="flex flex-col w-full items-center min-h-screen antialiased font-sans bg-stone-50">
+    <div className="flex flex-col w-full items-center min-h-screen bg-stone-50">
       <Navbar />
       <main
-        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-white`}
+        className={`items-center w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col gap-20 lg:gap-30`}
       >
-        {/* Hero Section */}
-        <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
-          <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-xs font-mono text-stone-600 mb-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Product Updates
-            </div>
-            <h1 className="font-cooper text-[32px] lg:text-[48px] leading-tight text-stone-900">
-              Changelog
-            </h1>
-            <p className="text-stone-500 text-lg lg:text-xl leading-relaxed max-w-xl">
-              Stay up to date with the latest features, improvements, and fixes
-              to Postmetric.
-            </p>
-          </div>
-        </div>
-
-        {/* Changelog Entries */}
-        <div className="w-full">
-          <div className="flex flex-col">
-            {changelogEntries.map((entry, index) => (
-              <div
-                key={entry.version}
-                className={`flex flex-col gap-6 p-6 lg:p-12 ${
-                  index !== changelogEntries.length - 1
-                    ? "border-b border-stone-200"
-                    : ""
-                }`}
-              >
-                {/* Version Header */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-2xl lg:text-3xl font-cooper text-stone-900">
-                      Version {entry.version}
-                    </h2>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-mono uppercase border ${getTypeColor(
-                        entry.type,
-                      )}`}
-                    >
-                      {entry.type}
-                    </span>
-                  </div>
-                  <p className="text-sm text-stone-500 font-mono">
-                    {entry.date}
-                  </p>
-                </div>
-
-                {/* Changes List */}
-                <div className="flex flex-col gap-3">
-                  {entry.changes.map((change, changeIndex) => (
-                    <div
-                      key={changeIndex}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-stone-50 border border-stone-100 hover:bg-stone-100 transition-colors"
-                    >
-                      <div className="flex-shrink-0 mt-0.5">
-                        {getChangeIcon(change.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-mono uppercase text-stone-600 font-semibold">
-                            {getChangeLabel(change.type)}
-                          </span>
-                        </div>
-                        <p className="text-stone-700 leading-relaxed">
-                          {change.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div className="flex flex-col w-full">
+          {/* Hero Section */}
+          <div className="w-full px-6 lg:px-12 py-16 lg:py-24 border-b border-stone-200">
+            <div className="flex flex-col gap-4 items-center text-center max-w-2xl mx-auto">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-xs font-mono text-stone-600 mb-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Product Updates
               </div>
-            ))}
+              <h1 className="font-cooper text-[32px] lg:text-[48px] leading-tight text-stone-900">
+                Changelog
+              </h1>
+              <p className="text-stone-500 text-lg lg:text-xl leading-relaxed max-w-xl">
+                Stay up to date with the latest features, improvements, and
+                fixes to Postmetric.
+              </p>
+            </div>
           </div>
 
-          {/* Empty State for Future Updates */}
-          <div className="px-6 lg:px-12 py-16 text-center border-t border-stone-200">
-            <p className="text-stone-500 text-sm font-mono">
-              More updates coming soon...
-            </p>
+          {/* Changelog Entries */}
+          <div className="w-full">
+            <div className="flex flex-col">
+              {changelogEntries.map((entry, index) => (
+                <div
+                  key={entry.version}
+                  className={`flex flex-col gap-6 p-6 lg:p-12 ${
+                    index !== changelogEntries.length - 1
+                      ? "border-b border-stone-200"
+                      : ""
+                  }`}
+                >
+                  {/* Version Header */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h2 className="text-2xl lg:text-3xl font-cooper text-stone-900">
+                        Version {entry.version}
+                      </h2>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-mono uppercase border ${getTypeColor(
+                          entry.type,
+                        )}`}
+                      >
+                        {entry.type}
+                      </span>
+                    </div>
+                    <p className="text-sm text-stone-500 font-mono">
+                      {entry.date}
+                    </p>
+                  </div>
+
+                  {/* Changes List */}
+                  <div className="flex flex-col gap-3">
+                    {entry.changes.map((change, changeIndex) => (
+                      <div
+                        key={changeIndex}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-stone-50 border border-stone-100 hover:bg-stone-100 transition-colors"
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getChangeIcon(change.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono uppercase text-stone-600 font-semibold">
+                              {getChangeLabel(change.type)}
+                            </span>
+                          </div>
+                          <p className="text-stone-700 leading-relaxed">
+                            {change.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Empty State for Future Updates */}
+            <div className="px-6 lg:px-12 py-16 text-center border-t border-stone-200">
+              <p className="text-stone-500 text-sm font-mono">
+                More updates coming soon...
+              </p>
+            </div>
           </div>
         </div>
 

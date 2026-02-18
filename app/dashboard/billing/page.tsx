@@ -1,167 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import { ManageBillingButton } from "@/components/billing/ManageBillingButton";
 import { FAQ } from "@/components/ui/faq";
 import { billingFAQItems } from "@/lib/faq-data";
+import {
+  getPriceForVolume,
+  getTierByVolume,
+} from "@/lib/billing/pricing-tiers";
+import type { VolumeKey } from "@/lib/billing/pricing-tiers";
+import { VolumeSelector } from "@/components/billing/VolumeSelector";
 
 export default function BillingPage() {
+  const [showSuccess, setShowSuccess] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly",
   );
-  const [selectedVolume, setSelectedVolume] = useState("10K");
+  const [selectedVolume, setSelectedVolume] = useState<VolumeKey>("10K");
 
-  const baseStarterMonthly = 9;
-  const baseGrowthMonthly = 19;
-
-  const starterMonthly = baseStarterMonthly;
-  const growthMonthly = baseGrowthMonthly;
+  const tier = getTierByVolume(selectedVolume);
+  const starterPrice = getPriceForVolume(
+    selectedVolume,
+    "starter",
+    billingPeriod,
+  );
+  const growthPrice = getPriceForVolume(selectedVolume, "pro", billingPeriod);
+  const starterMonthly = tier.starterMonthly;
+  const growthMonthly = tier.growthMonthly;
   const starterYearly = starterMonthly * 10;
   const growthYearly = growthMonthly * 10;
-
-  const starterPrice =
-    billingPeriod === "monthly" ? starterMonthly : starterYearly;
-  const growthPrice =
-    billingPeriod === "monthly" ? growthMonthly : growthYearly;
-
   const starterYearlySavings = starterMonthly * 12 - starterYearly;
   const growthYearlySavings = growthMonthly * 12 - growthYearly;
 
   const plans = [
     {
+      id: "starter" as const,
       name: "Starter",
       price: starterPrice,
       monthlyPrice: starterMonthly,
       yearlySavings: starterYearlySavings,
-      eventLimit: "10k monthly events",
+      eventLimit: tier.label,
       features: [
-        { text: "10k monthly events", included: true },
+        { text: tier.label, included: true },
         { text: "1 website", included: true },
         { text: "1 team member", included: true },
         { text: "3 years of data retention", included: true },
         { text: "Mentions and link attribution for 𝕏", included: false },
       ],
       buttonText: "Get Started",
-      buttonLink: "/dashboard/new",
-      priceId: "price_1PjYvqEIeBR5XIjfRwXlMnGp",
       isPopular: false,
     },
     {
+      id: "pro" as const,
       name: "Growth",
       price: growthPrice,
       monthlyPrice: growthMonthly,
       yearlySavings: growthYearlySavings,
-      eventLimit: "10k monthly events",
+      eventLimit: tier.label,
       features: [
-        { text: "10k monthly events", included: true },
+        { text: tier.label, included: true },
         { text: "30 websites", included: true },
         { text: "30 team members", included: true },
         { text: "5+ years of data retention", included: true },
         { text: "Mentions and link attribution for 𝕏", included: true },
       ],
       buttonText: "Get Started",
-      buttonLink: "/dashboard/new",
-      priceId: "price_1SImzbEIeBR5XIjf7IqKjV6D",
       isPopular: true,
     },
   ];
 
-  const volumes = [
-    "1K",
-    "5K",
-    "10K",
-    "25K",
-    "50K",
-    "75K",
-    "100K",
-    "250K",
-    "500K",
-    "750K",
-    "1M",
-    "1M+",
-  ];
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      setShowSuccess(true);
+      window.history.replaceState({}, "", "/dashboard/billing");
+      const t = setTimeout(() => setShowSuccess(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-8 md:px-8">
       <div className="mx-auto max-w-4xl">
+        <div className="mb-6 flex flex-col items-end gap-2">
+          {showSuccess && (
+            <p className="text-sm text-lime-600 font-medium">
+              Payment successful. Your subscription is now active.
+            </p>
+          )}
+          <ManageBillingButton />
+        </div>
         <div className="flex flex-col w-full items-center">
           <div className="flex flex-col w-full">
             <div className="flex flex-col items-center w-full gap-6">
               <div className="flex flex-col items-center gap-10 w-full">
                 <div className="flex flex-col items-center gap-10 w-full">
                   <div className="flex flex-col gap-10 w-full md:px-6 px-4">
-                    <div className="lg:flex flex-col items-center gap-4 w-full hidden">
-                      <div className="flex flex-col items-center gap-1">
-                        <p className="text-stone-500 font-normal text-xs">
-                          Select your monthly event volume
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-center w-full">
-                        <div className="grid grid-cols-12 w-full justify-around relative isolate">
-                          {volumes.map((volume) => (
-                            <Button
-                              key={volume}
-                              type="button"
-                              variant="ghost"
-                              onClick={() => setSelectedVolume(volume)}
-                              className="relative flex flex-col items-center justify-items-start cursor-pointer group gap-1 w-full h-auto py-0"
-                            >
-                              <p
-                                className={`text-xs transition-colors duration-200 leading-5 ${
-                                  selectedVolume === volume
-                                    ? "text-brand-600 font-semibold scale-110"
-                                    : "text-stone-500 group-hover:text-brand-600 font-normal group-hover:font-medium"
-                                }`}
-                              >
-                                {volume}
-                              </p>
-                              <div className="flex items-center justify-center h-6">
-                                <div
-                                  className={`w-0.5 transition-all duration-200 ${
-                                    selectedVolume === volume
-                                      ? "bg-brand-600 h-6"
-                                      : "bg-stone-400 group-hover:bg-brand-600 group-hover:scale-y-120 h-3"
-                                  }`}
-                                ></div>
-                              </div>
-                            </Button>
-                          ))}
-                          <div className="w-full absolute bottom-2.5 -z-10">
-                            <div className="h-0.5 bg-stone-200 w-full"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Volume Selector - Mobile */}
-                    <div className="flex flex-col gap-4 lg:hidden">
-                      <div className="grid grid-cols-2 gap-4 w-full">
-                        <p className="text-stone-800 font-medium text-sm">
-                          Monthly events
-                        </p>
-                        <div className="flex flex-col gap-1">
-                          <select
-                            value={selectedVolume}
-                            onChange={(e) => setSelectedVolume(e.target.value)}
-                            className="w-full py-1.5 min-h-9 outline-none text-sm rounded-lg border border-stone-300 px-3 bg-white focus:border-brand-500 transition-all duration-100"
-                          >
-                            <option value="1K">1,000</option>
-                            <option value="5K">5,000</option>
-                            <option value="10K">10,000</option>
-                            <option value="25K">25,000</option>
-                            <option value="50K">50,000</option>
-                            <option value="75K">75,000</option>
-                            <option value="100K">100,000</option>
-                            <option value="250K">250,000</option>
-                            <option value="500K">500,000</option>
-                            <option value="750K">750,000</option>
-                            <option value="1M">1,000,000</option>
-                            <option value="1M+">1,000,000+</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
+                    <VolumeSelector
+                      value={selectedVolume}
+                      onChange={setSelectedVolume}
+                    />
                   </div>
 
                   {/* Billing Period Toggle */}
@@ -255,15 +196,15 @@ export default function BillingPage() {
                             </div>
                           </div>
                           <div className="w-full">
-                            <Link
-                              href={plan.buttonLink}
-                              className={`w-full md:px-6 group px-4 py-3 h-11 flex items-center justify-center font-semibold transition-all ${
+                            <CheckoutButton
+                              planId={plan.id}
+                              billingPeriod={billingPeriod}
+                              volume={selectedVolume}
+                              className={`w-full md:px-6 group px-4 py-3 h-11 flex items-center justify-center font-semibold transition-all rounded-md ${
                                 plan.isPopular
-                                  ? "bg-brand-500 hover:bg-brand-600 text-white"
+                                  ? "!bg-brand-500 hover:!bg-brand-600 text-white"
                                   : "bg-stone-800 hover:bg-stone-900 text-white"
                               }`}
-                              data-postmetric-goal="checkout_button_clicked"
-                              data-postmetric-goal-price-id={plan.priceId}
                             >
                               <div className="flex items-center justify-between w-full">
                                 <span className="font-mono uppercase text-xs text-white">
@@ -286,7 +227,7 @@ export default function BillingPage() {
                                   />
                                 </svg>
                               </div>
-                            </Link>
+                            </CheckoutButton>
                           </div>
                           <div className="flex flex-col gap-3 py-6 px-4 md:px-6">
                             {index === 1 ? (

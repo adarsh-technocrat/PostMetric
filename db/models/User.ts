@@ -9,6 +9,9 @@ export interface IUser extends Document {
     status: "trial" | "active" | "cancelled";
     trialEndsAt?: Date;
     currentPeriodEnd?: Date;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    volume?: string; // VolumeKey from pricing-tiers
   };
   createdAt: Date;
   updatedAt: Date;
@@ -47,11 +50,14 @@ const UserSchema = new Schema<IUser>(
       currentPeriodEnd: {
         type: Date,
       },
+      stripeCustomerId: { type: String },
+      stripeSubscriptionId: { type: String },
+      volume: { type: String },
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Prevent model re-compilation during hot reload in development
