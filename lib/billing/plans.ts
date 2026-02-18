@@ -29,8 +29,8 @@ function envKey(
 
 /**
  * Get Stripe Price ID for the given plan, billing period, and volume tier.
- * Env vars: STRIPE_STARTER_10K_MONTHLY, STRIPE_PRO_25K_YEARLY, etc.
- * Falls back to base 10K IDs (STRIPE_STARTER_PRICE_ID_MONTHLY) when volume-specific not set.
+ * Env vars: STRIPE_STARTER_10K_MONTHLY, STRIPE_PRO_50K_YEARLY, etc.
+ * Run: ./scripts/create-stripe-products.sh --write (test) or --live --write (prod)
  */
 export function getPriceId(
   planId: PlanId,
@@ -52,7 +52,11 @@ export function getPriceId(
         : billingPeriod === "monthly"
           ? "STRIPE_PRO_PRICE_ID_MONTHLY"
           : "STRIPE_PRO_PRICE_ID_YEARLY";
-    return process.env[baseKey] || "";
+    const baseValue = process.env[baseKey];
+    if (baseValue) return baseValue;
   }
-  return getPriceId(planId, billingPeriod, "10K");
+  throw new Error(
+    `Missing Stripe price for ${plan} ${effectiveVolume} ${billingPeriod}. ` +
+      `Add ${key} to .env.local. Run: ./scripts/create-stripe-products.sh --write`,
+  );
 }
