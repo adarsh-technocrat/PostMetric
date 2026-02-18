@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 export function TestimonialsSection() {
   return (
-    <div className="flex flex-col py-24 px-4 lg:px-6 gap-12 border-b border-stone-200">
+    <div className="flex flex-col py-24 px-4 lg:px-6 gap-12">
       {/* Section Header */}
       <div className="flex flex-col gap-4 items-center text-center">
         <p className="text-stone-800 font-normal text-xs uppercase font-mono leading-4 tracking-wider">

@@ -14,33 +14,29 @@ import { Footer } from "@/components/landing/Footer";
 
 export default function Home() {
   return (
-    <div className="antialiased font-sans bg-stone-50">
-      <div className="w-full flex flex-col items-center">
-        <Navbar />
-        <div
-          className={`${LANDING_MAX_W} w-full border-x border-stone-200 flex flex-col bg-transparent`}
-        >
-          <HeroSection />
-          <DashboardPreview />
-          <FeatureCards />
-        </div>
-        <div
-          className={`${LANDING_MAX_W} w-full border-x border-stone-200 bg-stone-50`}
-        >
-          <IntegrationsSection />
-        </div>
-        <div
-          className={`${LANDING_MAX_W} w-full border-x border-stone-200 bg-transparent`}
-        >
-          <InsightsSection />
-          <RevenueTrackingSection />
-          <FeaturesGrid />
-          <PricingSection />
-          <TestimonialsSection />
-          <CTASection />
-          <Footer />
-        </div>
-      </div>
+    <div className="antialiased font-sans flex flex-col w-full items-center min-h-screen bg-stone-50">
+      <Navbar />
+      <main
+        className={`w-full ${LANDING_MAX_W} border-x border-stone-200 flex flex-col bg-stone-50`}
+      >
+        <HeroSection />
+        <div className="w-full border-b border-stone-200" />
+        <DashboardPreview />
+        <div className="w-full border-b border-stone-200" />
+        <FeatureCards />
+        <div className="w-full border-b border-stone-200" />
+        <IntegrationsSection />
+        <InsightsSection />
+        <RevenueTrackingSection />
+        <FeaturesGrid />
+        <PricingSection />
+        <div className="w-full border-b border-stone-200" />
+        <TestimonialsSection />
+        <div className="w-full border-b border-stone-200" />
+        <CTASection />
+        <div className="w-full border-b border-stone-200" />
+        <Footer />
+      </main>
     </div>
   );
 }

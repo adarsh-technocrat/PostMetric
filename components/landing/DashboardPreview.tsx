@@ -47,7 +47,7 @@ export function DashboardPreview() {
             className="group relative mx-auto flex aspect-[5/3.6] flex-col overflow-hidden rounded-xl border border-stone-200 bg-white dark:bg-stone-900 dark:border-stone-700 shadow-card"
             id="demo-container"
           >
-            <div className="relative z-10 flex w-full items-center border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-2.5 shadow-[0_1px_1px_rgba(0,0,0,0.06)]">
+            <div className="relative z-10 flex w-full items-center bg-white dark:bg-stone-900 px-4 py-2.5 shadow-[0_1px_1px_rgba(0,0,0,0.06)]">
               <div className="absolute left-4 top-1/2 flex -translate-y-1/2 items-center justify-start gap-1.5">
                 <span className="size-2.5 rounded-full bg-red-400" />
                 <span className="size-2.5 rounded-full bg-amber-400" />

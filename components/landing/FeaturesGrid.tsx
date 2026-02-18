@@ -186,36 +186,47 @@ const FEATURES = [
 
 export function FeaturesGrid() {
   return (
-    <div className="flex flex-col gap-10 py-24 border-t border-stone-200">
-      <div className="flex flex-col gap-4 items-center justify-center">
-        <p className="text-stone-800 font-normal text-xs uppercase font-mono leading-4 tracking-wider">
-          Features
-        </p>
-        <div className="flex flex-col gap-2 items-center max-w-md">
-          <h3 className="text-stone-800 font-normal text-3xl font-cooper text-center leading-tight">
-            Insights plus the actions to take
-          </h3>
+    <div className="flex flex-col w-full items-center">
+      <div className="flex flex-col w-full max-w-4xl md:border-x border-stone-200">
+        <div className="py-6 px-4 lg:px-20 lg:py-20 flex flex-col gap-6 items-center lg:pb-12">
+          <div className="flex flex-col gap-3 items-center">
+            <h1 className="font-cooper text-[28px] lg:text-[40px] leading-8 lg:leading-tight text-center text-balance text-stone-800">
+              Insights plus the actions to take
+            </h1>
+            <h2 className="text-center text-balance lg:whitespace-pre-line whitespace-normal leading-6 text-stone-500 text-base lg:text-lg max-w-md">
+              Don&apos;t just see the data—get clear next steps.
+              <br className="md:block hidden" />
+              Postmetric analyzes your analytics and nudges you with actions to
+              convert more visitors.
+            </h2>
+          </div>
         </div>
       </div>
-      <ul className="grid w-full grid-cols-2 lg:grid-cols-3 border-t border-b border-stone-200 gap-px bg-stone-200">
-        {FEATURES.map((feature, index) => {
-          return (
-            <li key={index} className="bg-white h-full flex flex-col">
-              <div className="flex flex-col gap-3 py-4 px-4 lg:px-6">
-                <span className="text-stone-800">{feature.icon}</span>
-                <div className="flex flex-col gap-2">
-                  <p className="text-stone-800 font-medium text-sm font-mono leading-5 uppercase">
-                    {feature.title}
-                  </p>
-                  <p className="text-stone-500 font-normal text-sm leading-5 text-justify">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="w-full border-b border-stone-200" />
+      <div className="flex flex-col w-full max-w-4xl md:border-x border-stone-200">
+        <div className="flex flex-col items-center w-full">
+          <ul className="grid w-full grid-cols-2 lg:grid-cols-3 max-w-full border-t border-stone-200 gap-px bg-stone-200">
+            {FEATURES.map((feature, index) => {
+              return (
+                <li key={index} className="bg-white h-full flex flex-col">
+                  <div className="flex flex-col gap-3 py-4 px-4 lg:px-6">
+                    <span className="text-stone-800">{feature.icon}</span>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-stone-800 font-medium text-sm font-mono leading-5 uppercase">
+                        {feature.title}
+                      </p>
+                      <p className="text-stone-500 font-normal text-sm leading-5 text-justify">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+      <div className="w-full border-b border-stone-200" />
     </div>
   );
 }

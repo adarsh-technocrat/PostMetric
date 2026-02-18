@@ -13,7 +13,7 @@ const AVATAR_USERS = [
 
 export function CTASection() {
   return (
-    <div className="flex lg:flex-row flex-col px-6 lg:px-12 py-12 gap-8 border-y border-stone-200 bg-white items-center">
+    <div className="flex lg:flex-row flex-col px-6 lg:px-12 py-12 gap-8 bg-white items-center">
       <div className="flex flex-col gap-4 flex-1">
         <h2 className="text-stone-800 font-normal text-3xl font-cooper leading-tight text-center lg:text-start">
           Ready to turn insights into action?
