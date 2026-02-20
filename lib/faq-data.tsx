@@ -253,15 +253,20 @@ export const billingFAQItems: FAQItem[] = [
     question: "Do you have an affiliate program?",
     answer: (
       <>
-        Yep! You get 50% commission for every payments (up to 12 months). You
-        can{" "}
+        Yes! We offer 60% commission for 24 months, 90-day cookie, and payouts
+        on recurring subscriptions.{" "}
+        <Link className="link" href="/affiliate">
+          Learn more
+        </Link>{" "}
+        or{" "}
         <Link
           className="link"
           href="https://postmetric.getrewardful.com/signup"
           target="_blank"
         >
-          sign-up here
+          sign up here
         </Link>
+        .
       </>
     ),
   },

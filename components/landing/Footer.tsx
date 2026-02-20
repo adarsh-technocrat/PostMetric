@@ -62,25 +62,25 @@ export function Footer() {
           </p>
           <div className="flex flex-col gap-2">
             <Link
-              href="#"
+              href="/pricing"
               className="hover:text-brand-600 font-normal text-sm transition-colors text-stone-600"
             >
               Pricing
             </Link>
             <Link
-              href="#"
+              href="/#features"
               className="hover:text-brand-600 font-normal text-sm transition-colors text-stone-600"
             >
               Features
             </Link>
             <Link
-              href="#"
+              href="/affiliate"
               className="hover:text-brand-600 font-normal text-sm transition-colors text-stone-600"
             >
-              Integrations
+              Affiliate
             </Link>
             <Link
-              href="#"
+              href="/changelog"
               className="hover:text-brand-600 font-normal text-sm transition-colors text-stone-600"
             >
               Changelog

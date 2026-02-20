@@ -102,6 +102,16 @@ export function getWebSiteSchema() {
             description: "Analytics insights and guides",
           },
         },
+        {
+          "@type": "ListItem",
+          position: 5,
+          item: {
+            "@type": "WebPage",
+            name: "Affiliate Program",
+            url: `${SEO_BASE_URL}/affiliate`,
+            description: "Earn 60% commission for 24 months",
+          },
+        },
       ],
     },
   };
