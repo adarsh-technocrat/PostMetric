@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
@@ -11,6 +12,33 @@ import { PricingSection } from "@/components/landing/pricing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
+import { SEO_BASE_URL } from "@/lib/seo/constants";
+
+export const metadata: Metadata = {
+  title: "Google Analytics Alternative | Revenue Attribution",
+  description:
+    "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration. For startups, SaaS, and ecommerce.",
+  keywords: [
+    "Google Analytics alternative",
+    "revenue attribution",
+    "cookie-free analytics",
+    "which marketing channels drive revenue",
+    "traffic sources revenue",
+    "Stripe analytics",
+    "marketing analytics",
+    "privacy-first analytics",
+    "GDPR compliant analytics",
+    "startup analytics",
+  ],
+  alternates: { canonical: SEO_BASE_URL },
+  openGraph: {
+    title:
+      "Google Analytics Alternative | Revenue Attribution & Cookie-Free Analytics | PostMetric",
+    description:
+      "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
+    url: SEO_BASE_URL,
+  },
+};
 
 export default function Home() {
   return (

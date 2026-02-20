@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
 import { LANDING_MAX_W } from "@/lib/landing-layout";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { NewsletterSubscription } from "@/components/landing/NewsletterSubscription";
 import Link from "next/link";
 import { blogPosts } from "@/lib/blog-data";
+import { SEO_BASE_URL } from "@/lib/seo/constants";
+
+export const metadata: Metadata = {
+  title: "Blog",
+  description:
+    "Insights that turn into action—revenue, channels, and clear next steps to convert more visitors into paying customers.",
+  alternates: { canonical: `${SEO_BASE_URL}/blog` },
+  openGraph: {
+    title: "Blog | PostMetric",
+    description:
+      "Insights that turn into action—revenue, channels, and clear next steps to convert more visitors into paying customers.",
+    url: `${SEO_BASE_URL}/blog`,
+  },
+};
 
 export default function BlogPage() {
   return (

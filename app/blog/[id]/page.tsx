@@ -6,6 +6,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { NewsletterSubscription } from "@/components/landing/NewsletterSubscription";
 import { getBlogPostById, getBlogPostIds } from "@/lib/blog-data";
+import { SEO_BASE_URL } from "@/lib/seo/constants";
 
 function BackIcon({ className }: { className?: string }) {
   return (
@@ -60,16 +61,25 @@ export async function generateMetadata({
   const { id } = await params;
   const post = getBlogPostById(Number(id));
   if (!post) return { title: "Post not found | Postmetric Blog" };
+  const url = `${SEO_BASE_URL}/blog/${id}`;
   return {
-    title: `${post.title} | Postmetric Blog`,
+    title: post.title,
     description: post.excerpt,
-    openGraph: post.heroImage
-      ? {
-          images: [
-            { url: post.heroImage, alt: post.heroImageAlt ?? post.title },
-          ],
-        }
-      : undefined,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${post.title} | Postmetric Blog`,
+      description: post.excerpt,
+      url,
+      type: "article",
+      images: post.heroImage
+        ? [{ url: post.heroImage, alt: post.heroImageAlt ?? post.title }]
+        : undefined,
+    },
+    twitter: {
+      card: post.heroImage ? "summary_large_image" : "summary",
+      title: `${post.title} | Postmetric Blog`,
+      description: post.excerpt,
+    },
   };
 }
 
