@@ -29,15 +29,14 @@ export async function GET(
     }
 
     const isDemo = isDemoWebsite(websiteId);
+    const userId = await getUserId();
     if (!isDemo) {
-      const userId = await getUserId();
       if (!userId || website.userId.toString() !== userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
       }
     }
 
     const sanitizedWebsite = sanitizeWebsiteForFrontend(website);
-
     return NextResponse.json({ website: sanitizedWebsite }, { status: 200 });
   } catch (error) {
     return NextResponse.json(

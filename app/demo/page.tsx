@@ -13,7 +13,6 @@ import { GranularitySelector } from "@/components/dashboard/analytics/Granularit
 import { MetricsList } from "@/components/dashboard/analytics/MetricsList";
 import { BreakdownCard } from "@/components/dashboard/analytics/BreakdownCard";
 import { GoalsCard } from "@/components/dashboard/analytics/GoalsCard";
-import { WaitingForEventsBanner } from "@/components/dashboard/analytics/WaitingForEventsBanner";
 import { FloatingActionButtons } from "@/components/dashboard/analytics/FloatingActionButtons";
 import { RealtimeMapDialog } from "@/components/dashboard/analytics/RealtimeMapDialog";
 import { InsightsDialog } from "@/components/dashboard/analytics/InsightsDialog";
@@ -114,13 +113,6 @@ export default function DemoPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2 min-w-0">
-            <WaitingForEventsBanner
-              chartData={chartData}
-              loading={analytics.loading}
-              domain={website?.domain}
-              websiteId={DEMO_WEBSITE_ID}
-              colorScheme={colorScheme}
-            />
             <section className="custom-card group rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">
               <MetricsList
                 visitors={metricsData.visitors}

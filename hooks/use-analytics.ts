@@ -1,40 +1,77 @@
 import { useEffect, useRef } from "react";
+import { createSelector } from "@reduxjs/toolkit";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchAnalytics } from "@/store/slices/analyticsSlice";
+import {
+  fetchAnalytics,
+  type WebsiteAnalytics,
+} from "@/store/slices/analyticsSlice";
+
+const selectAnalyticsCache = new Map<
+  string,
+  (state: {
+    analytics: {
+      byWebsiteId: Record<string, unknown>;
+      breakdownsByWebsiteId: Record<string, unknown>;
+    };
+  }) => unknown
+>();
+
+function getSelectAnalytics(websiteId: string) {
+  if (!selectAnalyticsCache.has(websiteId)) {
+    selectAnalyticsCache.set(
+      websiteId,
+      createSelector(
+        [
+          (state: {
+            analytics: {
+              byWebsiteId: Record<string, unknown>;
+              breakdownsByWebsiteId: Record<string, unknown>;
+            };
+          }) => state.analytics.byWebsiteId[websiteId],
+          (state: {
+            analytics: { breakdownsByWebsiteId: Record<string, unknown> };
+          }) => state.analytics.breakdownsByWebsiteId[websiteId],
+        ],
+        (websiteData, breakdownsFromStore) => {
+          const breakdowns =
+            breakdownsFromStore ??
+            (websiteData as { breakdowns?: unknown })?.breakdowns ??
+            null;
+          if (websiteData) {
+            return { ...(websiteData as object), breakdowns };
+          }
+          return {
+            chartData: [],
+            metrics: null,
+            percentageChange: null,
+            revenueBreakdown: null,
+            breakdowns: breakdownsFromStore ?? null,
+            loading: false,
+            error: null,
+            lastFetched: null,
+            currentStartDate: null,
+            currentEndDate: null,
+            currentGranularity: "daily" as const,
+          };
+        },
+      ),
+    );
+  }
+  return selectAnalyticsCache.get(websiteId)!;
+}
 
 export function useAnalytics(
   websiteId: string,
   options?: {
     customDateRange?: { startDate: Date; endDate: Date };
     disableAutoFetch?: boolean;
-    period?: string; // Optional period override
-    granularity?: "hourly" | "daily" | "weekly" | "monthly"; // Optional granularity override
+    period?: string;
+    granularity?: "hourly" | "daily" | "weekly" | "monthly";
   },
-) {
+): WebsiteAnalytics & { refetch: () => void } {
   const dispatch = useAppDispatch();
-  const analytics = useAppSelector((state) => {
-    const websiteData = state.analytics.byWebsiteId[websiteId];
-    const breakdowns =
-      state.analytics.breakdownsByWebsiteId[websiteId] ??
-      websiteData?.breakdowns ??
-      null;
-    if (websiteData) {
-      return { ...websiteData, breakdowns };
-    }
-    return {
-      chartData: [],
-      metrics: null,
-      percentageChange: null,
-      revenueBreakdown: null,
-      breakdowns,
-      loading: false,
-      error: null,
-      lastFetched: null,
-      currentStartDate: null,
-      currentEndDate: null,
-      currentGranularity: "daily" as const,
-    };
-  });
+  const selectAnalytics = getSelectAnalytics(websiteId);
+  const analytics = useAppSelector(selectAnalytics);
   const selectedPeriod = useAppSelector((state) => state.ui.selectedPeriod);
   const selectedGranularity = useAppSelector(
     (state) => state.ui.selectedGranularity,
@@ -180,8 +217,10 @@ export function useAnalytics(
     options?.disableAutoFetch,
   ]);
 
+  const analyticsData = (analytics ?? {}) as WebsiteAnalytics;
   return {
-    ...analytics,
+    ...analyticsData,
+    loading: analyticsData.loading ?? false,
     refetch: () => {
       if (!websiteId) return;
       const granularityValue = getGranularity(granularity);
@@ -203,5 +242,5 @@ export function useAnalytics(
         }),
       );
     },
-  };
+  } as WebsiteAnalytics & { refetch: () => void };
 }

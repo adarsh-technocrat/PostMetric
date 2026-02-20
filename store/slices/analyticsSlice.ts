@@ -42,9 +42,8 @@ export const fetchAnalytics = createAsyncThunk(
 
       const response = await fetch(
         `/api/websites/${websiteId}/analytics?${params.toString()}`,
-        { signal },
+        { signal, credentials: "include" },
       );
-
       if (!response.ok) {
         throw new Error("Failed to fetch analytics");
       }
@@ -85,7 +84,7 @@ export const fetchBreakdown = createAsyncThunk(
     }
     const response = await fetch(
       `/api/websites/${websiteId}/analytics/breakdowns/${breakdown}?${params.toString()}`,
-      { signal },
+      { signal, credentials: "include" },
     );
     if (!response.ok) {
       throw new Error("Failed to fetch breakdown");
@@ -129,7 +128,7 @@ interface BreakdownData {
 
 export type PercentageChangeMap = Record<string, string | null>;
 
-interface WebsiteAnalytics {
+export interface WebsiteAnalytics {
   chartData: ChartDataPoint[];
   metrics: {
     visitors: string;

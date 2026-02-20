@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { adminAuth } from "@/lib/firebase/admin";
+import { DEMO_WEBSITE_ID } from "@/lib/demo-website";
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,7 +23,9 @@ export default async function proxy(request: NextRequest) {
       pathname.includes("/realtime") &&
       !pathname.includes("/realtime/public")) || // Unified endpoints handle auth internally
     pathname.startsWith("/api/auth/firebase/verify") ||
-    pathname.startsWith("/globe");
+    pathname.startsWith("/globe") ||
+    // Demo page: allow unauthenticated access to demo website API routes
+    pathname.startsWith(`/api/websites/${DEMO_WEBSITE_ID}`);
 
   if (isPublicApiRoute) {
     return NextResponse.next();

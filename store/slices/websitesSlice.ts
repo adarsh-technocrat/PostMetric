@@ -22,8 +22,9 @@ export const fetchWebsiteDetailsById = createAsyncThunk(
   "websites/fetchWebsiteDetailsById",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}`);
-
+      const response = await fetch(`/api/websites/${websiteId}`, {
+        credentials: "include",
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch website");
       }

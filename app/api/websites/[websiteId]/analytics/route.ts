@@ -243,8 +243,8 @@ export async function GET(
     }
 
     const isDemo = isDemoWebsite(websiteId);
+    const userId = await getUserId();
     if (!isDemo) {
-      const userId = await getUserId();
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
