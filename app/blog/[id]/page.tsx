@@ -176,6 +176,8 @@ export default async function BlogDetailPage({
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
               <Link
                 href="/dashboard/new"
+                data-postmetric-goal="blog_get_started"
+                data-postmetric-goal-location="cta"
                 className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-white bg-white text-stone-900 px-6 py-3 rounded text-xs hover:bg-stone-100 transition-all w-full sm:w-auto"
               >
                 Get Started Free

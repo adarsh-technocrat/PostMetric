@@ -10,6 +10,9 @@ interface CheckoutButtonProps {
   volume?: VolumeKey;
   className?: string;
   "aria-label"?: string;
+  "data-postmetric-goal"?: string;
+  "data-postmetric-goal-plan-id"?: string;
+  "data-postmetric-goal-plan-name"?: string;
   children: React.ReactNode;
 }
 
@@ -19,6 +22,9 @@ export function CheckoutButton({
   volume = "10K",
   className,
   "aria-label": ariaLabel,
+  "data-postmetric-goal": dataPostmetricGoal,
+  "data-postmetric-goal-plan-id": dataPostmetricGoalPlanId,
+  "data-postmetric-goal-plan-name": dataPostmetricGoalPlanName,
   children,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -62,6 +68,13 @@ export function CheckoutButton({
       onClick={handleClick}
       disabled={loading}
       aria-label={ariaLabel}
+      {...(dataPostmetricGoal && { "data-postmetric-goal": dataPostmetricGoal })}
+      {...(dataPostmetricGoalPlanId && {
+        "data-postmetric-goal-plan-id": dataPostmetricGoalPlanId,
+      })}
+      {...(dataPostmetricGoalPlanName && {
+        "data-postmetric-goal-plan-name": dataPostmetricGoalPlanName,
+      })}
       className={`${className}${loading ? " cursor-not-allowed opacity-80" : ""}`}
     >
       {loading ? (

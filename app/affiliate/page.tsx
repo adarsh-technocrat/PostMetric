@@ -113,6 +113,8 @@ export default function AffiliatePage() {
                   href="https://postmetric.getrewardful.com/signup"
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-postmetric-goal="affiliate_join"
+                  data-postmetric-goal-location="hero"
                   className="inline-flex items-center justify-center gap-2 font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700 transition-all w-full sm:w-auto"
                 >
                   Join the program

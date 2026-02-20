@@ -51,6 +51,8 @@ export function HeroSection() {
         </div>
         <Link
           href="/dashboard/new"
+          data-postmetric-goal="hero_get_started"
+          data-postmetric-goal-location="hero"
           className="w-full sm:w-auto cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700 transition-all whitespace-nowrap"
         >
           Get Started Free

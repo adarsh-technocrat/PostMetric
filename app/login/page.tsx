@@ -89,6 +89,7 @@ function LoginForm() {
                 started. Or{" "}
                 <Link
                   href="/signup"
+                  data-postmetric-goal="login_signup_link"
                   className="text-stone-800 hover:text-brand-600 underline underline-offset-2"
                 >
                   create an account
@@ -121,6 +122,7 @@ function LoginForm() {
                 variant="outline"
                 onClick={handleGoogleAuth}
                 disabled={isLoading}
+                data-postmetric-goal="login_google"
                 className="mb-4 flex w-full items-center justify-center gap-3 rounded border border-stone-200 bg-white px-4 py-3 text-xs font-semibold font-mono uppercase text-stone-700 hover:bg-stone-50 hover:border-stone-300"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">

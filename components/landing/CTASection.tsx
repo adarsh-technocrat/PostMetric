@@ -25,12 +25,16 @@ export function CTASection() {
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-center lg:justify-start mt-2">
           <Link
             href="/dashboard/new"
+            data-postmetric-goal="cta_get_started"
+            data-postmetric-goal-location="footer_cta"
             className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-800 bg-stone-800 text-white px-6 py-3 rounded text-xs hover:bg-stone-700 transition-all w-full sm:w-auto"
           >
             Get Started Free
           </Link>
           <Link
             href="#"
+            data-postmetric-goal="view_demo"
+            data-postmetric-goal-location="footer_cta"
             className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-200 bg-white text-stone-700 px-6 py-3 rounded text-xs hover:bg-stone-50 transition-all w-full sm:w-auto"
           >
             View Live Demo

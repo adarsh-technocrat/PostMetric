@@ -96,12 +96,15 @@ export function Navbar() {
             <>
               <Link
                 href="/login"
+                data-postmetric-goal="nav_sign_in"
                 className="uppercase cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-200 px-4 py-2 rounded hover:bg-stone-100 transition-all text-stone-700"
               >
                 Sign In
               </Link>
               <Link
                 href="/dashboard/new"
+                data-postmetric-goal="nav_get_started"
+                data-postmetric-goal-location="navbar"
                 className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono text-xs border border-stone-800 bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-700 transition-all uppercase"
               >
                 Get Started

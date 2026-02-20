@@ -31,6 +31,8 @@ export default function DashboardPage() {
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/dashboard/new"
+              data-postmetric-goal="dashboard_add_website"
+              data-postmetric-goal-location="header"
               className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-borderColor bg-white px-3 text-sm font-medium text-textPrimary shadow-sm hover:bg-gray-50"
             >
               <PlusIcon className="size-3.5" />

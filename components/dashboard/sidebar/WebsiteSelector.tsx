@@ -99,6 +99,8 @@ export function SidebarWebsiteSelector() {
           <DropdownMenuItem asChild>
             <Link
               href="/dashboard/new"
+              data-postmetric-goal="dashboard_add_website"
+              data-postmetric-goal-location="sidebar"
               className="flex items-center gap-2 cursor-pointer text-stone-700"
             >
               <Plus className="w-4 h-4 shrink-0" />

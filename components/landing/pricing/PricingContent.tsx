@@ -220,6 +220,9 @@ export function PricingContent({
                       billingPeriod={billingPeriod}
                       volume={selectedVolume}
                       aria-label={`Get started with ${plan.name} plan`}
+                      data-postmetric-goal="pricing_checkout"
+                      data-postmetric-goal-plan-id={plan.id}
+                      data-postmetric-goal-plan-name={plan.name}
                       className={`w-full md:px-6 group px-4 py-3 h-11 flex items-center justify-center font-semibold transition-all cursor-pointer ${
                         plan.isPopular
                           ? "text-white bg-[#625fff] hover:opacity-90"
