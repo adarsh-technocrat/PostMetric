@@ -65,7 +65,7 @@ export async function updateGoal(
     name?: string;
     event?: string;
     description?: string;
-  }
+  },
 ) {
   await connectDB();
 
@@ -73,7 +73,7 @@ export async function updateGoal(
     const goal = await Goal.findByIdAndUpdate(
       goalId,
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return goal;
@@ -95,8 +95,21 @@ export async function deleteGoal(goalId: string) {
   }
 }
 
+async function ensureGoalExists(websiteId: string, event: string) {
+  const name = event
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const goal = await Goal.findOneAndUpdate(
+    { websiteId, event },
+    { $setOnInsert: { websiteId, name, event } },
+    { upsert: true, new: true },
+  );
+  return goal;
+}
+
 /**
  * Track a goal event
+ * Auto-creates the goal if it doesn't exist
  */
 export async function trackGoalEvent(data: {
   websiteId: string;
@@ -110,16 +123,7 @@ export async function trackGoalEvent(data: {
   await connectDB();
 
   try {
-    // Find goal by event name
-    const goal = await Goal.findOne({
-      websiteId: data.websiteId,
-      event: data.event,
-    });
-
-    if (!goal) {
-      // Goal not found, but we can still track it
-      return null;
-    }
+    const goal = await ensureGoalExists(data.websiteId, data.event);
 
     const goalEvent = new GoalEvent({
       websiteId: data.websiteId,

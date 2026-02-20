@@ -19,6 +19,8 @@ Goals are custom events that you want to track, such as:
 
 ## Create a goal
 
+Goals are auto-created when you track them. You can also predefine goals in the dashboard:
+
 1. Go to your website settings in the dashboard
 2. Click **"Goals"** in the sidebar
 3. Click **"Create Goal"**
@@ -27,69 +29,86 @@ Goals are custom events that you want to track, such as:
    - **Event** - The event identifier (e.g., "newsletter_signup")
    - **Description** - Optional description
 
-## Track goals with JavaScript
+## Reliable tracking (recommended)
 
-### Method 1: Using the tracking function
-
-```javascript
-postMetric("track", "goal", {
-  event: "newsletter_signup",
-  value: 0, // Optional: numeric value
-});
-```
-
-### Method 2: HTML onclick
+Add this script to your HTML `<head>` to guarantee events are captured even when triggered before the main script loads:
 
 ```html
-<button onclick="postMetric('track', 'goal', { event: 'button_click' })">
-  Click me
-</button>
-```
-
-### Method 3: React/Vue event handlers
-
-```tsx
-// React
-<button
-  onClick={() => {
-    window.postMetric("track", "goal", { event: "button_click" });
-  }}
->
-  Click me
-</button>
-```
-
-```vue
-<!-- Vue -->
-<button @click="trackGoal">
-  Click me
-</button>
-
-<script>
-export default {
-  methods: {
-    trackGoal() {
-      window.postMetric("track", "goal", { event: "button_click" });
-    },
-  },
-};
+<script id="postmetric-queue">
+  window.postmetric = window.postmetric || function() {
+    window.postmetric.q = window.postmetric.q || [];
+    window.postmetric.q.push(arguments);
+  };
 </script>
 ```
 
-## Track goals with value
+## Method 1: JavaScript
 
-Track goals with a numeric value (e.g., purchase amount):
+### Simple goal (by name)
 
 ```javascript
-postMetric("track", "goal", {
-  event: "purchase",
-  value: 99.99,
+window?.postmetric("signup");
+window?.postmetric("newsletter_subscribe");
+```
+
+### Goal with custom parameters
+
+```javascript
+window?.postmetric("initiate_checkout", {
+  name: "Elon Musk",
+  email: "elon@x.com",
+  product_id: "prod_123",
+  price: "49",
+  currency: "USD",
 });
 ```
 
-## Track goals via API
+**Rules for goal names:**
+- Use lowercase letters
+- Numbers, underscores (_), and hyphens (-) are allowed
+- Maximum 64 characters
 
-You can also track goals server-side using our API:
+**Rules for custom parameters:**
+- Property names: lowercase letters, numbers, underscores (_), and hyphens (-) only. Max 64 characters.
+- Property values: any string, max 255 characters.
+- Maximum 10 custom parameters per event.
+
+### Goal with value
+
+```javascript
+window?.postmetric("purchase", { value: 99.99 });
+```
+
+## Method 2: HTML data attributes
+
+Track goals automatically when users click elements with the `data-postmetric-goal` attribute.
+
+### Simple button
+
+```html
+<button data-postmetric-goal="initiate_checkout">Buy Now</button>
+```
+
+### With custom parameters
+
+```html
+<button
+  data-postmetric-goal="initiate_checkout"
+  data-postmetric-goal-price="49"
+  data-postmetric-goal-currency="USD"
+  data-postmetric-goal-plan-type="pro"
+>
+  Subscribe to Pro Plan
+</button>
+```
+
+Parameter names are converted from kebab-case to snake_case (e.g. `data-postmetric-goal-product-id` → `product_id`).
+
+## Method 3: Server-side API
+
+For best reliability (avoids ad blockers), track goals from your backend:
+
+### Using the v1 API (requires API key)
 
 ```bash
 curl -X POST https://your-domain.com/api/v1/goal \
@@ -99,21 +118,26 @@ curl -X POST https://your-domain.com/api/v1/goal \
     "event": "newsletter_signup",
     "value": 0,
     "visitorId": "visitor_123",
-    "sessionId": "session_456"
+    "sessionId": "session_456",
+    "path": "/pricing",
+    "custom_param": "value"
   }'
 ```
 
-See our [Goal API documentation](/api-reference/goal) for more details.
+### Using the tracking endpoint (uses cookies)
 
-## View goal data
+```bash
+curl -X POST "https://your-domain.com/api/goals/track?site=YOUR_TRACKING_CODE" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: _pm_vid=visitor_id; _pm_sid=session_id" \
+  -d '{
+    "event": "newsletter_signup",
+    "value": 0,
+    "path": "/thank-you"
+  }'
+```
 
-In your dashboard, you can view:
-
-- **Goal completions** - Number of times each goal was completed
-- **Conversion rate** - Percentage of visitors who completed the goal
-- **Goal value** - Total value of goal completions
-- **Goal by source** - Which traffic sources drive the most goal completions
-- **Goal over time** - Goal completions over time
+See our [Goal API documentation](/api-reference/goal) for details.
 
 ## Common goal examples
 
@@ -121,7 +145,7 @@ In your dashboard, you can view:
 
 ```javascript
 document.getElementById("contact-form").addEventListener("submit", function () {
-  postMetric("track", "goal", { event: "form_submit" });
+  postmetric("form_submit");
 });
 ```
 
@@ -129,7 +153,7 @@ document.getElementById("contact-form").addEventListener("submit", function () {
 
 ```javascript
 document.getElementById("cta-button").addEventListener("click", function () {
-  postMetric("track", "goal", { event: "cta_click" });
+  postmetric("cta_click");
 });
 ```
 
@@ -137,27 +161,28 @@ document.getElementById("cta-button").addEventListener("click", function () {
 
 ```javascript
 document.getElementById("video").addEventListener("play", function () {
-  postMetric("track", "goal", { event: "video_play" });
+  postmetric("video_play");
 });
 ```
 
 ### File download
 
 ```html
-<a
-  href="/download.pdf"
-  onclick="postMetric('track', 'goal', { event: 'pdf_download' })"
->
+<a href="/download.pdf" data-postmetric-goal="pdf_download">
   Download PDF
 </a>
 ```
 
+## Test your setup
+
+Visit `/test-goals` on your PostMetric instance to verify goal tracking works. Click the buttons to fire events and check your dashboard analytics.
+
 ## Best practices
 
-1. **Use descriptive event names** - Use clear, consistent naming (e.g., `newsletter_signup`, not `ns`)
+1. **Use descriptive event names** - Use clear, consistent naming (e.g. `newsletter_signup`, not `ns`)
 2. **Track meaningful actions** - Focus on actions that matter to your business
 3. **Include values when relevant** - Add numeric values for revenue-related goals
-4. **Test your goals** - Verify goals are tracking correctly before relying on the data
+4. **Prefer server-side for critical events** - Newsletter signups and purchases are more reliable when tracked from the backend
 
 ## Next steps
 

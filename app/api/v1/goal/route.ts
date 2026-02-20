@@ -2,14 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/utils/api/auth";
 import { trackGoalEvent } from "@/utils/database/goal";
 
-/**
- * POST /api/v1/goal
- * Create a custom goal event using API key authentication
- * Based on Postmetric API: https://postmetric.com/docs/api-introduction
- */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate using API key
     const auth = await authenticateApiRequest(request);
 
     if (!auth) {
@@ -21,16 +15,15 @@ export async function POST(request: NextRequest) {
             message: "Unauthorized. Invalid or missing API key.",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const { websiteId } = auth;
-    const body = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
+    const { event, value, visitorId, sessionId, path, ...rest } = body;
 
-    const { event, value, visitorId, sessionId, path } = body;
-
-    if (!event) {
+    if (!event || typeof event !== "string") {
       return NextResponse.json(
         {
           status: "error",
@@ -39,18 +32,33 @@ export async function POST(request: NextRequest) {
             message: "event parameter is required",
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
+    const customData: Record<string, string> = {};
+    let count = 0;
+    for (const [key, val] of Object.entries(rest)) {
+      if (count >= 10) break;
+      if (
+        typeof key !== "string" ||
+        key.length > 64 ||
+        !/^[a-z0-9_-]+$/.test(key.toLowerCase())
+      )
+        continue;
+      const str = val == null ? "" : String(val);
+      customData[key.toLowerCase()] =
+        str.length > 255 ? str.slice(0, 255) : str;
+      count++;
+    }
 
-    // Track the goal event
     await trackGoalEvent({
       websiteId,
       event,
-      value,
-      visitorId,
-      sessionId,
-      path: path || "/",
+      value: typeof value === "number" ? value : undefined,
+      visitorId: typeof visitorId === "string" ? visitorId : undefined,
+      sessionId: typeof sessionId === "string" ? sessionId : undefined,
+      path: typeof path === "string" ? path : "/",
+      customData,
     });
 
     return NextResponse.json({
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
           message: error.message || "Internal server error",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
