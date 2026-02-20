@@ -1,7 +1,4 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
-# Check if tracking script has changed
 TRACKING_SCRIPT="lib/tracking/script.js"
 
 if git diff --cached --name-only | grep -q "^${TRACKING_SCRIPT}$"; then
