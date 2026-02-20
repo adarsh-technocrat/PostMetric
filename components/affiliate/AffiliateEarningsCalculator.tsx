@@ -10,90 +10,12 @@ const EARNINGS_PER_REFERRAL = (AVG_MONTHLY_PRICE * COMMISSION_PERCENT) / 100;
 const MAX_REFERRALS = 50;
 const MIN_REFERRALS = 1;
 
-const PAD = { left: 48, right: 24, top: 24, bottom: 32 };
-const W = 360;
-const H = 140;
-
 export function AffiliateEarningsCalculator() {
   const [referrals, setReferrals] = useState(10);
 
   const monthlyEarnings = Math.round(referrals * EARNINGS_PER_REFERRAL);
-
-  const { linePath, areaPath, currentX, currentY } = useMemo(() => {
-    const maxEarnings = MAX_REFERRALS * EARNINGS_PER_REFERRAL;
-    const chartW = W - PAD.left - PAD.right;
-    const chartH = H - PAD.top - PAD.bottom;
-
-    const toX = (ref: number) => PAD.left + (ref / MAX_REFERRALS) * chartW;
-    const toY = (earnings: number) =>
-      PAD.top + chartH - (earnings / maxEarnings) * chartH;
-
-    const points: { x: number; y: number }[] = [];
-    for (let ref = 0; ref <= MAX_REFERRALS; ref++) {
-      const earnings = ref * EARNINGS_PER_REFERRAL;
-      points.push({ x: toX(ref), y: toY(earnings) });
-    }
-
-    const linePath = points
-      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
-      .join(" ");
-    const last = points[points.length - 1];
-    const first = points[0];
-    const areaPath = `${linePath} L ${last.x} ${H - PAD.bottom} L ${first.x} ${H - PAD.bottom} Z`;
-
-    return {
-      linePath,
-      areaPath,
-      currentX: toX(referrals),
-      currentY: toY(referrals * EARNINGS_PER_REFERRAL),
-    };
-  }, [referrals]);
-
   return (
     <div className="relative w-full">
-      <div
-        className="pointer-events-none absolute right-0 top-0 h-full w-1/2 min-w-[220px] overflow-hidden"
-        aria-hidden
-      >
-        <svg
-          className="absolute right-0 top-1/2 h-full w-full -translate-y-1/2"
-          viewBox={`0 0 ${W} ${H}`}
-          preserveAspectRatio="xMaxYMid slice"
-        >
-          <defs>
-            <linearGradient
-              id="affiliate-chart-gradient"
-              x1={PAD.left}
-              y1={H - PAD.bottom}
-              x2={W - PAD.right}
-              y2={PAD.top}
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%" stopColor="#292524" stopOpacity="0" />
-              <stop offset="50%" stopColor="#292524" stopOpacity="0.06" />
-              <stop offset="100%" stopColor="#292524" stopOpacity="0.12" />
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill="url(#affiliate-chart-gradient)" />
-          <path
-            d={linePath}
-            stroke="#292524"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            opacity="0.25"
-          />
-          <circle
-            cx={currentX}
-            cy={currentY}
-            r="5"
-            fill="#292524"
-            opacity="0.35"
-          />
-        </svg>
-      </div>
-
       <div className="relative z-10 space-y-6 w-full">
         <div className="space-y-2 text-center sm:text-left">
           <h2 className="font-cooper text-2xl lg:text-3xl text-stone-900">
