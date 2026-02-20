@@ -1,57 +1,95 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import NumberFlow from "@number-flow/react";
 import { Slider } from "@/components/ui/slider";
 
 const COMMISSION_PERCENT = 60;
-const AVG_MONTHLY_PRICE = 25; // conservative avg across plans
+const AVG_MONTHLY_PRICE = 25;
 const EARNINGS_PER_REFERRAL = (AVG_MONTHLY_PRICE * COMMISSION_PERCENT) / 100;
+const MAX_REFERRALS = 50;
+const MIN_REFERRALS = 1;
+
+const PAD = { left: 48, right: 24, top: 24, bottom: 32 };
+const W = 360;
+const H = 140;
 
 export function AffiliateEarningsCalculator() {
   const [referrals, setReferrals] = useState(10);
 
   const monthlyEarnings = Math.round(referrals * EARNINGS_PER_REFERRAL);
 
+  const { linePath, areaPath, currentX, currentY } = useMemo(() => {
+    const maxEarnings = MAX_REFERRALS * EARNINGS_PER_REFERRAL;
+    const chartW = W - PAD.left - PAD.right;
+    const chartH = H - PAD.top - PAD.bottom;
+
+    const toX = (ref: number) => PAD.left + (ref / MAX_REFERRALS) * chartW;
+    const toY = (earnings: number) =>
+      PAD.top + chartH - (earnings / maxEarnings) * chartH;
+
+    const points: { x: number; y: number }[] = [];
+    for (let ref = 0; ref <= MAX_REFERRALS; ref++) {
+      const earnings = ref * EARNINGS_PER_REFERRAL;
+      points.push({ x: toX(ref), y: toY(earnings) });
+    }
+
+    const linePath = points
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+      .join(" ");
+    const last = points[points.length - 1];
+    const first = points[0];
+    const areaPath = `${linePath} L ${last.x} ${H - PAD.bottom} L ${first.x} ${H - PAD.bottom} Z`;
+
+    return {
+      linePath,
+      areaPath,
+      currentX: toX(referrals),
+      currentY: toY(referrals * EARNINGS_PER_REFERRAL),
+    };
+  }, [referrals]);
+
   return (
     <div className="relative w-full">
       <div
-        className="pointer-events-none absolute right-0 top-0 h-full w-1/2 min-w-[200px] overflow-hidden"
+        className="pointer-events-none absolute right-0 top-0 h-full w-1/2 min-w-[220px] overflow-hidden"
         aria-hidden
       >
         <svg
-          className="absolute right-0 top-1/2 h-[120%] w-full -translate-y-1/2 blur-[2px]"
-          viewBox="0 0 400 200"
-          fill="none"
+          className="absolute right-0 top-1/2 h-full w-full -translate-y-1/2"
+          viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="xMaxYMid slice"
         >
           <defs>
             <linearGradient
               id="affiliate-chart-gradient"
-              x1="0%"
-              y1="100%"
-              x2="100%"
-              y2="0%"
+              x1={PAD.left}
+              y1={H - PAD.bottom}
+              x2={W - PAD.right}
+              y2={PAD.top}
               gradientUnits="userSpaceOnUse"
             >
               <stop offset="0%" stopColor="#292524" stopOpacity="0" />
-              <stop offset="30%" stopColor="#292524" stopOpacity="0.04" />
-              <stop offset="70%" stopColor="#292524" stopOpacity="0.08" />
+              <stop offset="50%" stopColor="#292524" stopOpacity="0.06" />
               <stop offset="100%" stopColor="#292524" stopOpacity="0.12" />
             </linearGradient>
           </defs>
+          <path d={areaPath} fill="url(#affiliate-chart-gradient)" />
           <path
-            d="M0 180 Q80 150 160 120 T320 40 T400 10 L400 200 L0 200 Z"
-            fill="url(#affiliate-chart-gradient)"
-          />
-          <path
-            d="M0 180 Q80 150 160 120 T320 40 T400 10"
+            d={linePath}
             stroke="#292524"
-            strokeWidth="1.5"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
-            opacity="0.15"
+            opacity="0.25"
+          />
+          <circle
+            cx={currentX}
+            cy={currentY}
+            r="5"
+            fill="#292524"
+            opacity="0.35"
           />
         </svg>
       </div>
@@ -99,11 +137,18 @@ export function AffiliateEarningsCalculator() {
               </p>
               <Slider
                 id="earnings-slider"
-                min={1}
-                max={50}
+                min={MIN_REFERRALS}
+                max={MAX_REFERRALS}
                 step={1}
                 value={[referrals]}
-                onValueChange={([v]) => setReferrals(v ?? 1)}
+                onValueChange={([v]) =>
+                  setReferrals(
+                    Math.min(
+                      MAX_REFERRALS,
+                      Math.max(MIN_REFERRALS, v ?? MIN_REFERRALS),
+                    ),
+                  )
+                }
                 className="w-full cursor-grab active:cursor-grabbing"
               />
               <div className="flex items-center gap-2 text-stone-500">
