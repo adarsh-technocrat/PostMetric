@@ -17,6 +17,12 @@ import {
   Zap,
   Calendar,
   LogOut,
+  Plus,
+  Link2,
+  Folder,
+  Tag,
+  LayoutTemplate,
+  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,21 +133,78 @@ export function Sidebar() {
               Dashboard
             </NavItem>
 
+            <Link
+              href="/dashboard/new"
+              data-postmetric-goal="dashboard_add_website"
+              data-postmetric-goal-location="sidebar_nav"
+              data-state={pathname === "/dashboard/new" ? "on" : "off"}
+              className="flex items-center gap-x-3 px-2 h-8 w-full border border-transparent font-medium text-sm rounded-lg hover:bg-stone-0 hover:border-stone-100 data-[state=on]:bg-stone-0 data-[state=on]:border-stone-100 group transition-colors"
+            >
+              <Plus className="w-[18px] h-[18px]" />
+              <p
+                className={`font-medium text-sm group-hover:translate-x-0.5 transition-transform ${
+                  pathname === "/dashboard/new"
+                    ? "text-stone-800"
+                    : "text-stone-500 group-hover:text-stone-800"
+                }`}
+              >
+                Add Website
+              </p>
+            </Link>
+
             {hasWebsiteSelected && (
-              <NavSection title="Website" color="amber">
-                <NavItem
-                  href={`/dashboard/${currentWebsiteId}`}
-                  icon={<BarChart3 className="w-[18px] h-[18px]" />}
-                >
-                  Analytics
-                </NavItem>
-                <NavItem
-                  href={`/dashboard/${currentWebsiteId}/settings`}
-                  icon={<Settings className="w-[18px] h-[18px]" />}
-                >
-                  Settings
-                </NavItem>
-              </NavSection>
+              <>
+                <NavSection title="Website" color="amber">
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}`}
+                    icon={<BarChart3 className="w-[18px] h-[18px]" />}
+                  >
+                    Analytics
+                  </NavItem>
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/links`}
+                    icon={<Link2 className="w-[18px] h-[18px]" />}
+                  >
+                    Links
+                  </NavItem>
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/settings`}
+                    icon={<Settings className="w-[18px] h-[18px]" />}
+                  >
+                    Settings
+                  </NavItem>
+                </NavSection>
+
+                <NavSection title="Builders" color="lime">
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/actions`}
+                    icon={<Workflow className="w-[18px] h-[18px]" />}
+                  >
+                    Action Builder
+                  </NavItem>
+                </NavSection>
+
+                <NavSection title="Library" color="blue">
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/library/folders`}
+                    icon={<Folder className="w-[18px] h-[18px]" />}
+                  >
+                    Folders
+                  </NavItem>
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/library/tags`}
+                    icon={<Tag className="w-[18px] h-[18px]" />}
+                  >
+                    Tags
+                  </NavItem>
+                  <NavItem
+                    href={`/dashboard/${currentWebsiteId}/library/templates`}
+                    icon={<LayoutTemplate className="w-[18px] h-[18px]" />}
+                  >
+                    UTM Templates
+                  </NavItem>
+                </NavSection>
+              </>
             )}
           </div>
         </nav>

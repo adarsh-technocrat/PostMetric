@@ -220,6 +220,10 @@
   }
 }
 
+.scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
 .custom-card {
   background-color: white;
   border: 1px solid rgb(231 229 228);

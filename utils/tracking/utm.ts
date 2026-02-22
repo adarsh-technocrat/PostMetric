@@ -6,9 +6,44 @@ export interface UTMParams {
   utmContent?: string;
 }
 
+export function buildUtmUrl(
+  baseUrl: string,
+  params: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_term?: string;
+    utm_content?: string;
+  },
+): string {
+  const u = baseUrl.trim();
+  if (!u) return "";
+
+  let url: URL;
+  try {
+    url = new URL(u.startsWith("http") ? u : `https://${u}`);
+  } catch {
+    return u;
+  }
+
+  const addParam = (key: string, value: string) => {
+    if (value && value.trim()) {
+      url.searchParams.set(key, value.trim());
+    }
+  };
+
+  addParam("utm_source", params.utm_source || "");
+  addParam("utm_medium", params.utm_medium || "");
+  addParam("utm_campaign", params.utm_campaign || "");
+  addParam("utm_term", params.utm_term || "");
+  addParam("utm_content", params.utm_content || "");
+
+  return url.toString();
+}
+
 export function extractUrlParams(
   referrer: string | null | undefined,
-  path?: string
+  path?: string,
 ): {
   param_ref?: string;
   param_via?: string;
