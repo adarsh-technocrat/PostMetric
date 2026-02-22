@@ -24,15 +24,12 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(SEO_BASE_URL),
   title: {
-    default:
-      "Google Analytics Alternative | Revenue Attribution & Cookie-Free Analytics | PostMetric",
+    default: "Revenue Attribution & Cookie-Free Analytics | PostMetric",
     template: "%s | Postmetric",
   },
   description:
-    "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration. See the data, get the next move.",
+    "Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration. See the data, get the next move.",
   keywords: [
-    "Google Analytics alternative",
-    "analytics",
     "revenue attribution",
     "cookie-free analytics",
     "website analytics",
@@ -55,10 +52,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SEO_BASE_URL,
     siteName: SEO_SITE_NAME,
-    title:
-      "Google Analytics Alternative | Revenue Attribution & Cookie-Free Analytics | PostMetric",
+    title: "Revenue Attribution & Cookie-Free Analytics | PostMetric",
     description:
-      "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
+      "Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
     images: [
       {
         url: SEO_DEFAULT_OG_IMAGE,
@@ -71,10 +67,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title:
-      "Google Analytics Alternative | Revenue Attribution & Cookie-Free Analytics | PostMetric",
+    title: "Revenue Attribution & Cookie-Free Analytics | PostMetric",
     description:
-      "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
+      "Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
   },
   robots: {
     index: true,

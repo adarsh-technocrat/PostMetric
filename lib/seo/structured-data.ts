@@ -17,7 +17,7 @@ export function getOrganizationSchema() {
     url: SEO_BASE_URL,
     logo: fullImageUrl,
     description:
-      "Privacy-friendly Google Analytics alternative. Cookie-free analytics and revenue attribution. Find out which marketing channels drive your revenue.",
+      "Cookie-free analytics and revenue attribution. Find out which marketing channels drive your revenue.",
     contactPoint: {
       "@type": "ContactPoint",
       email: "support@postmetric.io",
@@ -26,7 +26,6 @@ export function getOrganizationSchema() {
     },
     knowsAbout: [
       "Web Analytics",
-      "Google Analytics Alternative",
       "Revenue Attribution",
       "Cookie-Free Tracking",
       "Conversion Tracking",
@@ -53,7 +52,7 @@ export function getWebSiteSchema() {
     alternateName: ["PostMetric", "Postmetric"],
     url: SEO_BASE_URL,
     description:
-      "Privacy-friendly Google Analytics alternative. Cookie-free analytics and revenue attribution.",
+      "Cookie-free analytics and revenue attribution. Find out which marketing channels drive your revenue.",
     publisher: {
       "@type": "Organization",
       name: SEO_SITE_NAME,
@@ -132,7 +131,7 @@ export function getSoftwareApplicationSchema() {
     alternateName: ["PostMetric", "Postmetric", "postmetric.io"],
     url: SEO_BASE_URL,
     description:
-      "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue. Cookie-free analytics with Stripe integration.",
+      "Find out which marketing channels drive your revenue. Cookie-free analytics with Stripe integration.",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web Browser",
     offers: {
@@ -147,7 +146,6 @@ export function getSoftwareApplicationSchema() {
       url: SEO_BASE_URL,
     },
     featureList: [
-      "Google Analytics alternative",
       "Cookie-free analytics",
       "Revenue attribution",
       "Marketing channels drive revenue",

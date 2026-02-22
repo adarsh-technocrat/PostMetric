@@ -15,27 +15,26 @@ import { Footer } from "@/components/landing/Footer";
 import { SEO_BASE_URL } from "@/lib/seo/constants";
 
 export const metadata: Metadata = {
-  title: "Google Analytics Alternative | Revenue Attribution",
+  title: "Actionable Analytics & Revenue Attribution | PostMetric",
   description:
-    "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration. For startups, SaaS, and ecommerce.",
+    "Analytics that solve problems, not just show them. See which channels drive revenue and get clear next steps to act—cookie-free, Stripe-integrated. For startups, SaaS, and ecommerce.",
   keywords: [
-    "Google Analytics alternative",
+    "actionable analytics",
     "revenue attribution",
     "cookie-free analytics",
-    "which marketing channels drive revenue",
+    "marketing channels drive revenue",
     "traffic sources revenue",
     "Stripe analytics",
-    "marketing analytics",
+    "conversion insights",
     "privacy-first analytics",
     "GDPR compliant analytics",
     "startup analytics",
   ],
   alternates: { canonical: SEO_BASE_URL },
   openGraph: {
-    title:
-      "Google Analytics Alternative | Revenue Attribution & Cookie-Free Analytics | PostMetric",
+    title: "Actionable Analytics & Revenue Attribution | PostMetric",
     description:
-      "Privacy-friendly Google Analytics alternative. Find out which marketing channels drive your revenue—cookie-free analytics with Stripe integration.",
+      "Analytics that solve problems, not just show them. Revenue attribution with clear next steps—cookie-free, Stripe-integrated.",
     url: SEO_BASE_URL,
   },
 };

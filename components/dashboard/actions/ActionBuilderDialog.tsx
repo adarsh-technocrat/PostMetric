@@ -201,7 +201,7 @@ export function ActionBuilderDialog({
           {!workflowId && !loading && (
             <Button
               onClick={handleCreate}
-              className="shrink-0 font-mono font-semibold normal-case text-white bg-[#625fff] hover:opacity-90 hover:bg-[#625fff]"
+              variant={"stone"}
               disabled={creating}
             >
               {creating ? "Creating..." : "Create workflow"}
