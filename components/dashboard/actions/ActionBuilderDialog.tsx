@@ -189,12 +189,21 @@ export function ActionBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="relative flex flex-col w-[min(1600px,95vw)] max-w-[95vw] h-[95vh] max-h-[95vh] overflow-hidden p-0 gap-0 border-0 [&>button]:absolute [&>button]:right-5 [&>button]:top-5 [&>button]:z-20 [&>button]:rounded-md [&>button]:p-1.5 [&>button]:hover:bg-stone-100">
+      <DialogContent
+        className="relative flex flex-col w-[min(1600px,95vw)] max-w-[95vw] h-[95vh] max-h-[95vh] overflow-hidden p-0 gap-0 border-0 [&>button]:absolute [&>button]:right-5 [&>button]:top-5 [&>button]:z-20 [&>button]:rounded-md [&>button]:p-1.5 [&>button]:hover:bg-stone-100"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="shrink-0 flex items-center gap-4 pl-6 pr-14 pt-6 pb-2">
           <input
             type="text"
             value={name}
             onChange={handleNameChange}
+            onFocus={(e) =>
+              e.currentTarget.setSelectionRange(
+                e.currentTarget.value.length,
+                e.currentTarget.value.length,
+              )
+            }
             placeholder="Workflow name"
             className="flex-1 min-w-0 text-xl font-semibold text-foreground bg-transparent border-0 outline-none placeholder:text-muted-foreground focus:ring-0"
           />

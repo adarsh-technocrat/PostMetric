@@ -43,11 +43,18 @@ export function ActionConfigPanel({
     );
   }
 
+  const config = (nodeData.config || {}) as Record<string, unknown>;
+  const defaultCollection = (config.collection as string) || "users";
+  const isTrackEvent = nodeData.moduleId === "track-event";
+  const isTrackRevenue = nodeData.moduleId === "track-revenue";
+  const isWebhook = nodeData.moduleId === "webhook";
+  const isNavigate = nodeData.actionType === "navigate";
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h3 className="font-semibold">
-          Action {nodeData.actionNumber} - Action Name
+          Action {nodeData.actionNumber} - {nodeData.label}
         </h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -75,7 +82,7 @@ export function ActionConfigPanel({
             <>
               <div className="space-y-2">
                 <Label>Collection</Label>
-                <Select defaultValue="users">
+                <Select defaultValue={defaultCollection}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select collection" />
                   </SelectTrigger>
@@ -89,12 +96,49 @@ export function ActionConfigPanel({
                 </Select>
               </div>
 
+              {isTrackEvent && (
+                <div className="space-y-2">
+                  <Label>Event Name</Label>
+                  <Input
+                    placeholder="e.g. goal_completed, signup, purchase"
+                    defaultValue={
+                      (config.eventName as string) || "goal_completed"
+                    }
+                  />
+                </div>
+              )}
+
+              {(isTrackRevenue || isWebhook) && (
+                <div className="space-y-2">
+                  <Label>Webhook Provider</Label>
+                  <Select
+                    defaultValue={
+                      (config.webhookProvider as string) || "custom"
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stripe">Stripe</SelectItem>
+                      <SelectItem value="lemonsqueezy">LemonSqueezy</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-sm">Set Fields</Label>
                 <div className="space-y-2 rounded-lg border p-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">
-                      Field: userName
+                      Field:{" "}
+                      {isTrackEvent
+                        ? "value"
+                        : isTrackRevenue
+                          ? "amount"
+                          : "userName"}
                     </Label>
                     <Select defaultValue="variable">
                       <SelectTrigger>
@@ -105,28 +149,37 @@ export function ActionConfigPanel({
                         <SelectItem value="constant">Constant</SelectItem>
                       </SelectContent>
                     </Select>
-                    <div className="mt-2 space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Source: Widget State
-                      </Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="userNameInput">userNameInput</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Input
-                      placeholder="Default value..."
-                      className="mt-2"
-                    />
+                    <Input placeholder="Default value..." className="mt-2" />
                   </div>
                   <Button variant="outline" size="sm" className="w-full">
                     + Add Field
                   </Button>
                 </div>
+              </div>
+            </>
+          )}
+
+          {isNavigate && (
+            <>
+              <div className="space-y-2">
+                <Label>URL Source</Label>
+                <Select
+                  defaultValue={(config.urlSource as string) || "constant"}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="variable">From Variable</SelectItem>
+                    <SelectItem value="constant">Constant</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Open in new tab</Label>
+                <Switch
+                  defaultChecked={(config.openInNewTab as boolean) ?? false}
+                />
               </div>
             </>
           )}

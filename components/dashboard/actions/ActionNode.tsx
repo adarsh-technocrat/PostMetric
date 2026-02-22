@@ -16,6 +16,8 @@ export interface ActionNodeData extends Record<string, unknown> {
   actionType: ActionType;
   description?: string;
   actionNumber: number;
+  moduleId?: string;
+  config?: Record<string, unknown>;
 }
 
 const ACTION_ICONS: Record<ActionType, string> = {

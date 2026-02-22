@@ -56,15 +56,11 @@ function CanvasToolbarFlow({
   onOpenModulePicker,
   scheduleEnabled,
   onScheduleChange,
-  panelCollapsed,
-  onCollapsePanel,
   embedInDialog,
 }: {
   onOpenModulePicker: (event?: React.MouseEvent) => void;
   scheduleEnabled: boolean;
   onScheduleChange: (enabled: boolean) => void;
-  panelCollapsed: boolean;
-  onCollapsePanel: () => void;
   embedInDialog: boolean;
 }) {
   const { fitView, deleteElements, getNodes, getEdges } = useReactFlow();
@@ -87,15 +83,7 @@ function CanvasToolbarFlow({
       }
       hasSelection={hasSelection}
       onAutoLayout={() => fitView()}
-      onDeploy={() => {}}
-      onExport={() => {}}
-      onOpenSettings={() => {}}
-      onCopy={() => {}}
-      onUndo={() => {}}
-      canUndo={false}
       onAddAction={onOpenModulePicker}
-      onCollapsePanel={onCollapsePanel}
-      panelCollapsed={panelCollapsed}
     />
   );
 }
@@ -134,7 +122,6 @@ export function ActionBuilder({
     null,
   );
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   const handleOpenModulePicker = useCallback((event?: React.MouseEvent) => {
     const rect = event?.currentTarget
@@ -173,17 +160,23 @@ export function ActionBuilder({
   const handleModuleSelect = useCallback(
     (module: ActionModule) => {
       const newId = `action-${Date.now()}`;
-      const newActionNode: Node<ActionNodeData> = {
-        id: newId,
-        type: "action",
-        position: { x: 250, y: 220 },
-        data: {
-          label: module.name,
-          actionType: module.actionType,
-          actionNumber: 1,
-        },
-      };
-      setNodes((prev: BuilderNode[]) => [...prev, newActionNode]);
+      setNodes((prev: BuilderNode[]) => {
+        const actionCount = prev.filter((n) => n.type === "action").length;
+        const newActionNode: Node<ActionNodeData> = {
+          id: newId,
+          type: "action",
+          position: { x: 250, y: 220 },
+          data: {
+            label: module.name,
+            actionType: module.actionType,
+            description: module.description,
+            actionNumber: actionCount + 1,
+            moduleId: module.id,
+            config: module.defaultConfig,
+          },
+        };
+        return [...prev, newActionNode];
+      });
       setEdges((prev: Edge[]) => [
         ...prev,
         {
@@ -298,6 +291,7 @@ export function ActionBuilder({
                 nodeTypes={nodeTypes}
                 defaultEdgeOptions={{ type: "step" }}
                 fitView
+                panOnDrag
                 colorMode="light"
                 className="bg-slate-100"
               >
@@ -307,8 +301,6 @@ export function ActionBuilder({
                     onOpenModulePicker={handleOpenModulePicker}
                     scheduleEnabled={scheduleEnabled}
                     onScheduleChange={setScheduleEnabled}
-                    panelCollapsed={panelCollapsed}
-                    onCollapsePanel={() => setPanelCollapsed((prev) => !prev)}
                     embedInDialog={embedInDialog}
                   />
                 </Panel>
@@ -316,7 +308,7 @@ export function ActionBuilder({
             </div>
           </div>
 
-          {selectedActionData && !panelCollapsed && (
+          {selectedActionData && (
             <div className="w-80 shrink-0 border-l">
               <ActionConfigPanel
                 nodeData={selectedActionData}

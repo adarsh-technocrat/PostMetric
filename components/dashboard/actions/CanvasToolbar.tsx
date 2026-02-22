@@ -1,24 +1,7 @@
 "use client";
 
-import {
-  Play,
-  ChevronDown,
-  Trash2,
-  Sparkles,
-  Send,
-  Download,
-  Settings,
-  Copy,
-  Undo2,
-  GitBranch,
-  Wrench,
-  Braces,
-  Sparkle,
-  Plus,
-  ChevronLeft,
-} from "lucide-react";
+import { Play, ChevronDown, Trash2, Sparkles, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
@@ -41,17 +24,44 @@ export interface CanvasToolbarProps {
   onDeleteSelected?: () => void;
   hasSelection?: boolean;
   onAutoLayout?: () => void;
-  onDeploy?: () => void;
-  onExport?: () => void;
-  onOpenSettings?: () => void;
-  onCopy?: () => void;
-  onUndo?: () => void;
-  canUndo?: boolean;
   onAddAction?: (event?: React.MouseEvent) => void;
-  onCollapsePanel?: () => void;
-  panelCollapsed?: boolean;
   embedMode?: boolean;
 }
+
+const ToolbarButton = ({
+  label,
+  onClick,
+  disabled,
+  children,
+  className,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors",
+          "hover:bg-stone-100 hover:text-stone-800 disabled:opacity-40 disabled:pointer-events-none",
+          className,
+        )}
+        aria-label={label}
+      >
+        {children}
+      </button>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="text-xs font-medium">
+      {label}
+    </TooltipContent>
+  </Tooltip>
+);
 
 export function CanvasToolbar({
   onRunOnce,
@@ -61,102 +71,24 @@ export function CanvasToolbar({
   onDeleteSelected,
   hasSelection = false,
   onAutoLayout,
-  onDeploy,
-  onExport,
-  onOpenSettings,
-  onCopy,
-  onUndo,
-  canUndo = false,
   onAddAction,
-  onCollapsePanel,
-  panelCollapsed = false,
   embedMode = false,
 }: CanvasToolbarProps) {
-  const TooltipButton = ({
-    label,
-    onClick,
-    disabled,
-    children,
-    className,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          disabled={disabled}
-          className={cn(
-            "flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors",
-            "hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:pointer-events-none",
-            className,
-          )}
-          aria-label={label}
-        >
-          {children}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  );
-
-  const CircleButton = ({
-    label,
-    onClick,
-    children,
-    bgClass,
-  }: {
-    label: string;
-    onClick?: () => void;
-    children: React.ReactNode;
-    bgClass: string;
-  }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-full text-white transition-transform hover:scale-105 active:scale-95",
-            bgClass,
-          )}
-          aria-label={label}
-        >
-          {children}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  );
-
   return (
     <TooltipProvider delayDuration={200}>
-      <div
-        className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-xl border bg-card/95 backdrop-blur-sm shadow-lg",
-          "border-border",
-        )}
-      >
+      <div className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2 py-1.5 shadow-sm">
         {!embedMode && (
-          <div className="flex items-center gap-3 pr-3 border-r border-border">
+          <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  size="sm"
+                  size="xs"
+                  className="h-8 gap-1.5 normal-case font-medium px-3 bg-[#625fff] text-white hover:bg-[#625fff]/90 border-0"
                   onClick={onRunOnce}
-                  className="h-8 gap-1.5 bg-[#625fff] hover:bg-[#5348e6] text-white border-0 normal-case font-medium"
                 >
                   <Play className="h-3.5 w-3.5" />
                   Run once
+                  <span className="ml-0.5 w-px h-4 bg-white/30" aria-hidden />
                   <ChevronDown className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -172,97 +104,44 @@ export function CanvasToolbar({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={scheduleEnabled}
-                onCheckedChange={onScheduleChange}
-                className="data-[state=checked]:bg-[#625fff]"
-              />
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                {scheduleLabel}
-              </span>
-            </div>
-          </div>
+            <Button
+              variant="outline"
+              size="xs"
+              className={cn(
+                "h-8 normal-case font-medium px-3 pl-2 border-r border-stone-200 rounded-r-none mr-1",
+                scheduleEnabled &&
+                  "bg-[#625fff] text-white border-[#625fff] hover:bg-[#625fff]/90 hover:text-white",
+              )}
+              onClick={() => onScheduleChange?.(!scheduleEnabled)}
+            >
+              {scheduleLabel}
+            </Button>
+          </>
         )}
 
-        {/* Center: Canvas tools */}
         <div className="flex items-center gap-0.5">
-          <TooltipButton
+          <ToolbarButton
             label="Delete selected"
             onClick={onDeleteSelected}
             disabled={!hasSelection}
           >
             <Trash2 className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Auto-arrange" onClick={onAutoLayout}>
+          </ToolbarButton>
+          <ToolbarButton label="Auto-arrange" onClick={onAutoLayout}>
             <Sparkles className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Run workflow" onClick={onDeploy}>
-            <Send className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Export" onClick={onExport}>
-            <Download className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Settings" onClick={onOpenSettings}>
-            <Settings className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Duplicate" onClick={onCopy}>
-            <Copy className="h-4 w-4" />
-          </TooltipButton>
-          <TooltipButton label="Undo" onClick={onUndo} disabled={!canUndo}>
-            <Undo2 className="h-4 w-4" />
-          </TooltipButton>
+          </ToolbarButton>
         </div>
 
-        <div className="flex items-center gap-1.5 pl-3 border-l border-border">
-          <CircleButton
-            label="Flow control"
-            onClick={onAddAction}
-            bgClass="bg-emerald-600 hover:bg-emerald-700"
+        <div className="flex items-center gap-1 pl-2 border-l border-stone-200">
+          <Button
+            variant="stone"
+            size="xs"
+            onClick={(e) => onAddAction?.(e)}
+            className="h-8 gap-1.5 normal-case font-medium px-3"
           >
-            <GitBranch className="h-4 w-4" />
-          </CircleButton>
-          <CircleButton
-            label="Backend & Webhooks"
-            onClick={onAddAction}
-            bgClass="bg-blue-600 hover:bg-blue-700"
-          >
-            <Wrench className="h-4 w-4" />
-          </CircleButton>
-          <CircleButton
-            label="Variables & code"
-            onClick={onAddAction}
-            bgClass="bg-amber-600 hover:bg-amber-700"
-          >
-            <Braces className="h-4 w-4" />
-          </CircleButton>
-          <CircleButton
-            label="AI assist"
-            onClick={onAddAction}
-            bgClass="bg-violet-600 hover:bg-violet-700"
-          >
-            <Sparkle className="h-4 w-4" />
-          </CircleButton>
-          <CircleButton
-            label="Add action"
-            onClick={onAddAction}
-            bgClass="bg-[#625fff] hover:bg-[#5348e6]"
-          >
-            <Plus className="h-4 w-4" />
-          </CircleButton>
-          {onCollapsePanel && (
-            <TooltipButton
-              label={panelCollapsed ? "Show panel" : "Hide panel"}
-              onClick={onCollapsePanel}
-            >
-              <ChevronLeft
-                className={cn(
-                  "h-4 w-4 transition-transform",
-                  panelCollapsed && "rotate-180",
-                )}
-              />
-            </TooltipButton>
-          )}
+            <Plus className="h-3.5 w-3.5" />
+            Add action
+          </Button>
         </div>
       </div>
     </TooltipProvider>

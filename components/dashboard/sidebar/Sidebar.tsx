@@ -179,6 +179,12 @@ export function Sidebar() {
                   <NavItem
                     href={`/dashboard/${currentWebsiteId}/workflows`}
                     icon={<Workflow className="w-[18px] h-[18px]" />}
+                    disabled
+                    badge={
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                        Soon
+                      </span>
+                    }
                   >
                     Workflows
                   </NavItem>
