@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <Provider store={store}>
       <AuthProvider>
         {children}
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster position="top-center" closeButton />
       </AuthProvider>
     </Provider>
   );

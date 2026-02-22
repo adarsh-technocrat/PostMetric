@@ -42,13 +42,13 @@ export function CreateLinkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto scrollbar-gutter-stable p-0 gap-0 border-0 [&>button]:absolute [&>button]:right-5 [&>button]:top-5 [&>button]:z-10">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="dialog-noise-bg flex flex-col max-w-5xl max-h-[90vh] overflow-hidden p-0 gap-0 border-0 [&>button]:absolute [&>button]:right-5 [&>button]:top-5 [&>button]:z-10">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
           <DialogTitle className="text-xl font-semibold text-textPrimary">
             Create link
           </DialogTitle>
         </DialogHeader>
-        <div className="px-6 pb-6">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <NewLinkForm
             websiteId={websiteId}
             defaultBaseUrl={defaultBaseUrl}

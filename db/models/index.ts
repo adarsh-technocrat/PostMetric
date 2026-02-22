@@ -20,6 +20,7 @@ export { default as NewsletterSubscriber } from "./NewsletterSubscriber";
 export { default as FeedbackPost } from "./FeedbackPost";
 export { default as FeedbackComment } from "./FeedbackComment";
 export { default as LinkTemplate } from "./LinkTemplate";
+export { default as Workflow } from "./Workflow";
 
 // Export types
 export type { IUser } from "./User";
@@ -43,3 +44,4 @@ export type { INewsletterSubscriber } from "./NewsletterSubscriber";
 export type { IFeedbackPost } from "./FeedbackPost";
 export type { IFeedbackComment } from "./FeedbackComment";
 export type { ILinkTemplate } from "./LinkTemplate";
+export type { IWorkflow } from "./Workflow";

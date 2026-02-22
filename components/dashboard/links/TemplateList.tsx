@@ -12,7 +12,7 @@ import {
   Loader2,
   ArrowUpCircle,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   Dialog,
   DialogContent,

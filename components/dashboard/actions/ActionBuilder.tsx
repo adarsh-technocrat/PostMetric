@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -18,6 +18,8 @@ import { ActionNode, type ActionNodeData } from "./ActionNode";
 import { ConditionNode, type ConditionNodeData } from "./ConditionNode";
 import { ActionConfigPanel } from "./ActionConfigPanel";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const nodeTypes: NodeTypes = {
@@ -25,78 +27,55 @@ const nodeTypes: NodeTypes = {
   condition: ConditionNode,
 };
 
-const initialNodes: Node<ActionNodeData | ConditionNodeData>[] = [
-  {
-    id: "1",
-    type: "action",
-    position: { x: 250, y: 0 },
-    data: {
-      label: "Update Record users",
-      actionType: "backend_call",
-      description: "myRef Authenticated User",
-      actionNumber: 1,
-    },
-  },
-  {
-    id: "2",
-    type: "condition",
-    position: { x: 250, y: 120 },
-    data: {
-      label: "Candidate Record == Document Exists",
-      condition: "Check if record exists",
-      conditionNumber: 1,
-    },
-  },
-  {
-    id: "3",
-    type: "action",
-    position: { x: 0, y: 260 },
-    data: {
-      label: "Navigate to pageName 2",
-      actionType: "navigate",
-      description: "myRef usersRef (scaffold)",
-      actionNumber: 4,
-    },
-  },
-  {
-    id: "4",
-    type: "action",
-    position: { x: 200, y: 380 },
-    data: {
-      label: "Create Record candidates",
-      actionType: "backend_call",
-      description: "candidateRef candidateDetails (Column)",
-      actionNumber: 5,
-    },
-  },
-];
-
-const initialEdges: Edge[] = [
-  { id: "e1-2", source: "1", target: "2", type: "step" },
-  {
-    id: "e2-3",
-    source: "2",
-    target: "3",
-    sourceHandle: "true",
-    type: "step",
-  },
-  {
-    id: "e2-4",
-    source: "2",
-    target: "4",
-    sourceHandle: "false",
-    type: "step",
-  },
-];
+const defaultNodes: Node<ActionNodeData | ConditionNodeData>[] = [];
+const defaultEdges: Edge[] = [];
 
 interface ActionBuilderProps {
   className?: string;
+  workflowId?: string;
+  workflowName?: string;
+  initialNodes?: Node<ActionNodeData | ConditionNodeData>[];
+  initialEdges?: Edge[];
+  embedInDialog?: boolean;
+  onSave?: (params: {
+    name: string;
+    nodes: Node<ActionNodeData | ConditionNodeData>[];
+    edges: Edge[];
+  }) => Promise<void>;
+  onChange?: (
+    nodes: Node<ActionNodeData | ConditionNodeData>[],
+    edges: Edge[],
+  ) => void;
 }
 
-export function ActionBuilder({ className }: ActionBuilderProps) {
+export function ActionBuilder({
+  className,
+  workflowId,
+  workflowName = "Untitled workflow",
+  initialNodes = defaultNodes,
+  initialEdges = defaultEdges,
+  embedInDialog = false,
+  onSave,
+  onChange,
+}: ActionBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [name, setName] = useState(workflowName);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(workflowName);
+  }, [workflowName]);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [workflowId, initialNodes, initialEdges, setNodes, setEdges]);
+
+  useEffect(() => {
+    onChange?.(nodes, edges);
+  }, [nodes, edges, onChange]);
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -112,39 +91,73 @@ export function ActionBuilder({ className }: ActionBuilderProps) {
     setSelectedNode(null);
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!onSave) return;
+    setSaving(true);
+    try {
+      await onSave({
+        name: name.trim() || "Untitled workflow",
+        nodes,
+        edges,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [onSave, name, nodes, edges]);
+
   const selectedActionData =
     selectedNode?.type === "action"
       ? (selectedNode.data as ActionNodeData)
       : null;
 
   return (
-    <div className={cn("flex h-[calc(100vh-12rem)] gap-0", className)}>
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background">
-        <div className="relative flex-1">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            nodeTypes={nodeTypes}
-            defaultEdgeOptions={{ type: "step" }}
-            fitView
-            colorMode="light"
-            className="bg-slate-100"
-          >
-            <Background gap={20} size={1} color="#94a3b8" />
-          </ReactFlow>
+    <div
+      className={cn(
+        "flex flex-col gap-0 min-h-[400px]",
+        className ?? "h-[calc(100vh-12rem)]",
+      )}
+    >
+      {onSave && !embedInDialog && (
+        <div className="flex items-center gap-2 px-4 py-3 border-b bg-background rounded-t-lg">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Workflow name"
+            className="max-w-xs h-9"
+          />
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
         </div>
-      </div>
+      )}
+      <div className="flex flex-1 gap-0 min-h-0">
+        <div className="flex flex-1 flex-col overflow-hidden rounded-b-lg border border-t-0 bg-background">
+          <div className="relative flex-1">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onPaneClick={onPaneClick}
+              nodeTypes={nodeTypes}
+              defaultEdgeOptions={{ type: "step" }}
+              fitView
+              colorMode="light"
+              className="bg-slate-100"
+            >
+              <Background gap={20} size={1} color="#94a3b8" />
+            </ReactFlow>
+          </div>
+        </div>
 
-      <div className="w-80 shrink-0 border-l">
-        <ActionConfigPanel
-          nodeData={selectedActionData}
-          onClose={() => setSelectedNode(null)}
-        />
+        <div className="w-80 shrink-0 border-l">
+          <ActionConfigPanel
+            nodeData={selectedActionData}
+            onClose={() => setSelectedNode(null)}
+          />
+        </div>
       </div>
     </div>
   );

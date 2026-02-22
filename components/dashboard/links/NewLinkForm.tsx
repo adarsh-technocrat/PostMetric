@@ -20,7 +20,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Copy,
   Check,
@@ -31,28 +30,19 @@ import {
   Clock,
   MoreHorizontal,
   ArrowLeft,
+  Globe,
+  Pencil,
+  Linkedin,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   LinkPreviewEditDialog,
   type LinkPreviewValues,
 } from "./LinkPreviewEditDialog";
-
-const UTM_FIELDS = [
-  {
-    key: "utm_source",
-    label: "Source",
-    placeholder: "e.g. google, newsletter",
-  },
-  {
-    key: "utm_medium",
-    label: "Medium",
-    placeholder: "e.g. cpc, email, social",
-  },
-  { key: "utm_campaign", label: "Campaign", placeholder: "e.g. summer_sale" },
-  { key: "utm_term", label: "Term", placeholder: "e.g. keyword" },
-  { key: "utm_content", label: "Content", placeholder: "e.g. ad_variant_a" },
-] as const;
+import { UTMParamsDialog } from "./UTMParamsDialog";
+import { TargetingDialog } from "./TargetingDialog";
+import { PasswordDialog } from "./PasswordDialog";
+import { ExpirationDialog } from "./ExpirationDialog";
 
 interface NewLinkFormProps {
   websiteId: string;
@@ -128,7 +118,13 @@ export function NewLinkForm({
   const [previewDescription, setPreviewDescription] = useState("");
   const [previewImageUrl, setPreviewImageUrl] = useState("");
   const [previewEditOpen, setPreviewEditOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("utm");
+  const [previewPlatform, setPreviewPlatform] = useState<
+    "web" | "x" | "linkedin" | "facebook"
+  >("web");
+  const [utmDialogOpen, setUtmDialogOpen] = useState(false);
+  const [targetingDialogOpen, setTargetingDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [expirationDialogOpen, setExpirationDialogOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
   const [templateName, setTemplateName] = useState("");
@@ -232,352 +228,386 @@ export function NewLinkForm({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-5xl gap-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="custom-card !border-0 shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="destination-url"
-                    className="text-sm font-medium text-textPrimary"
-                  >
-                    Destination URL
-                  </Label>
-                  <FieldHelp title="The full URL where users will be redirected" />
+    <div className="flex flex-1 flex-col min-h-0 w-full max-w-5xl">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="custom-card !border-0 shadow-none">
+              <CardContent className="p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="destination-url"
+                      className="text-sm font-medium text-textPrimary"
+                    >
+                      Destination URL
+                    </Label>
+                    <FieldHelp title="The full URL where users will be redirected" />
+                  </div>
+                  <Input
+                    id="destination-url"
+                    type="url"
+                    placeholder="https://example.com/page"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    className="font-mono text-sm"
+                  />
                 </div>
-                <Input
-                  id="destination-url"
-                  type="url"
-                  placeholder="https://example.com/page"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  className="font-mono text-sm"
-                />
-              </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-textPrimary">
-                    Generated link
-                  </Label>
-                  <div className="flex items-center gap-1">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-textPrimary">
+                      Generated link
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() =>
+                          updateParam("utm_content", randomizeShortCode())
+                        }
+                        title="Randomize"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                      </Button>
+                      <FieldHelp title="Your UTM-trackable link" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={builtUrl || "Enter URL and UTM params..."}
+                      className="font-mono text-sm bg-muted/50"
+                    />
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={() =>
-                        updateParam("utm_content", randomizeShortCode())
-                      }
-                      title="Randomize"
+                      onClick={handleCopy}
+                      disabled={!builtUrl}
+                      title="Copy link"
                     >
-                      <Shuffle className="h-4 w-4" />
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
                     </Button>
-                    <FieldHelp title="Your UTM-trackable link" />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={builtUrl || "Enter URL and UTM params..."}
-                    className="font-mono text-sm bg-muted/50"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCopy}
-                    disabled={!builtUrl}
-                    title="Copy link"
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="tags"
-                    className="text-sm font-medium text-textPrimary"
-                  >
-                    Tags
-                  </Label>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs">
-                      Manage
-                    </Button>
-                    <FieldHelp title="Organize links with tags" />
-                  </div>
-                </div>
-                <Input
-                  id="tags"
-                  placeholder="Select tags..."
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="comments"
-                    className="text-sm font-medium text-textPrimary"
-                  >
-                    Comments
-                  </Label>
-                  <FieldHelp title="Internal notes about this link" />
-                </div>
-                <textarea
-                  id="comments"
-                  placeholder="Add comments"
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  rows={2}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <Label
-                    htmlFor="conversion"
-                    className="text-sm font-medium text-textPrimary"
-                  >
-                    Conversion tracking
-                  </Label>
-                  <FieldHelp title="Track conversions for this link" />
-                </div>
-                <Switch
-                  id="conversion"
-                  checked={conversionTracking}
-                  onCheckedChange={setConversionTracking}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card className="custom-card shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="folder"
-                    className="text-sm font-medium text-textPrimary"
-                  >
-                    Folder
-                  </Label>
-                  <FieldHelp title="Organize links in folders" />
-                </div>
-                <Select value={folder} onValueChange={setFolder}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select folder" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Links">Links</SelectItem>
-                    <SelectItem value="Campaigns">Campaigns</SelectItem>
-                    <SelectItem value="Social">Social</SelectItem>
-                    <SelectItem value="Email">Email</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-textPrimary">
-                    QR Code
-                  </Label>
-                  <FieldHelp title="QR code for your link" />
-                </div>
-                <div className="flex justify-center rounded-lg bg-muted/30 p-3">
-                  {qrCodeUrl ? (
-                    <img src={qrCodeUrl} alt="QR Code" className="w-40 h-40" />
-                  ) : (
-                    <div className="w-40 h-40 flex items-center justify-center text-textSecondary text-sm">
-                      Enter URL first
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium text-textPrimary">
-                      Custom link preview
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="tags"
+                      className="text-sm font-medium text-textPrimary"
+                    >
+                      Tags
                     </Label>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs">
+                        Manage
+                      </Button>
+                      <FieldHelp title="Organize links with tags" />
+                    </div>
+                  </div>
+                  <Input
+                    id="tags"
+                    placeholder="Select tags..."
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="comments"
+                      className="text-sm font-medium text-textPrimary"
+                    >
+                      Comments
+                    </Label>
+                    <FieldHelp title="Internal notes about this link" />
+                  </div>
+                  <textarea
+                    id="comments"
+                    placeholder="Add comments"
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={2}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="link-name"
+                    className="text-sm font-medium text-textPrimary"
+                  >
+                    Link name
+                  </Label>
+                  <Input
+                    id="link-name"
+                    placeholder="Link name (optional)"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor="conversion"
+                      className="text-sm font-medium text-textPrimary"
+                    >
+                      Conversion tracking
+                    </Label>
+                    <FieldHelp title="Track conversions for this link" />
+                  </div>
+                  <Switch
+                    id="conversion"
+                    checked={conversionTracking}
+                    onCheckedChange={setConversionTracking}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <Card className="custom-card shadow-none">
+              <CardContent className="p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="folder"
+                      className="text-sm font-medium text-textPrimary"
+                    >
+                      Folder
+                    </Label>
+                    <FieldHelp title="Organize links in folders" />
+                  </div>
+                  <Select value={folder} onValueChange={setFolder}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Links">Links</SelectItem>
+                      <SelectItem value="Campaigns">Campaigns</SelectItem>
+                      <SelectItem value="Social">Social</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-textPrimary">
+                      QR Code
+                    </Label>
+                    <FieldHelp title="QR code for your link" />
+                  </div>
+                  <div className="flex justify-center rounded-lg bg-muted/30 p-3">
+                    {qrCodeUrl ? (
+                      <img
+                        src={qrCodeUrl}
+                        alt="QR Code"
+                        className="w-40 h-40"
+                      />
+                    ) : (
+                      <div className="w-40 h-40 flex items-center justify-center text-textSecondary text-sm">
+                        Enter URL first
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-textPrimary">
+                        Custom Link Preview
+                      </span>
+                      <FieldHelp title="Customize how the link appears when shared" />
+                    </div>
                     <Switch
                       checked={customPreviewEnabled}
                       onCheckedChange={setCustomPreviewEnabled}
                     />
                   </div>
-                  <FieldHelp title="Customize how the link appears when shared" />
+                  {customPreviewEnabled && (
+                    <>
+                      <div className="flex gap-1 rounded-lg border border-borderColor/50 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPlatform("web")}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md text-textSecondary transition-colors hover:bg-muted/50 hover:text-textPrimary ${
+                            previewPlatform === "web"
+                              ? "bg-muted/50 text-textPrimary ring-1 ring-borderColor"
+                              : ""
+                          }`}
+                        >
+                          <Globe className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPlatform("x")}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md text-textSecondary transition-colors hover:bg-muted/50 hover:text-textPrimary ${
+                            previewPlatform === "x"
+                              ? "bg-muted/50 text-textPrimary ring-1 ring-borderColor"
+                              : ""
+                          }`}
+                        >
+                          <span className="text-[10px] font-bold">𝕏</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPlatform("linkedin")}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md text-textSecondary transition-colors hover:bg-muted/50 hover:text-textPrimary ${
+                            previewPlatform === "linkedin"
+                              ? "bg-muted/50 text-textPrimary ring-1 ring-borderColor"
+                              : ""
+                          }`}
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPlatform("facebook")}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md text-textSecondary transition-colors hover:bg-muted/50 hover:text-textPrimary ${
+                            previewPlatform === "facebook"
+                              ? "bg-muted/50 text-textPrimary ring-1 ring-borderColor"
+                              : ""
+                          }`}
+                        >
+                          <span className="text-xs font-bold">f</span>
+                        </button>
+                      </div>
+                      <div className="overflow-hidden rounded-lg border border-borderColor/50 bg-white">
+                        <div className="relative aspect-video w-full overflow-hidden bg-muted/30">
+                          {previewImageUrl ? (
+                            <img
+                              src={previewImageUrl}
+                              alt="Preview"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Globe className="h-10 w-10 text-textSecondary/40" />
+                            </div>
+                          )}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            className="absolute right-2 top-2 h-8 w-8 rounded-md bg-white/90 shadow-sm hover:bg-white"
+                            onClick={() => setPreviewEditOpen(true)}
+                            title="Edit preview"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="border-t border-borderColor/30 p-3">
+                          <p className="line-clamp-1 text-sm font-semibold text-textPrimary">
+                            {previewTitle || "Add a title..."}
+                          </p>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-textSecondary">
+                            {previewDescription || "Add a description..."}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {customPreviewEnabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-sm border-borderColor/60"
-                    onClick={() => setPreviewEditOpen(true)}
-                  >
-                    Edit preview
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      <Card className="overflow-hidden custom-card !border-0 shadow-none mt-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 px-5 pt-4 pb-2 border-b border-borderColor/50">
-            <div className="flex w-full min-w-0 flex-1 items-center gap-2">
-              <TabsList className="z-5 inline-flex h-auto flex-1 justify-start items-center gap-1 overflow-x-auto rounded-none border-0 bg-transparent p-0 text-sm shadow-none min-w-0">
-                <TabsTrigger
-                  value="utm"
-                  className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
-                >
-                  <span className="mb-1 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1 hover:bg-stone-100">
-                    UTM
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="targeting"
-                  className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
-                >
-                  <span className="mb-1 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1 hover:bg-stone-100">
-                    <Crosshair className="h-4 w-4" />
-                    Targeting
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="password"
-                  className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
-                >
-                  <span className="mb-1 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1 hover:bg-stone-100">
-                    <Lock className="h-4 w-4" />
-                    Password
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="expiration"
-                  className="inline-flex shrink-0 cursor-pointer items-center justify-between whitespace-nowrap rounded-none border-b-2 border-transparent px-0 py-0 text-center text-sm font-semibold text-stone-950 transition-all ease-in duration-75 hover:bg-transparent data-[state=active]:rounded-none data-[state=active]:border-indigo-400 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none dark:data-[state=active]:text-brand-600"
-                >
-                  <span className="mb-1 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1 hover:bg-stone-100">
-                    <Clock className="h-4 w-4" />
-                    Expiration
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-8 w-8 mb-1 text-stone-500 hover:text-stone-800 hover:bg-stone-100"
-                title="More options"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 sm:pl-4">
-              <Input
-                placeholder="Link name (optional)"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                className="w-40 sm:w-48 text-sm"
-              />
-              <Button
-                type="button"
-                onClick={handleCreateLink}
-                disabled={saving || !builtUrl}
-                variant="stone"
-                className="h-9 min-w-[120px] px-4 normal-case"
-              >
-                <ArrowLeft className="h-4 w-4 rotate-180" />
-                {saving ? "Creating..." : "Create link"}
-              </Button>
-            </div>
+      <footer className="shrink-0 border-t border-borderColor/50 bg-muted/30 px-6 py-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          <div className="flex w-full min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setUtmDialogOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-stone-950 hover:bg-stone-100 transition-colors"
+            >
+              UTM
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetingDialogOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-stone-950 hover:bg-stone-100 transition-colors"
+            >
+              <Crosshair className="h-4 w-4" />
+              Targeting
+            </button>
+            <button
+              type="button"
+              onClick={() => setPasswordDialogOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-stone-950 hover:bg-stone-100 transition-colors"
+            >
+              <Lock className="h-4 w-4" />
+              Password
+            </button>
+            <button
+              type="button"
+              onClick={() => setExpirationDialogOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-stone-950 hover:bg-stone-100 transition-colors"
+            >
+              <Clock className="h-4 w-4" />
+              Expiration
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-8 w-8 text-stone-500 hover:text-stone-800 hover:bg-stone-100"
+              title="More options"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
           </div>
+          <Button
+            type="button"
+            onClick={handleCreateLink}
+            disabled={saving || !builtUrl}
+            variant="stone"
+            className="h-9 min-w-[120px] px-4 normal-case shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4 rotate-180" />
+            {saving ? "Creating..." : "Create link"}
+          </Button>
+        </div>
+      </footer>
 
-          <TabsContent value="utm" className="mt-0">
-            <CardContent className="px-5 pb-5 pt-2">
-              <h3 className="text-base font-semibold text-textPrimary mb-3">
-                UTM Parameters
-              </h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {UTM_FIELDS.map(({ key, label, placeholder }) => (
-                  <div key={key} className="space-y-1.5">
-                    <Label
-                      htmlFor={key}
-                      className="text-sm font-medium text-textPrimary"
-                    >
-                      {label}
-                    </Label>
-                    <Input
-                      id={key}
-                      placeholder={placeholder}
-                      value={utmParams[key] || ""}
-                      onChange={(e) => updateParam(key, e.target.value)}
-                      className="font-mono text-sm lowercase"
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </TabsContent>
-
-          <TabsContent value="targeting" className="mt-0">
-            <CardContent className="px-5 pb-5 pt-2">
-              <h3 className="text-base font-semibold text-textPrimary mb-3">
-                Targeting
-              </h3>
-              <p className="text-textSecondary text-sm">
-                Target specific countries, devices, or referrers. Coming soon.
-              </p>
-            </CardContent>
-          </TabsContent>
-
-          <TabsContent value="password" className="mt-0">
-            <CardContent className="px-5 pb-5 pt-2">
-              <h3 className="text-base font-semibold text-textPrimary mb-3">
-                Password protection
-              </h3>
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="max-w-xs"
-              />
-            </CardContent>
-          </TabsContent>
-
-          <TabsContent value="expiration" className="mt-0">
-            <CardContent className="px-5 pb-5 pt-2">
-              <h3 className="text-base font-semibold text-textPrimary mb-3">
-                Link expiration
-              </h3>
-              <Input
-                type="datetime-local"
-                value={expirationDate}
-                onChange={(e) => setExpirationDate(e.target.value)}
-                className="max-w-xs"
-              />
-            </CardContent>
-          </TabsContent>
-        </Tabs>
-      </Card>
+      <UTMParamsDialog
+        open={utmDialogOpen}
+        onOpenChange={setUtmDialogOpen}
+        utmParams={utmParams}
+        onUpdate={updateParam}
+      />
+      <TargetingDialog
+        open={targetingDialogOpen}
+        onOpenChange={setTargetingDialogOpen}
+      />
+      <PasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        password={password}
+        onPasswordChange={setPassword}
+      />
+      <ExpirationDialog
+        open={expirationDialogOpen}
+        onOpenChange={setExpirationDialogOpen}
+        expirationDate={expirationDate}
+        onExpirationChange={setExpirationDate}
+      />
 
       <LinkPreviewEditDialog
         open={previewEditOpen}

@@ -177,10 +177,10 @@ export function Sidebar() {
 
                 <NavSection title="Builders" color="lime">
                   <NavItem
-                    href={`/dashboard/${currentWebsiteId}/actions`}
+                    href={`/dashboard/${currentWebsiteId}/workflows`}
                     icon={<Workflow className="w-[18px] h-[18px]" />}
                   >
-                    Action Builder
+                    Workflows
                   </NavItem>
                 </NavSection>
 
