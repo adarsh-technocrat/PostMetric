@@ -528,9 +528,7 @@ function AnalyticsChartComponent({
                     />
                   );
                 }}
-                activeDot={(props: DotProps) => (
-                  <ActiveDot {...props} onClick={onNoteClick} />
-                )}
+                activeDot={false}
                 connectNulls={false}
               />
             )}
