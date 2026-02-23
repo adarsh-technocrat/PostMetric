@@ -9,6 +9,7 @@ import { fetchWebsiteDetailsById } from "@/store/slices/websitesSlice";
 import {
   Folder,
   FolderOpen,
+  FolderPlus,
   Pencil,
   Trash2,
   Link2,
@@ -52,6 +53,9 @@ export default function FoldersPage({
   const [renaming, setRenaming] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FolderItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchFolders = useCallback(async () => {
     try {
@@ -109,6 +113,31 @@ export default function FoldersPage({
     }
   };
 
+  const handleCreate = async () => {
+    if (!createName.trim()) return;
+    setCreating(true);
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/folders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: createName.trim() }),
+      });
+      if (res.ok) {
+        toast.success("Folder created");
+        setCreateOpen(false);
+        setCreateName("");
+        fetchFolders();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Create failed");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create folder");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -157,11 +186,26 @@ export default function FoldersPage({
       </nav>
 
       <div>
-        <h1 className="text-foreground font-semibold text-lg mb-1">Folders</h1>
-        <p className="text-muted-foreground text-sm mb-6">
-          Organize your links into folders. Create folders when adding links in
-          the Link Builder.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-foreground font-semibold text-lg mb-1">
+              Folders
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Organize your links into folders. Create folders or add links in
+              the Link Builder.
+            </p>
+          </div>
+          <Button
+            variant="stone"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setCreateOpen(true)}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Create folder
+          </Button>
+        </div>
 
         {folders.length === 0 ? (
           <Card className="border rounded-lg">
@@ -171,15 +215,25 @@ export default function FoldersPage({
                 No folders yet
               </h2>
               <p className="text-muted-foreground text-sm text-center max-w-md mb-4">
-                Folders are created when you add links and assign them to a
-                folder. Create your first link to get started.
+                Create a folder to organize your links, or add links in the Link
+                Builder and assign them to folders.
               </p>
-              <Button variant="stone" size="sm" asChild>
-                <Link href={`/dashboard/${websiteId}/links`}>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  Create link
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button
+                  variant="stone"
+                  size="sm"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  Create folder
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/dashboard/${websiteId}/links`}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Create link
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -296,6 +350,41 @@ export default function FoldersPage({
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Remove"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setCreateName("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create folder</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            placeholder="Folder name"
+            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating || !createName.trim()}
+            >
+              {creating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Create"
               )}
             </Button>
           </DialogFooter>

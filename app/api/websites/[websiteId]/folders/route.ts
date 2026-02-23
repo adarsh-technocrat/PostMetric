@@ -3,6 +3,7 @@ import {
   getFoldersByWebsiteId,
   renameFolder,
   deleteFolder,
+  createLinkTemplate,
 } from "@/utils/database/link-template";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
@@ -40,6 +41,63 @@ export async function GET(
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch folders" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ websiteId: string }> },
+) {
+  try {
+    const { websiteId } = await params;
+    if (!isValidObjectId(websiteId)) {
+      return NextResponse.json(
+        { error: "Invalid website ID" },
+        { status: 400 },
+      );
+    }
+
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const website = await getWebsiteById(websiteId);
+    if (!website) {
+      return NextResponse.json({ error: "Website not found" }, { status: 404 });
+    }
+
+    if (website.userId.toString() !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { name } = body;
+
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json(
+        { error: "Folder name is required" },
+        { status: 400 },
+      );
+    }
+
+    const folderName = name.trim();
+    const baseUrl = website.domain
+      ? `https://${website.domain.replace(/^https?:\/\//, "")}`
+      : "https://example.com";
+
+    await createLinkTemplate(websiteId, {
+      name: "Untitled",
+      baseUrl,
+      folder: folderName,
+    });
+
+    return NextResponse.json({ folder: folderName });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to create folder" },
       { status: 500 },
     );
   }

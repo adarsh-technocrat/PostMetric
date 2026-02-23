@@ -5,6 +5,10 @@ import connectDB from "@/db";
 import User from "@/db/models/User";
 import { calculateTrialDaysRemaining } from "@/utils/trial";
 import { TrialExpiredBanner } from "@/components/dashboard/TrialExpiredBanner";
+import { OverLimitBanner } from "@/components/dashboard/OverLimitBanner";
+import { getMonthlyEventCount } from "@/utils/billing/usage";
+import { getPlanEventLimit } from "@/utils/billing/limits";
+import type { IUser } from "@/db/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +21,14 @@ export default async function DashboardLayout({
   let subscriptionStatus: string | undefined = undefined;
   let subscriptionPlan: string | undefined = undefined;
   let hasActiveSubscription = false;
+  let user: IUser | null = null;
+  let session: Awaited<ReturnType<typeof getSession>> = null;
 
   try {
-    const session = await getSession();
+    session = await getSession();
     if (session?.user?.id) {
       await connectDB();
-      const user = await User.findById(session.user.id);
+      user = await User.findById(session.user.id);
       daysRemaining = calculateTrialDaysRemaining(
         user?.subscription?.trialEndsAt,
       );
@@ -40,11 +46,23 @@ export default async function DashboardLayout({
       ? daysRemaining
       : parseInt(process.env.TRIAL_PERIOD_DAYS || "14", 10);
 
+  const hasValidTrial = daysRemaining !== null && daysRemaining > 0;
   const isTrialExpired =
-    daysRemaining !== null && daysRemaining === 0 && !hasActiveSubscription;
+    (!hasValidTrial &&
+      subscriptionStatus === "trial" &&
+      !hasActiveSubscription) ||
+    (daysRemaining === 0 && !hasActiveSubscription);
 
   if (isTrialExpired) {
     return <TrialExpiredBanner />;
+  }
+
+  if (hasActiveSubscription && user && session?.user?.id) {
+    const usage = await getMonthlyEventCount(session.user.id);
+    const limit = getPlanEventLimit(user);
+    if (limit !== null && usage > limit) {
+      return <OverLimitBanner />;
+    }
   }
 
   return (
