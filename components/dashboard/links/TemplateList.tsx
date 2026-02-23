@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { buildUtmUrl } from "@/utils/tracking/utm";
 import { Button } from "@/components/ui/button";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchTemplates,
+  deleteTemplate,
+} from "@/store/slices/linkTemplatesSlice";
 import {
   Copy,
   Trash2,
@@ -99,32 +104,23 @@ export function TemplateList({
   listTitle = "Saved templates",
   listDescription = "Click to expand and copy your UTM links",
 }: TemplateListProps) {
-  const [templates, setTemplates] = useState<LinkTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { templates, loading, deleting } = useAppSelector(
+    (state) => state.linkTemplates,
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LinkTemplate | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/websites/${websiteId}/link-templates`);
-      if (res.ok) {
-        const data = await res.json();
-        const list = data.templates || [];
-        setTemplates(list);
-        onTemplatesLoad?.(list);
-      }
-    } catch {
-      toast.error("Failed to load templates");
-    } finally {
-      setLoading(false);
-    }
-  }, [websiteId, onTemplatesLoad]);
+  useEffect(() => {
+    dispatch(fetchTemplates(websiteId));
+  }, [websiteId, refreshKey, dispatch]);
 
   useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates, refreshKey]);
+    if (templates.length > 0) {
+      onTemplatesLoad?.(templates);
+    }
+  }, [templates, onTemplatesLoad]);
 
   const getBuiltUrl = (t: LinkTemplate) => {
     const base = t.baseUrl || defaultBaseUrl;
@@ -152,23 +148,14 @@ export function TemplateList({
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(
-        `/api/websites/${websiteId}/link-templates/${deleteTarget._id}`,
-        { method: "DELETE" },
-      );
-      if (res.ok) {
-        setTemplates((prev) => prev.filter((t) => t._id !== deleteTarget._id));
-        toast.success("Template deleted");
-        setDeleteTarget(null);
-      } else {
-        throw new Error("Delete failed");
-      }
-    } catch {
+    const result = await dispatch(
+      deleteTemplate({ websiteId, templateId: deleteTarget._id }),
+    );
+    if (deleteTemplate.fulfilled.match(result)) {
+      toast.success("Template deleted");
+      setDeleteTarget(null);
+    } else {
       toast.error("Failed to delete");
-    } finally {
-      setDeleting(false);
     }
   };
 

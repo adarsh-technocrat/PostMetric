@@ -1,42 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getBillingStatus, openPortal } from "@/store/slices/billingSlice";
+import { toast } from "@/lib/toast";
 
 export function ManageBillingButton() {
-  const [canManage, setCanManage] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { canManageBilling, portalLoading } = useAppSelector(
+    (state) => state.billing,
+  );
 
   useEffect(() => {
-    fetch("/api/billing/status")
-      .then((r) => r.json())
-      .then((d) => setCanManage(d.canManageBilling));
-  }, []);
+    dispatch(getBillingStatus());
+  }, [dispatch]);
 
   const handleClick = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/billing/portal", {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
-      if (data.url) window.location.href = data.url;
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed");
-      setLoading(false);
+    const result = await dispatch(openPortal());
+    if (openPortal.rejected.match(result)) {
+      toast.error(
+        typeof result.payload === "string" ? result.payload : "Failed to open portal",
+      );
     }
   };
 
-  if (!canManage) return null;
+  if (!canManageBilling) return null;
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      disabled={loading}
+      disabled={portalLoading}
       className="text-sm text-stone-600 hover:text-stone-800 underline"
     >
-      {loading ? "Opening…" : "Manage subscription"}
+      {portalLoading ? "Opening…" : "Manage subscription"}
     </button>
   );
 }

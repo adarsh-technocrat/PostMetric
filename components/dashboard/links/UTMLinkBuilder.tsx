@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { buildUtmUrl } from "@/utils/tracking/utm";
+import { useAppDispatch } from "@/store/hooks";
+import { createTemplate } from "@/store/slices/linkTemplatesSlice";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -97,6 +99,8 @@ export function UTMLinkBuilder({
     }
   };
 
+  const dispatch = useAppDispatch();
+
   const handleSaveTemplate = async () => {
     const name = templateName.trim();
     if (!name) {
@@ -106,30 +110,32 @@ export function UTMLinkBuilder({
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/websites/${websiteId}/link-templates`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          baseUrl: baseUrl || undefined,
-          utmSource: utmParams.utm_source || undefined,
-          utmMedium: utmParams.utm_medium || undefined,
-          utmCampaign: utmParams.utm_campaign || undefined,
-          utmTerm: utmParams.utm_term || undefined,
-          utmContent: utmParams.utm_content || undefined,
+      const result = await dispatch(
+        createTemplate({
+          websiteId,
+          payload: {
+            name,
+            baseUrl: baseUrl || undefined,
+            utmSource: utmParams.utm_source || undefined,
+            utmMedium: utmParams.utm_medium || undefined,
+            utmCampaign: utmParams.utm_campaign || undefined,
+            utmTerm: utmParams.utm_term || undefined,
+            utmContent: utmParams.utm_content || undefined,
+          },
         }),
-      });
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to save template");
+      if (createTemplate.fulfilled.match(result)) {
+        toast.success("Template saved");
+        setTemplateName("");
+        onTemplateCreated?.();
+      } else {
+        toast.error(
+          typeof result.payload === "string"
+            ? result.payload
+            : "Failed to save",
+        );
       }
-
-      toast.success("Template saved");
-      setTemplateName("");
-      onTemplateCreated?.();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }

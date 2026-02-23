@@ -2,6 +2,10 @@ import { configureStore } from "@reduxjs/toolkit";
 import analyticsReducer from "./slices/analyticsSlice";
 import websitesReducer from "./slices/websitesSlice";
 import uiReducer from "./slices/uiSlice";
+import foldersReducer from "./slices/foldersSlice";
+import workflowsReducer from "./slices/workflowsSlice";
+import linkTemplatesReducer from "./slices/linkTemplatesSlice";
+import billingReducer from "./slices/billingSlice";
 
 const makeStore = () => {
   return configureStore({
@@ -9,11 +13,14 @@ const makeStore = () => {
       analytics: analyticsReducer,
       websites: websitesReducer,
       ui: uiReducer,
+      folders: foldersReducer,
+      workflows: workflowsReducer,
+      linkTemplates: linkTemplatesReducer,
+      billing: billingReducer,
     },
   });
 };
 
-// Create a singleton store instance
 let storeInstance: ReturnType<typeof makeStore> | undefined;
 
 export const getStore = () => {

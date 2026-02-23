@@ -1,19 +1,15 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import * as websitesRepo from "@/lib/api/repositories/websitesRepository";
 
 export const fetchAllUserWebsites = createAsyncThunk(
   "websites/fetchAllUserWebsites",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/websites");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch websites");
-      }
-
-      const data = await response.json();
-      return data.websites || [];
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.getAllWebsites();
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch websites",
+      );
     }
   },
 );
@@ -22,17 +18,11 @@ export const fetchWebsiteDetailsById = createAsyncThunk(
   "websites/fetchWebsiteDetailsById",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}`, {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch website");
-      }
-
-      const data = await response.json();
-      return data.website;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.getWebsiteById(websiteId);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch website",
+      );
     }
   },
 );
@@ -45,26 +35,16 @@ export const updateWebsiteSettingsAndConfiguration = createAsyncThunk(
       updates,
     }: {
       websiteId: string;
-      updates: any;
+      updates: Record<string, unknown>;
     },
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update website");
-      }
-
-      const data = await response.json();
-      return data.website;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.updateWebsite(websiteId, updates);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to update website",
+      );
     }
   },
 );
@@ -76,24 +56,11 @@ export const connectStripeRevenue = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(
-        `/api/websites/${websiteId}/revenue/stripe/connect`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey }),
-        },
+      return await websitesRepo.connectStripeRevenue(websiteId, apiKey);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to connect Stripe",
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to connect Stripe");
-      }
-
-      const data = await response.json();
-      return data.website;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
     }
   },
 );
@@ -102,20 +69,11 @@ export const disconnectStripeRevenue = createAsyncThunk(
   "websites/disconnectStripeRevenue",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `/api/websites/${websiteId}/revenue/stripe/disconnect`,
-        { method: "POST" },
+      return await websitesRepo.disconnectStripeRevenue(websiteId);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to disconnect Stripe",
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to disconnect Stripe");
-      }
-
-      const data = await response.json();
-      return data.website;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
     }
   },
 );
@@ -137,26 +95,16 @@ export const createNewWebsiteWithDomain = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch("/api/websites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          domain,
-          name,
-          iconUrl: iconUrl || undefined,
-          settings: settings || undefined,
-        }),
+      return await websitesRepo.createWebsite({
+        domain,
+        name,
+        iconUrl,
+        settings,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create website");
-      }
-
-      const data = await response.json();
-      return data.website;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to create website",
+      );
     }
   },
 );
@@ -165,18 +113,12 @@ export const deleteWebsiteById = createAsyncThunk(
   "websites/deleteWebsiteById",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete website");
-      }
-
+      await websitesRepo.deleteWebsite(websiteId);
       return websiteId;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to delete website",
+      );
     }
   },
 );
@@ -185,16 +127,11 @@ export const fetchAllApiKeysForWebsite = createAsyncThunk(
   "websites/fetchAllApiKeysForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/api-keys`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch API keys");
-      }
-
-      const data = await response.json();
-      return data.apiKeys || [];
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.getApiKeys(websiteId);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch API keys",
+      );
     }
   },
 );
@@ -202,33 +139,15 @@ export const fetchAllApiKeysForWebsite = createAsyncThunk(
 export const createNewApiKeyForWebsite = createAsyncThunk(
   "websites/createNewApiKeyForWebsite",
   async (
-    {
-      websiteId,
-      name,
-    }: {
-      websiteId: string;
-      name: string;
-    },
+    { websiteId, name }: { websiteId: string; name: string },
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/api-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim() || "Unnamed Key",
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create API key");
-      }
-
-      const data = await response.json();
-      return data.apiKey;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.createApiKey(websiteId, name);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to create API key",
+      );
     }
   },
 );
@@ -236,31 +155,16 @@ export const createNewApiKeyForWebsite = createAsyncThunk(
 export const deleteApiKeyByIdFromWebsite = createAsyncThunk(
   "websites/deleteApiKeyByIdFromWebsite",
   async (
-    {
-      websiteId,
-      keyId,
-    }: {
-      websiteId: string;
-      keyId: string;
-    },
+    { websiteId, keyId }: { websiteId: string; keyId: string },
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(
-        `/api/websites/${websiteId}/api-keys/${keyId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete API key");
-      }
-
+      await websitesRepo.deleteApiKey(websiteId, keyId);
       return keyId;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to delete API key",
+      );
     }
   },
 );
@@ -269,19 +173,11 @@ export const fetchAllTeamMembersForWebsite = createAsyncThunk(
   "websites/fetchAllTeamMembersForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/team`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch team members");
-      }
-
-      const data = await response.json();
-      return {
-        teamMembers: data.teamMembers || [],
-        owner: data.owner || null,
-      };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.getTeamMembers(websiteId);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch team members",
+      );
     }
   },
 );
@@ -301,24 +197,11 @@ export const inviteTeamMemberToWebsite = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/team`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          role,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to invite team member");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      return await websitesRepo.inviteTeamMember(websiteId, email, role);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to invite team member",
+      );
     }
   },
 );
@@ -338,23 +221,14 @@ export const updateTeamMemberRoleForWebsite = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(
-        `/api/websites/${websiteId}/team/${memberId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role }),
-        },
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update team member role");
-      }
-
+      await websitesRepo.updateTeamMemberRole(websiteId, memberId, role);
       return { memberId, role };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to update team member role",
+      );
     }
   },
 );
@@ -362,31 +236,16 @@ export const updateTeamMemberRoleForWebsite = createAsyncThunk(
 export const removeTeamMemberFromWebsite = createAsyncThunk(
   "websites/removeTeamMemberFromWebsite",
   async (
-    {
-      websiteId,
-      memberId,
-    }: {
-      websiteId: string;
-      memberId: string;
-    },
+    { websiteId, memberId }: { websiteId: string; memberId: string },
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(
-        `/api/websites/${websiteId}/team/${memberId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to remove team member");
-      }
-
+      await websitesRepo.removeTeamMember(websiteId, memberId);
       return memberId;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to remove team member",
+      );
     }
   },
 );
@@ -395,21 +254,13 @@ export const fetchNotificationSettingsForWebsite = createAsyncThunk(
   "websites/fetchNotificationSettingsForWebsite",
   async (websiteId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/notifications`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch notifications");
-      }
-
-      const data = await response.json();
-      return (
-        data.notification || {
-          weeklySummary: false,
-          trafficSpike: false,
-        }
+      return await websitesRepo.getNotificationSettings(websiteId);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch notifications",
       );
-    } catch (error: any) {
-      return rejectWithValue(error.message);
     }
   },
 );
@@ -429,31 +280,16 @@ export const updateNotificationSettingsForWebsite = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await fetch(`/api/websites/${websiteId}/notifications`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weeklySummary,
-          trafficSpike,
-        }),
+      return await websitesRepo.updateNotificationSettings(websiteId, {
+        weeklySummary,
+        trafficSpike,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          error.error || "Failed to update notification settings",
-        );
-      }
-
-      const data = await response.json();
-      return (
-        data.notification || {
-          weeklySummary,
-          trafficSpike,
-        }
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to update notification settings",
       );
-    } catch (error: any) {
-      return rejectWithValue(error.message);
     }
   },
 );
@@ -461,36 +297,15 @@ export const updateNotificationSettingsForWebsite = createAsyncThunk(
 export const importPlausibleDataForWebsite = createAsyncThunk(
   "websites/importPlausibleDataForWebsite",
   async (
-    {
-      websiteId,
-      file,
-    }: {
-      websiteId: string;
-      file: File;
-    },
+    { websiteId, file }: { websiteId: string; file: File },
     { rejectWithValue },
   ) => {
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(
-        `/api/websites/${websiteId}/plausible-import`,
-        {
-          method: "POST",
-          body: formData,
-        },
+      return await websitesRepo.importPlausibleData(websiteId, file);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to import data",
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to import data");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
     }
   },
 );

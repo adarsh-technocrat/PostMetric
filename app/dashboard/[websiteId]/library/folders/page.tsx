@@ -1,11 +1,18 @@
 "use client";
 
-import { use, useEffect, useState, useCallback } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isValidObjectId } from "@/utils/validation";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchWebsiteDetailsById } from "@/store/slices/websitesSlice";
+import {
+  fetchFolders,
+  createFolder,
+  renameFolder,
+  deleteFolder,
+} from "@/store/slices/foldersSlice";
+import type { FolderItem } from "@/lib/api/repositories/foldersRepository";
 import {
   Folder,
   FolderOpen,
@@ -33,11 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
 
-interface FolderItem {
-  name: string;
-  linkCount: number;
-}
-
 export default function FoldersPage({
   params,
 }: {
@@ -46,41 +48,23 @@ export default function FoldersPage({
   const { websiteId } = use(params);
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [loading, setLoading] = useState(true);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
+  const { folders, loading, creating, renaming, deleting } = useAppSelector(
+    (state) => state.folders,
+  );
   const [renameTarget, setRenameTarget] = useState<FolderItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [renaming, setRenaming] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FolderItem | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  const fetchFolders = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/websites/${websiteId}/folders`);
-      if (res.ok) {
-        const data = await res.json();
-        setFolders(data.folders || []);
-      }
-    } catch {
-      toast.error("Failed to load folders");
-    } finally {
-      setLoading(false);
-    }
-  }, [websiteId]);
 
   useEffect(() => {
     if (!isValidObjectId(websiteId)) {
       router.push("/dashboard");
       return;
     }
-    dispatch(fetchWebsiteDetailsById(websiteId)).finally(() => {
-      setLoading(false);
-    });
-    fetchFolders();
-  }, [websiteId, router, dispatch, fetchFolders]);
+    dispatch(fetchWebsiteDetailsById(websiteId));
+    dispatch(fetchFolders(websiteId));
+  }, [websiteId, router, dispatch]);
 
   const handleRename = async () => {
     if (!renameTarget || !renameValue.trim()) return;
@@ -88,78 +72,60 @@ export default function FoldersPage({
       setRenameTarget(null);
       return;
     }
-    setRenaming(true);
-    try {
-      const res = await fetch(`/api/websites/${websiteId}/folders`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          oldName: renameTarget.name,
-          newName: renameValue.trim(),
-        }),
-      });
-      if (res.ok) {
-        toast.success("Folder renamed");
-        setRenameTarget(null);
-        fetchFolders();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Rename failed");
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to rename");
-    } finally {
-      setRenaming(false);
+    const result = await dispatch(
+      renameFolder({
+        websiteId,
+        oldName: renameTarget.name,
+        newName: renameValue.trim(),
+      }),
+    );
+    if (renameFolder.fulfilled.match(result)) {
+      toast.success("Folder renamed");
+      setRenameTarget(null);
+      dispatch(fetchFolders(websiteId));
+    } else {
+      toast.error(
+        typeof result.payload === "string"
+          ? result.payload
+          : "Failed to rename",
+      );
     }
   };
 
   const handleCreate = async () => {
     if (!createName.trim()) return;
-    setCreating(true);
-    try {
-      const res = await fetch(`/api/websites/${websiteId}/folders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: createName.trim() }),
-      });
-      if (res.ok) {
-        toast.success("Folder created");
-        setCreateOpen(false);
-        setCreateName("");
-        fetchFolders();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Create failed");
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to create folder");
-    } finally {
-      setCreating(false);
+    const result = await dispatch(
+      createFolder({ websiteId, name: createName.trim() }),
+    );
+    if (createFolder.fulfilled.match(result)) {
+      toast.success("Folder created");
+      setCreateOpen(false);
+      setCreateName("");
+      dispatch(fetchFolders(websiteId));
+    } else {
+      toast.error(
+        typeof result.payload === "string"
+          ? result.payload
+          : "Failed to create folder",
+      );
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(
-        `/api/websites/${websiteId}/folders?name=${encodeURIComponent(deleteTarget.name)}`,
-        { method: "DELETE" },
+    const result = await dispatch(
+      deleteFolder({ websiteId, name: deleteTarget.name }),
+    );
+    if (deleteFolder.fulfilled.match(result)) {
+      toast.success(`Moved ${deleteTarget.linkCount} link(s) to uncategorized`);
+      setDeleteTarget(null);
+      dispatch(fetchFolders(websiteId));
+    } else {
+      toast.error(
+        typeof result.payload === "string"
+          ? result.payload
+          : "Failed to remove folder",
       );
-      if (res.ok) {
-        toast.success(
-          `Moved ${deleteTarget.linkCount} link(s) to uncategorized`,
-        );
-        setDeleteTarget(null);
-        fetchFolders();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Delete failed");
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to remove folder");
-    } finally {
-      setDeleting(false);
     }
   };
 

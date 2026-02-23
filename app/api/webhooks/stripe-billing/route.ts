@@ -130,8 +130,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (subscriptionId && stripe) {
     try {
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
-      if (sub.current_period_end) {
-        subscription.currentPeriodEnd = new Date(sub.current_period_end * 1000);
+      const firstItem = sub.items?.data?.[0];
+      if (firstItem?.current_period_end) {
+        subscription.currentPeriodEnd = new Date(
+          firstItem.current_period_end * 1000,
+        );
       }
     } catch {}
   }
@@ -161,8 +164,9 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       ? subscription.customer
       : subscription.customer?.id;
   sub.stripeSubscriptionId = subscription.id;
-  if (subscription.current_period_end) {
-    sub.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+  const firstItem = subscription.items?.data?.[0];
+  if (firstItem?.current_period_end) {
+    sub.currentPeriodEnd = new Date(firstItem.current_period_end * 1000);
   }
   const volume = subscription.metadata?.volume as string | undefined;
   if (volume && VOLUME_KEYS.includes(volume as VolumeKey)) {

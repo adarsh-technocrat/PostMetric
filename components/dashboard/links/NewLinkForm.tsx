@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { buildUtmUrl } from "@/utils/tracking/utm";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchFolders, createTemplate } from "@/store/slices/linkTemplatesSlice";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -111,20 +113,20 @@ export function NewLinkForm({
   }, [initialValues, defaultBaseUrl]);
   const [tags, setTags] = useState("");
   const [comments, setComments] = useState("");
-  const [folders, setFolders] = useState<string[]>([]);
   const [folder, setFolder] = useState("");
   const [customFolder, setCustomFolder] = useState("");
 
+  const dispatch = useAppDispatch();
+  const { folders } = useAppSelector((state) => state.linkTemplates);
+
   useEffect(() => {
-    fetch(`/api/websites/${websiteId}/folders`)
-      .then((res) => (res.ok ? res.json() : { folders: [] }))
-      .then((data) => {
-        const names = (data.folders || []).map((f: { name: string }) => f.name);
-        setFolders(names);
-        if (names.length > 0 && !folder) setFolder(names[0]);
-      })
-      .catch(() => {});
-  }, [websiteId]);
+    dispatch(fetchFolders(websiteId));
+  }, [websiteId, dispatch]);
+
+  const folderNames = folders.map((f) => f.name);
+  useEffect(() => {
+    if (folderNames.length > 0 && !folder) setFolder(folderNames[0]);
+  }, [folders, folder]);
   const [conversionTracking, setConversionTracking] = useState(false);
   const [customPreviewEnabled, setCustomPreviewEnabled] = useState(false);
   const [previewTitle, setPreviewTitle] = useState("");
@@ -183,58 +185,58 @@ export function NewLinkForm({
     const name = templateName.trim() || "Untitled link";
     setSaving(true);
     try {
-      const res = await fetch(`/api/websites/${websiteId}/link-templates`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          baseUrl: baseUrl || undefined,
-          utmSource: utmParams.utm_source || undefined,
-          utmMedium: utmParams.utm_medium || undefined,
-          utmCampaign: utmParams.utm_campaign || undefined,
-          utmTerm: utmParams.utm_term || undefined,
-          utmContent: utmParams.utm_content || undefined,
-          tags: tags
-            ? tags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)
-            : undefined,
-          comments: comments || undefined,
-          folder: customFolder.trim() || folder || undefined,
-          conversionTracking,
-          customPreview: customPreviewEnabled
-            ? {
-                title: previewTitle || undefined,
-                description: previewDescription || undefined,
-                imageUrl: previewImageUrl || undefined,
-              }
-            : undefined,
-          password: password || undefined,
-          expiresAt: expirationDate ? new Date(expirationDate) : undefined,
+      const result = await dispatch(
+        createTemplate({
+          websiteId,
+          payload: {
+            name,
+            baseUrl: baseUrl || undefined,
+            utmSource: utmParams.utm_source || undefined,
+            utmMedium: utmParams.utm_medium || undefined,
+            utmCampaign: utmParams.utm_campaign || undefined,
+            utmTerm: utmParams.utm_term || undefined,
+            utmContent: utmParams.utm_content || undefined,
+            tags: tags
+              ? tags
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+              : undefined,
+            comments: comments || undefined,
+            folder: customFolder.trim() || folder || undefined,
+            conversionTracking,
+            customPreview: customPreviewEnabled
+              ? {
+                  title: previewTitle || undefined,
+                  description: previewDescription || undefined,
+                  imageUrl: previewImageUrl || undefined,
+                }
+              : undefined,
+            password: password || undefined,
+            expiresAt: expirationDate ? new Date(expirationDate) : undefined,
+          },
         }),
-      });
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to create link");
+      if (createTemplate.fulfilled.match(result)) {
+        toast.success("Link created");
+        setTemplateName("");
+        setBaseUrl(defaultBaseUrl);
+        setUtmParams({
+          utm_source: "",
+          utm_medium: "",
+          utm_campaign: "",
+          utm_term: "",
+          utm_content: "",
+        });
+        setComments("");
+        onLinkCreated?.();
+        onClose?.();
+      } else {
+        toast.error(
+          typeof result.payload === "string" ? result.payload : "Failed to create",
+        );
       }
-
-      toast.success("Link created");
-      setTemplateName("");
-      setBaseUrl(defaultBaseUrl);
-      setUtmParams({
-        utm_source: "",
-        utm_medium: "",
-        utm_campaign: "",
-        utm_term: "",
-        utm_content: "",
-      });
-      setComments("");
-      onLinkCreated?.();
-      onClose?.();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create");
     } finally {
       setSaving(false);
     }
@@ -424,7 +426,7 @@ export function NewLinkForm({
                       <SelectItem value="uncategorized">
                         Uncategorized
                       </SelectItem>
-                      {folders.map((f) => (
+                      {folderNames.map((f) => (
                         <SelectItem key={f} value={f}>
                           {f}
                         </SelectItem>

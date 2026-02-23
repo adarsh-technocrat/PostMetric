@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { createCheckout } from "@/store/slices/billingSlice";
 import type { PlanId } from "@/lib/billing/plans";
 import type { VolumeKey } from "@/lib/billing/pricing-tiers";
+import { toast } from "@/lib/toast";
 
 interface CheckoutButtonProps {
   planId: PlanId;
@@ -27,38 +29,17 @@ export function CheckoutButton({
   "data-postmetric-goal-plan-name": dataPostmetricGoalPlanName,
   children,
 }: CheckoutButtonProps) {
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { checkoutLoading } = useAppSelector((state) => state.billing);
 
   const handleClick = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod, volume }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          const returnPath =
-            typeof window !== "undefined"
-              ? window.location.pathname
-              : "/pricing";
-          window.location.href = `/login?redirect=${encodeURIComponent(returnPath)}`;
-          return;
-        }
-        throw new Error(data.error || "Checkout failed");
-      }
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Checkout failed");
-      setLoading(false);
+    const result = await dispatch(
+      createCheckout({ planId, billingPeriod, volume }),
+    );
+    if (createCheckout.rejected.match(result)) {
+      const msg =
+        typeof result.payload === "string" ? result.payload : "Checkout failed";
+      toast.error(msg);
     }
   };
 
@@ -66,18 +47,20 @@ export function CheckoutButton({
     <button
       type="button"
       onClick={handleClick}
-      disabled={loading}
+      disabled={checkoutLoading}
       aria-label={ariaLabel}
-      {...(dataPostmetricGoal && { "data-postmetric-goal": dataPostmetricGoal })}
+      {...(dataPostmetricGoal && {
+        "data-postmetric-goal": dataPostmetricGoal,
+      })}
       {...(dataPostmetricGoalPlanId && {
         "data-postmetric-goal-plan-id": dataPostmetricGoalPlanId,
       })}
       {...(dataPostmetricGoalPlanName && {
         "data-postmetric-goal-plan-name": dataPostmetricGoalPlanName,
       })}
-      className={`${className}${loading ? " cursor-not-allowed opacity-80" : ""}`}
+      className={`${className}${checkoutLoading ? " cursor-not-allowed opacity-80" : ""}`}
     >
-      {loading ? (
+      {checkoutLoading ? (
         <span className="font-mono uppercase text-xs">Redirecting…</span>
       ) : (
         children

@@ -3,6 +3,7 @@ import {
   BREAKDOWN_KEYS,
   type BreakdownKey,
 } from "@/lib/constants/analytics-breakdowns";
+import * as analyticsRepo from "@/lib/api/repositories/analyticsRepository";
 
 export const ABORTED_PAYLOAD = "__analytics_aborted__";
 
@@ -28,33 +29,20 @@ export const fetchAnalytics = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      let apiPeriod = period;
-      if (customDateRange?.from && customDateRange?.to) {
-        const fromStr = customDateRange.from.toISOString().split("T")[0];
-        const toStr = customDateRange.to.toISOString().split("T")[0];
-        apiPeriod = `custom:${fromStr}:${toStr}`;
-      }
-
-      const params = new URLSearchParams({
-        period: apiPeriod,
+      return await analyticsRepo.getAnalytics({
+        websiteId,
+        period,
         granularity,
+        customDateRange,
+        signal,
       });
-
-      const response = await fetch(
-        `/api/websites/${websiteId}/analytics?${params.toString()}`,
-        { signal, credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch analytics");
-      }
-
-      const data = await response.json();
-      return { ...data, period, granularity };
-    } catch (error: any) {
-      if (error?.name === "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
         return rejectWithValue(ABORTED_PAYLOAD);
       }
-      return rejectWithValue(error?.message ?? "Failed to fetch analytics");
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch analytics",
+      );
     }
   },
 );
@@ -77,21 +65,19 @@ export const fetchBreakdown = createAsyncThunk(
     },
     { rejectWithValue },
   ) => {
-    const params = new URLSearchParams({ period });
-    if (customDateRange?.from && customDateRange?.to) {
-      params.set("startDate", customDateRange.from.toISOString());
-      params.set("endDate", customDateRange.to.toISOString());
+    try {
+      return await analyticsRepo.getBreakdown({
+        websiteId,
+        breakdown,
+        period,
+        customDateRange,
+        signal,
+      });
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch breakdown",
+      );
     }
-    const response = await fetch(
-      `/api/websites/${websiteId}/analytics/breakdowns/${breakdown}?${params.toString()}`,
-      { signal, credentials: "include" },
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch breakdown");
-    }
-    const data = await response.json();
-    const list = data.data ?? [];
-    return { websiteId, breakdown, data: list };
   },
 );
 
