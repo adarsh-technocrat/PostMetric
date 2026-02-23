@@ -12,6 +12,7 @@ import {
   RecaptchaCheckbox,
   useRecaptchaRequired,
 } from "@/components/auth/RecaptchaCheckbox";
+import { setAuthCookie } from "@/lib/auth-cookie";
 
 function LoginForm() {
   const router = useRouter();
@@ -39,10 +40,7 @@ function LoginForm() {
       });
 
       if (response.ok) {
-        const isSecure = window.location.protocol === "https:";
-        document.cookie = `firebaseToken=${idToken}; path=/; max-age=${
-          365 * 24 * 60 * 60
-        }; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+        setAuthCookie(idToken);
         router.push("/dashboard");
       } else {
         const data = await response.json();

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { setAuthCookie } from "@/lib/auth-cookie";
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState<
@@ -39,10 +40,7 @@ export default function VerifyEmailPage() {
         });
 
         if (response.ok) {
-          const isSecure = window.location.protocol === "https:";
-          document.cookie = `firebaseToken=${idToken}; path=/; max-age=${
-            365 * 24 * 60 * 60
-          }; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+          setAuthCookie(idToken);
           setStatus("success");
           window.location.href = "/dashboard";
         } else {
@@ -99,10 +97,7 @@ export default function VerifyEmailPage() {
       });
 
       if (response.ok) {
-        const isSecure = window.location.protocol === "https:";
-        document.cookie = `firebaseToken=${idToken}; path=/; max-age=${
-          365 * 24 * 60 * 60
-        }; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+        setAuthCookie(idToken);
         setStatus("success");
         window.location.href = "/dashboard";
       } else {

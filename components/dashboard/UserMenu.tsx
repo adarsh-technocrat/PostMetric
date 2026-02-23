@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
+import { clearAuthCookie } from "@/lib/auth-cookie";
 import { useEffect, useState } from "react";
 import { generateUserAvatar } from "@/lib/avatar";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export function UserMenu() {
 
   const handleSignOut = async () => {
     await signOut();
-    document.cookie = "firebaseToken=; path=/; max-age=0";
+    clearAuthCookie();
     router.push("/login");
   };
 

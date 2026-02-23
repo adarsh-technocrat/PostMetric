@@ -13,6 +13,7 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { auth } from "./client";
+import { setAuthCookie, clearAuthCookie } from "@/lib/auth-cookie";
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -39,11 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         try {
           const idToken = await firebaseUser.getIdToken(false);
-          const isSecure = window.location.protocol === "https:";
-          const cookieMaxAge = 365 * 24 * 60 * 60;
-          document.cookie = `firebaseToken=${idToken}; path=/; max-age=${cookieMaxAge}; SameSite=Lax${
-            isSecure ? "; Secure" : ""
-          }`;
+          setAuthCookie(idToken);
 
           const cachedUser = localStorage.getItem("firebaseUser");
           if (cachedUser) {
@@ -72,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             if (response.status === 401) {
               await firebaseSignOut(auth);
-              document.cookie = "firebaseToken=; path=/; max-age=0";
+              clearAuthCookie();
               localStorage.removeItem("firebaseUser");
               setUser(null);
             } else if (cachedUser) {
@@ -90,12 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           await firebaseSignOut(auth);
-          document.cookie = "firebaseToken=; path=/; max-age=0";
+          clearAuthCookie();
           localStorage.removeItem("firebaseUser");
           setUser(null);
         }
       } else {
-        document.cookie = "firebaseToken=; path=/; max-age=0";
+        clearAuthCookie();
         localStorage.removeItem("firebaseUser");
         setUser(null);
       }
@@ -107,10 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser) {
         try {
           const idToken = await currentUser.getIdToken(true);
-          const isSecure = window.location.protocol === "https:";
-          document.cookie = `firebaseToken=${idToken}; path=/; max-age=${
-            365 * 24 * 60 * 60
-          }; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+          setAuthCookie(idToken);
         } catch (error) {
         }
       }

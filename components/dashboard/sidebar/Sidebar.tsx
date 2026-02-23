@@ -25,6 +25,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { clearAuthCookie } from "@/lib/auth-cookie";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,7 +101,7 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut();
-    document.cookie = "firebaseToken=; path=/; max-age=0";
+    clearAuthCookie();
     router.push("/login");
   };
 
