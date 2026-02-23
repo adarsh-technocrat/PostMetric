@@ -1,0 +1,75 @@
+# PostMetric
+
+> PostMetric is an actionable analytics and revenue attribution platform for startups, SaaS, and ecommerce. Web analytics that shows which marketing channels drive revenue—not just traffic—with clear next steps to act. Cookie-free analytics, Stripe-integrated, privacy-first, and GDPR compliant. Alternative to Google Analytics, Plausible, and Mixpanel for conversion tracking and marketing ROI.
+
+Keywords: web analytics, revenue attribution, cookie-free analytics, marketing attribution, conversion tracking, UTM tracking, Stripe analytics, Lemon Squeezy analytics, privacy-first analytics, GDPR compliant analytics, SaaS analytics, ecommerce analytics, startup analytics, marketing ROI, funnel analytics, session analytics, visitor analytics, conversion rate optimization, lightweight analytics, no consent banner required.
+
+Key differentiators:
+
+- **Revenue attribution**: Connect Stripe or Lemon Squeezy to see which traffic sources, UTM parameters, and campaigns actually drive revenue
+- **Cookie-free analytics**: No consent banners needed; works without cookies for privacy compliance
+- **Actionable insights**: Get recommended next steps, not just dashboards
+- **Integrations**: Stripe, Lemon Squeezy, Google Search Console, X (Twitter) mentions, GitHub commits
+
+Target audience: Startups, SaaS companies, ecommerce stores, and marketers who need to understand what drives conversions and revenue.
+
+## Product Detail
+
+### Product overview
+
+PostMetric solves problems instead of just showing them. Most web analytics tools surface data; PostMetric analyzes your traffic and revenue and nudges you with clear, actionable next steps for conversion rate optimization. Turn visitors into paying customers with conversion insights and marketing attribution.
+
+### Detailed breakdown
+
+**Visitor tracking**: Page views, sessions, unique visitors, referrer tracking, UTM tracking, campaign data, device/browser/OS detection, geographic location (country, region, city), real-time visitor count, cross-domain and subdomain tracking. Lightweight analytics with session analytics.
+
+**Revenue attribution**: Connect Stripe or Lemon Squeezy to link revenue to specific visitors and sessions. Track new vs recurring revenue, handle refunds. Marketing attribution that shows which channels, campaigns, and UTM parameters drive actual revenue—not just traffic. Stripe analytics and Lemon Squeezy analytics built-in.
+
+**Custom goals**: Track button clicks, form submissions, video plays, and any custom user action. Define conversion funnels and measure user journeys. Conversion tracking for SaaS and ecommerce.
+
+**Action Builder**: Turn alerts into actions. Build workflows that run when something changes—so you perform the right action, not just get the notification.
+
+**The one move that matters**: For every insight, PostMetric surfaces the single action that will move the needle most—so you can change the game, not just watch it.
+
+**Real-time data**: See visitors as they arrive. Watch conversions happen in real time. Real-time web analytics.
+
+**Privacy & compliance**: Cookie-free analytics. No cookies, no personal data tracking. GDPR compliant and CCPA compliant. No consent banners required. Privacy-first analytics that works with ad blockers.
+
+**Advanced features**: X (Twitter) mentions tracking, GitHub integration, Google Search Console integration, scroll event tracking, user identification, exclude visits (IPs, countries, hostnames, paths), proxy endpoint for ad-blocker bypass.
+
+**API**: Full REST API for visitors, goals, and payments. Programmatic access for custom integrations.
+
+### Why PostMetric is better than alternatives
+
+**vs Google Analytics**: PostMetric is a cookie-free Google Analytics alternative. Privacy-first web analytics with no consent banners. Revenue attribution out of the box—linking Stripe/Lemon Squeezy directly to marketing channels—instead of complex setup. Actionable recommendations for conversion rate optimization.
+
+**vs Plausible / Fathom**: PostMetric alternative with revenue attribution (Stripe, Lemon Squeezy), custom goals, and actionable insights. Shows which traffic sources drive revenue, not just page views. Conversion tracking and funnel analytics built-in.
+
+**vs Mixpanel / Amplitude**: Lighter-weight web analytics for startups; no SDK bloat. Built-in Stripe analytics and Lemon Squeezy analytics. Marketing ROI and conversion insights for SaaS and ecommerce.
+
+**vs PostHog**: PostMetric focuses on marketing attribution and revenue attribution. Simpler setup for connecting payment providers. UTM tracking and campaign attribution with actionable next steps.
+
+**vs custom analytics**: PostMetric connects revenue to visitors in minutes. No data pipelines or custom attribution logic. Stripe integration and Lemon Squeezy integration sync payments automatically for marketing attribution.
+
+## Documentation
+
+- [PostMetric Documentation](https://docs.postmetric.io): Full docs—web analytics, revenue attribution, conversion tracking, API reference, Stripe integration, Lemon Squeezy setup
+- [Get started in 4 steps](https://docs.postmetric.io/get-started/4-steps): Quick setup for cookie-free analytics
+- [API Introduction](https://docs.postmetric.io/api-reference/introduction): REST API for visitor analytics and marketing attribution
+- [Revenue attribution](https://docs.postmetric.io/revenue-attribution/get-started): Connect Stripe or Lemon Squeezy for revenue tracking
+- [Installation guides](https://docs.postmetric.io/installation/all): Next.js, React, Vue, WordPress, Shopify
+- [Visitor API](https://docs.postmetric.io/api-reference/visitor): Create and manage visitors for conversion tracking
+- [Payment API](https://docs.postmetric.io/api-reference/payment): Record payments for revenue attribution
+
+## Product
+
+- [PostMetric Homepage](https://postmetric.io): Web analytics and revenue attribution—features, pricing, conversion insights
+- [Dashboard](https://postmetric.io/dashboard): Analytics dashboard for marketing ROI and visitor analytics (login required)
+- [Affiliate program](https://postmetric.io/affiliate): Partner and referral program
+
+## Optional
+
+- [Stripe integration guide](https://docs.postmetric.io/revenue-attribution/stripe): Stripe analytics and revenue attribution setup
+- [Lemon Squeezy integration](https://docs.postmetric.io/revenue-attribution/lemonsqueezy): Lemon Squeezy analytics and payment tracking
+- [Proxy setup](https://docs.postmetric.io/proxy/get-started): Ad-blocker bypass and proxy for privacy-first analytics
+- [Advanced features](https://docs.postmetric.io/advanced/exclude-visits): Exclude visits, user identification, scroll events, UTM tracking

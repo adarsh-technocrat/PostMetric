@@ -8,6 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: [
           "/",
+          "/llms.txt",
           "/sitemap.xml",
           "/login",
           "/demo",
@@ -41,6 +42,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
         allow: [
           "/",
+          "/llms.txt",
           "/sitemap.xml",
           "/login",
           "/demo",
