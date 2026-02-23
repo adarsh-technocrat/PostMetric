@@ -42,14 +42,14 @@ export function ImportSettings({
 
     setUploading(true);
     try {
-      const data = await dispatch(
+      const data = (await dispatch(
         importPlausibleDataForWebsite({
           websiteId,
           file: selectedFile,
         }),
-      ).unwrap();
+      ).unwrap()) as { message?: string; imported?: number };
       alert(
-        data.message || `Imported ${data.imported || 0} records successfully`,
+        data.message || `Imported ${data.imported ?? 0} records successfully`,
       );
       setSelectedFile(null);
       // Reset file input

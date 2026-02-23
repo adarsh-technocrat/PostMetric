@@ -6,6 +6,7 @@ export interface Website {
   name: string;
   iconUrl?: string;
   userId: string;
+  trackingCode?: string;
   settings?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
@@ -16,6 +17,15 @@ export interface ApiKey {
   name: string;
   keyPrefix: string;
   lastUsedAt?: string;
+  createdAt: string;
+}
+
+/** Response from createApiKey - includes plain key (shown only once) */
+export interface CreateApiKeyResponse {
+  id: string;
+  name: string;
+  key: string;
+  keyPrefix: string;
   createdAt: string;
 }
 
@@ -41,9 +51,7 @@ export async function getAllWebsites(): Promise<Website[]> {
   return data.websites ?? [];
 }
 
-export async function getWebsiteById(
-  websiteId: string,
-): Promise<Website> {
+export async function getWebsiteById(websiteId: string): Promise<Website> {
   const { data } = await apiClient.get<{ website: Website }>(
     `/api/websites/${websiteId}`,
   );
@@ -108,8 +116,8 @@ export async function getApiKeys(websiteId: string): Promise<ApiKey[]> {
 export async function createApiKey(
   websiteId: string,
   name: string,
-): Promise<ApiKey> {
-  const { data } = await apiClient.post<{ apiKey: ApiKey }>(
+): Promise<CreateApiKeyResponse> {
+  const { data } = await apiClient.post<{ apiKey: CreateApiKeyResponse }>(
     `/api/websites/${websiteId}/api-keys`,
     { name: name.trim() || "Unnamed Key" },
   );

@@ -83,7 +83,6 @@ export function APISettings({
       });
       setShowKeyDialog(true);
       setKeyName("");
-      // Refresh the list
       await dispatch(fetchAllApiKeysForWebsite(websiteId));
       onUpdate();
     } catch (error: any) {

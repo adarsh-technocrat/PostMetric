@@ -316,6 +316,7 @@ export interface Website {
   name: string;
   iconUrl?: string;
   userId: string;
+  trackingCode?: string;
   settings?: any;
   createdAt?: string;
   updatedAt?: string;
