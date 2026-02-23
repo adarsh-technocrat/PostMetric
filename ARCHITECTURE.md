@@ -367,13 +367,11 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 1: Core Tracking Infrastructure
 
 1. **Database Models**
-
    - Create all MongoDB models
    - Set up indexes for performance
    - Create database query utilities
 
 2. **Tracking Endpoint**
-
    - Build `/api/track` endpoint
    - Handle GET (pixel) and POST requests
    - Generate unique visitor/session IDs
@@ -391,7 +389,6 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 2: Analytics Dashboard
 
 1. **Data Aggregation**
-
    - Build aggregation queries for:
      - Visitors over time
      - Revenue over time
@@ -401,7 +398,6 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
      - Device/browser data
 
 2. **Dashboard UI**
-
    - Main analytics chart (visitors + revenue)
    - Metrics cards (visitors, revenue, conversion rate, etc.)
    - Source charts (channel, referrer, campaign, keyword)
@@ -416,13 +412,11 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 3: Revenue Attribution
 
 1. **Payment Provider Webhooks**
-
    - Stripe webhook handler
    - LemonSqueezy webhook handler
    - Other providers as needed
 
 2. **Revenue Linking**
-
    - Match payments to visitors using:
      - Session/visitor IDs in payment metadata
      - Customer email matching
@@ -437,7 +431,6 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 4: Custom Goals & Funnels
 
 1. **Goal Tracking**
-
    - API endpoint for goal events
    - JavaScript SDK method for tracking goals
    - Goal management UI
@@ -450,18 +443,15 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 5: Advanced Features
 
 1. **X Mentions Integration**
-
    - Twitter/X API integration
    - Track mentions and link to traffic spikes
    - Display mentions on chart
 
 2. **GitHub Integration**
-
    - GitHub API integration
    - Link commits to traffic/revenue
 
 3. **Google Search Console**
-
    - GSC API integration
    - Import search data
 
@@ -472,7 +462,6 @@ GET /api/visitor/[visitorId] - Get visitor data (API)
 ### Phase 6: Proxy & Privacy
 
 1. **Proxy Setup**
-
    - Next.js API route proxy
    - Instructions for various platforms
    - Domain verification
@@ -593,24 +582,20 @@ NEXT_PUBLIC_APP_URL=https://yourdomain.com
 ## Performance Considerations
 
 1. **Database Indexing**
-
    - Index on websiteId + timestamp for queries
    - Index on sessionId, visitorId
    - Compound indexes for common query patterns
 
 2. **Caching**
-
    - Cache aggregated analytics data
    - Use Redis for session data
    - Cache geolocation lookups
 
 3. **Rate Limiting**
-
    - Limit tracking requests per IP
    - Prevent abuse
 
 4. **Data Retention**
-
    - Archive old data
    - Aggregate historical data
 
@@ -624,17 +609,14 @@ NEXT_PUBLIC_APP_URL=https://yourdomain.com
 ## Security Considerations
 
 1. **API Authentication**
-
    - Protect admin APIs with authentication
    - Use API keys for tracking endpoints (optional, for rate limiting)
 
 2. **Webhook Security**
-
    - Verify webhook signatures
    - Validate payment provider webhooks
 
 3. **Data Privacy**
-
    - Hash sensitive data
    - Encrypt payment information
    - Implement data deletion
@@ -661,7 +643,7 @@ NEXT_PUBLIC_APP_URL=https://yourdomain.com
 
 ## References
 
-- [Postmetric Documentation](https://postmetric.com/docs)
+- [Postmetric Documentation](https://postmetric.io/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [MongoDB Aggregation](https://www.mongodb.com/docs/manual/aggregation/)
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)

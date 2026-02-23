@@ -91,4 +91,4 @@ MIT
 
 ## Support
 
-For support, email support@postmetric.com or open an issue on GitHub.
+For support, email support@postmetric.io or open an issue on GitHub.

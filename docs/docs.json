@@ -89,12 +89,12 @@
       "anchors": [
         {
           "anchor": "Dashboard",
-          "href": "https://dashboard.postmetric.com",
+          "href": "https://dashboard.postmetric.io",
           "icon": "chart-line"
         },
         {
           "anchor": "Support",
-          "href": "mailto:support@postmetric.com",
+          "href": "mailto:support@postmetric.io",
           "icon": "envelope"
         }
       ]
@@ -108,13 +108,13 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@postmetric.com"
+        "href": "mailto:support@postmetric.io"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.postmetric.com"
+      "href": "https://dashboard.postmetric.io"
     }
   },
   "contextual": {

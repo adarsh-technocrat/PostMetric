@@ -5,7 +5,6 @@
 ### ✅ Completed
 
 1. **Architecture Documentation** (`ARCHITECTURE.md`)
-
    - Complete system architecture
    - Database schema design
    - API routes structure
@@ -514,7 +513,7 @@ pnpm add -D @types/ua-parser-js
 
 ## Resources
 
-- [Postmetric Documentation](https://postmetric.com/docs)
+- [Postmetric Documentation](https://postmetric.io/docs)
 - [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
 - [MongoDB Aggregation](https://www.mongodb.com/docs/manual/aggregation/)
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)

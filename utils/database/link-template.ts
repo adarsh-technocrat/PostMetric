@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import connectDB from "@/db";
 import LinkTemplate from "@/db/models/LinkTemplate";
 import { getWebsiteById } from "./website";
@@ -91,4 +92,48 @@ export async function getLinkTemplateById(
     websiteId,
   }).lean();
   return template as ILinkTemplate | null;
+}
+
+export interface FolderWithCount {
+  name: string;
+  linkCount: number;
+}
+
+export async function getFoldersByWebsiteId(
+  websiteId: string,
+): Promise<FolderWithCount[]> {
+  await connectDB();
+  const result = await LinkTemplate.aggregate([
+    { $match: { websiteId: new mongoose.Types.ObjectId(websiteId) } },
+    { $group: { _id: { $ifNull: ["$folder", ""] }, count: { $sum: 1 } } },
+    { $match: { "_id": { $ne: "" } } },
+    { $sort: { _id: 1 } },
+    { $project: { name: "$_id", linkCount: "$count", _id: 0 } },
+  ]);
+  return result as FolderWithCount[];
+}
+
+export async function renameFolder(
+  websiteId: string,
+  oldName: string,
+  newName: string,
+): Promise<number> {
+  await connectDB();
+  const result = await LinkTemplate.updateMany(
+    { websiteId, folder: oldName },
+    { $set: { folder: newName } },
+  );
+  return result.modifiedCount;
+}
+
+export async function deleteFolder(
+  websiteId: string,
+  folderName: string,
+): Promise<number> {
+  await connectDB();
+  const result = await LinkTemplate.updateMany(
+    { websiteId, folder: folderName },
+    { $set: { folder: "" } },
+  );
+  return result.modifiedCount;
 }

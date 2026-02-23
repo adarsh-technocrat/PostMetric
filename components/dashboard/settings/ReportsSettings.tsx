@@ -3,12 +3,34 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchNotificationSettingsForWebsite,
   updateNotificationSettingsForWebsite,
 } from "@/store/slices/websitesSlice";
+
+function ReportsSettingsShimmer() {
+  return (
+    <div>
+      <div className="mb-2 space-y-2">
+        <Skeleton className="h-4 w-full max-w-md" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <Card className="custom-card overflow-hidden">
+        <div className="flex items-center justify-between gap-2 p-4">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t border-base-content/5 p-4">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 interface ReportsSettingsProps {
   website: {
@@ -78,11 +100,7 @@ export function ReportsSettings({
   };
 
   if (notificationsLoading) {
-    return (
-      <div className="text-center py-8 text-textSecondary">
-        Loading notification settings...
-      </div>
-    );
+    return <ReportsSettingsShimmer />;
   }
 
   return (

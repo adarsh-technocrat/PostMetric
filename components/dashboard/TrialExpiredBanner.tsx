@@ -47,7 +47,7 @@ export function TrialExpiredBanner() {
                 Go to Billing
               </Link>
               <Link
-                href="mailto:support@postmetric.com"
+                href="mailto:support@postmetric.io"
                 className="cursor-pointer box-border flex items-center justify-center font-semibold font-mono uppercase border border-stone-200 bg-white px-8 py-3 rounded text-xs hover:bg-stone-50 transition-all text-stone-700"
               >
                 Contact Support
@@ -66,7 +66,7 @@ export function TrialExpiredBanner() {
               Need more time to evaluate?
             </p>
             <Link
-              href="mailto:support@postmetric.com"
+              href="mailto:support@postmetric.io"
               className="text-indigo-600 font-mono text-xs uppercase hover:underline decoration-1 underline-offset-4 inline-block"
             >
               Request trial extension →

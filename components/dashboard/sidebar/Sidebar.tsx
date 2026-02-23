@@ -232,7 +232,7 @@ export function Sidebar() {
           <Link
             className="h-8 flex items-center gap-3.5 px-2 w-full text-stone-500 group hover:text-stone-800 hover:bg-stone-0 border border-transparent hover:border-stone-100 rounded-lg transition-colors"
             target="_blank"
-            href="https://docs.postmetric.com"
+            href="https://docs.postmetric.io"
           >
             <div className="flex items-center gap-3.5 grow">
               <Book className="w-[18px] h-[18px]" />

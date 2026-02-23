@@ -111,7 +111,20 @@ export function NewLinkForm({
   }, [initialValues, defaultBaseUrl]);
   const [tags, setTags] = useState("");
   const [comments, setComments] = useState("");
-  const [folder, setFolder] = useState("Links");
+  const [folders, setFolders] = useState<string[]>([]);
+  const [folder, setFolder] = useState("");
+  const [customFolder, setCustomFolder] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/websites/${websiteId}/folders`)
+      .then((res) => (res.ok ? res.json() : { folders: [] }))
+      .then((data) => {
+        const names = (data.folders || []).map((f: { name: string }) => f.name);
+        setFolders(names);
+        if (names.length > 0 && !folder) setFolder(names[0]);
+      })
+      .catch(() => {});
+  }, [websiteId]);
   const [conversionTracking, setConversionTracking] = useState(false);
   const [customPreviewEnabled, setCustomPreviewEnabled] = useState(false);
   const [previewTitle, setPreviewTitle] = useState("");
@@ -188,7 +201,7 @@ export function NewLinkForm({
                 .filter(Boolean)
             : undefined,
           comments: comments || undefined,
-          folder: folder || undefined,
+          folder: customFolder.trim() || folder || undefined,
           conversionTracking,
           customPreview: customPreviewEnabled
             ? {
@@ -391,17 +404,44 @@ export function NewLinkForm({
                     </Label>
                     <FieldHelp title="Organize links in folders" />
                   </div>
-                  <Select value={folder} onValueChange={setFolder}>
+                  <Select
+                    value={
+                      customFolder ? "__custom__" : folder || "uncategorized"
+                    }
+                    onValueChange={(v) => {
+                      if (v === "__custom__") {
+                        setFolder("__custom__");
+                        return;
+                      }
+                      setCustomFolder("");
+                      setFolder(v === "uncategorized" ? "" : v);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select folder" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Links">Links</SelectItem>
-                      <SelectItem value="Campaigns">Campaigns</SelectItem>
-                      <SelectItem value="Social">Social</SelectItem>
-                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="uncategorized">
+                        Uncategorized
+                      </SelectItem>
+                      {folders.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {f}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">
+                        Create new folder...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {(customFolder || folder === "__custom__") && (
+                    <Input
+                      placeholder="New folder name"
+                      value={customFolder}
+                      onChange={(e) => setCustomFolder(e.target.value)}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

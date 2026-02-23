@@ -406,7 +406,7 @@ export function RevenueSettings({
                 <li>
                   Create a Postmetric{" "}
                   <a
-                    href="https://docs.postmetric.com/api-reference/introduction"
+                    href="https://docs.postmetric.io/api-reference/introduction"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-stone-800 underline underline-offset-2 hover:text-stone-900"
@@ -417,7 +417,7 @@ export function RevenueSettings({
                 <li>
                   Send your payment data to our{" "}
                   <a
-                    href="https://docs.postmetric.com/api-reference/payment"
+                    href="https://docs.postmetric.io/api-reference/payment"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-stone-800 underline underline-offset-2 hover:text-stone-900"
@@ -429,7 +429,7 @@ export function RevenueSettings({
               <p className="text-sm text-stone-600">
                 Need help?{" "}
                 <a
-                  href="https://docs.postmetric.com/revenue-attribution/get-started"
+                  href="https://docs.postmetric.io/revenue-attribution/get-started"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-stone-800 underline underline-offset-2 hover:text-stone-900"

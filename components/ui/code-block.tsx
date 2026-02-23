@@ -69,7 +69,7 @@ export function CodeBlock({
     >
       <pre
         ref={preRef}
-        className="text-xs p-4 min-w-0 max-w-full"
+        className="text-xs p-4 md:p-5 pr-12 min-w-0 max-w-full"
         style={{
           margin: 0,
           background: "transparent",

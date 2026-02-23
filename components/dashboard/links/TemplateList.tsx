@@ -201,7 +201,7 @@ export function TemplateList({
               {showEmptyLearnMore && (
                 <Button variant="outline" size="sm" asChild>
                   <a
-                    href="https://docs.postmetric.com"
+                    href="https://docs.postmetric.io"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

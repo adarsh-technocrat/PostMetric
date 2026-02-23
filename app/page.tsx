@@ -15,7 +15,7 @@ import { Footer } from "@/components/landing/Footer";
 import { SEO_BASE_URL } from "@/lib/seo/constants";
 
 export const metadata: Metadata = {
-  title: "Actionable Analytics & Revenue Attribution | PostMetric",
+  title: "Postmetric - Actionable Analytics & Revenue Attribution | PostMetric",
   description:
     "Analytics that solve problems, not just show them. See which channels drive revenue and get clear next steps to act—cookie-free, Stripe-integrated. For startups, SaaS, and ecommerce.",
   keywords: [

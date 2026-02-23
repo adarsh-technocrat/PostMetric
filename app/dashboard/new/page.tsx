@@ -476,12 +476,12 @@ export default function AddSitePage() {
       <footer className="mt-10 text-center text-xs text-stone-500">
         Need help?{" "}
         <a
-          href="mailto:support@postmetric.com?subject=Need help with PostMetric installation"
+          href="mailto:support@postmetric.io?subject=Need help with PostMetric installation"
           target="_blank"
           rel="noopener noreferrer"
           className="text-stone-600 hover:text-stone-800 underline underline-offset-2"
         >
-          support@postmetric.com
+          support@postmetric.io
         </a>
       </footer>
     </main>

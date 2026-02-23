@@ -7,7 +7,7 @@ import PageView from "@/db/models/PageView";
 /**
  * GET /api/v1/visitor
  * Get visitor data using API key authentication
- * Based on Postmetric API: https://postmetric.com/docs/api-introduction
+ * Based on Postmetric API: https://postmetric.io/docs/api-introduction
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
             message: "Unauthorized. Invalid or missing API key.",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
             message: "visitorId parameter is required",
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
           message: error.message || "Internal server error",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -279,7 +279,7 @@ export const billingFAQItems: FAQItem[] = [
         <Link
           target="_blank"
           className="link"
-          href="mailto:marc@postmetric.com?subject=PostMetric%20Question"
+          href="mailto:marc@postmetric.io?subject=PostMetric%20Question"
         >
           an email
         </Link>

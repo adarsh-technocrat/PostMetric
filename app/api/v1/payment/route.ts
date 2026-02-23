@@ -7,7 +7,7 @@ import Payment from "@/db/models/Payment";
 /**
  * POST /api/v1/payment
  * Record a payment using API key authentication
- * Based on Postmetric API: https://postmetric.com/docs/api-introduction
+ * Based on Postmetric API: https://postmetric.io/docs/api-introduction
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
             message: "Unauthorized. Invalid or missing API key.",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
             message: "provider, providerPaymentId, and amount are required",
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,15 +81,14 @@ export async function POST(request: NextRequest) {
             customerEmail,
             timestamp: payment.timestamp,
           },
-          websiteId
+          websiteId,
         );
 
         if (link) {
           if (link.visitorId) payment.visitorId = link.visitorId;
           if (link.sessionId) payment.sessionId = link.sessionId;
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     }
 
     await payment.save();
@@ -110,7 +109,7 @@ export async function POST(request: NextRequest) {
           message: error.message || "Internal server error",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
