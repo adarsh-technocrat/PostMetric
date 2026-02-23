@@ -1,24 +1,21 @@
-import type { MetadataRoute } from "next";
+import { NextResponse } from "next/server";
 import { SEO_BASE_URL } from "@/lib/seo/constants";
-import { blogPosts } from "@/lib/blog-data";
+import {
+  generateSitemapXml,
+  isProductionEnvironment,
+  type SitemapUrl,
+} from "@/lib/seo/sitemap.utils";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export async function GET() {
+  if (!isProductionEnvironment()) {
+    return new NextResponse("", { status: 404 });
+  }
+
   const baseUrl = SEO_BASE_URL;
   const now = new Date();
 
-  const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/llms.txt`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
+  const pages: SitemapUrl[] = [
+    { url: baseUrl, lastModified: now, changeFrequency: "daily", priority: 1 },
     {
       url: `${baseUrl}/login`,
       lastModified: now,
@@ -69,12 +66,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-    url: `${baseUrl}/blog/${post.id}`,
-    lastModified: post.date ? new Date(post.date) : now,
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
+  const xml = generateSitemapXml(pages);
 
-  return [...staticPages, ...blogPages];
+  return new NextResponse(xml, {
+    headers: {
+      "Content-Type": "application/xml",
+      "Cache-Control": "public, max-age=3600, s-maxage=3600",
+    },
+  });
 }
