@@ -452,7 +452,6 @@ function AnalyticsChartComponent({
                 tickCount={maxRevenue <= 0 ? undefined : 5}
               />
             )}
-
             <Tooltip
               content={
                 <AnalyticsChartTooltip
