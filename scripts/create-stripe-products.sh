@@ -59,13 +59,14 @@ echo "$OUT"
 
 if [ -n "$WRITE_ENV" ]; then
   ENV_FILE=".env.local"
-  # Remove existing Stripe price vars
+  for arg in "$@"; do [ "$arg" = "--production" ] && ENV_FILE=".env.production"; done
+  # Remove existing Stripe price vars (keeps STRIPE_SECRET_KEY, STRIPE_BILLING_WEBHOOK_SECRET)
   if [ -f "$ENV_FILE" ]; then
     grep -v "^STRIPE_STARTER_\|^STRIPE_PRO_" "$ENV_FILE" > "$ENV_FILE.tmp" 2>/dev/null || true
     mv "$ENV_FILE.tmp" "$ENV_FILE" 2>/dev/null || true
   fi
   echo "" >> "$ENV_FILE"
-  echo "# Stripe Price IDs (all volume tiers)" >> "$ENV_FILE"
+  echo "# Stripe Price IDs (all volume tiers) - must match STRIPE_SECRET_KEY mode (test vs live)" >> "$ENV_FILE"
   echo "$OUT" >> "$ENV_FILE"
   echo "✓ Appended to $ENV_FILE"
 fi
