@@ -18,7 +18,7 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Learn how to track which marketing channels actually drive revenue, not just traffic. Discover the difference between vanity metrics and actionable insights.",
     author: "Postmetric Team",
-    date: "January 15, 2025",
+    date: "January 15, 2026",
     readTime: "5 min read",
     category: "Analytics",
     heroImage:
@@ -42,11 +42,11 @@ Start by connecting your payment processor (e.g. Stripe) to your analytics. Map 
   },
   {
     id: 2,
-    title: "Why Cookie-Free Analytics Matter in 2025",
+    title: "Why Cookie-Free Analytics Matter in 2026",
     excerpt:
       "Privacy regulations are changing how we track users. Discover why cookie-free analytics are the future and how they can improve your data accuracy.",
     author: "Postmetric Team",
-    date: "January 10, 2025",
+    date: "January 10, 2026",
     readTime: "4 min read",
     category: "Privacy",
     heroImage:
@@ -54,7 +54,7 @@ Start by connecting your payment processor (e.g. Stripe) to your analytics. Map 
     heroImageAlt: "Privacy and data protection concept",
     body: `Privacy regulations and browser changes are making traditional cookie-based tracking less reliable. Cookie-free analytics aren't just a compliance checkbox—they can give you cleaner, more accurate data.
 
-**The cookie landscape in 2025**
+**The cookie landscape in 2026**
 
 Third-party cookies are being phased out by major browsers. Even first-party cookies face stricter consent rules in many regions. Relying on cookies means missing a growing share of traffic and skewing your data toward users who don't block or clear them.
 
@@ -68,7 +68,7 @@ Cookie-free approaches use first-party data, server-side collection, and probabi
 - **Simpler compliance**: Less personal data, fewer consent edge cases.
 - **Future-proofing**: Works as browsers and regulations evolve.
 
-If you're still relying only on cookie-based tools, 2025 is the year to add a cookie-free layer to your analytics stack.`,
+If you're still relying only on cookie-based tools, 2026 is the year to add a cookie-free layer to your analytics stack.`,
   },
   {
     id: 3,
@@ -76,7 +76,7 @@ If you're still relying only on cookie-based tools, 2025 is the year to add a co
     excerpt:
       "Stop guessing which channels work. We analyzed data from 1,000+ businesses to identify the marketing channels that consistently drive paying customers.",
     author: "Postmetric Team",
-    date: "January 5, 2025",
+    date: "January 5, 2026",
     readTime: "6 min read",
     category: "Marketing",
     heroImage:

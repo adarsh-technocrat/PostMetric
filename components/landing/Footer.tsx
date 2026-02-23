@@ -143,7 +143,7 @@ export function Footer() {
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-stone-200 mt-8">
         <p className="text-stone-400 text-sm">
-          © 2025 Postmetric LLC. All rights reserved.
+          © 2026 Postmetric LLC. All rights reserved.
         </p>
         <div className="flex gap-4 items-center">
           <div className="w-2 h-2 rounded-full bg-green-500"></div>

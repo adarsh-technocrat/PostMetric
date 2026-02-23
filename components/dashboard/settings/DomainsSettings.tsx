@@ -25,7 +25,7 @@ export function DomainsSettings() {
       _id: "1",
       domain: "test.co",
       status: "unverified",
-      addedOn: "19/12/2025",
+      addedOn: "19/12/2026",
       region: "us-east-1",
     },
   ]);

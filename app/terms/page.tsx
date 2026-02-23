@@ -22,7 +22,7 @@ export default function TermsPage() {
               Terms of Service
             </h1>
             <p className="text-stone-500 text-lg leading-relaxed">
-              Last updated: February 18, 2025. These Terms of Service
+              Last updated: February 18, 2026. These Terms of Service
               (&quot;Terms&quot;) govern your access to and use of Postmetric
               LLC&apos;s (&quot;Postmetric,&quot; &quot;we,&quot;
               &quot;us,&quot; or &quot;our&quot;) analytics platform, website,

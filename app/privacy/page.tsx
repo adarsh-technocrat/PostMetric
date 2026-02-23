@@ -22,7 +22,7 @@ export default function PrivacyPage() {
               Privacy Policy
             </h1>
             <p className="text-stone-500 text-lg leading-relaxed">
-              Last updated: February 18, 2025. Postmetric LLC
+              Last updated: February 18, 2026. Postmetric LLC
               (&quot;Postmetric,&quot; &quot;we,&quot; &quot;us,&quot; or
               &quot;our&quot;) is committed to protecting your privacy. This
               policy describes how we collect, use, store, and share information

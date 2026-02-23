@@ -3,18 +3,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, sendSignInLinkToEmail } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase/client";
 import { useState, Suspense } from "react";
 import { formatTrialPeriodHyphenated } from "@/lib/config";
 import { Button } from "@/components/ui/button";
+import {
+  RecaptchaCheckbox,
+  useRecaptchaRequired,
+} from "@/components/auth/RecaptchaCheckbox";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const recaptchaRequired = useRecaptchaRequired();
   const [email, setEmail] = useState("");
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState<string | null>(searchParams.get("error"));
 
   const handleGoogleAuth = async () => {
@@ -53,9 +58,35 @@ function LoginForm() {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setError(
-      "Email authentication is not yet implemented with Firebase. Please use Google sign-in.",
-    );
+    setIsLoading(true);
+    setError(null);
+    try {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (typeof window !== "undefined"
+          ? window.location.origin
+          : "https://postmetric.io");
+      const actionCodeSettings = {
+        url: `${baseUrl}/auth/verify-email`,
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("emailForSignIn", email);
+      }
+      router.push(`/auth/verify-request?email=${encodeURIComponent(email)}`);
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      if (error.code === "auth/too-many-requests") {
+        setError("Too many requests. Please try again later.");
+      } else {
+        setError(
+          error.message || "Failed to send magic link. Please try again.",
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -103,20 +134,11 @@ function LoginForm() {
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
               {error === "Configuration"
                 ? "Authentication configuration error. Please contact support."
-                : "An error occurred during sign in. Please try again."}
+                : error}
             </div>
           )}
 
-          {emailSent ? (
-            <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-              <p className="font-medium">Check your email!</p>
-              <p className="mt-1">
-                We've sent a magic link to <strong>{email}</strong>. Click the
-                link in the email to sign in.
-              </p>
-            </div>
-          ) : (
-            <>
+          <>
               <Button
                 type="button"
                 variant="outline"
@@ -163,7 +185,7 @@ function LoginForm() {
                     htmlFor="email"
                     className="mb-2 block text-xs font-semibold font-mono uppercase text-stone-700"
                   >
-                    Magic link
+                    Email
                   </label>
                   <input
                     type="email"
@@ -178,16 +200,34 @@ function LoginForm() {
                   />
                 </div>
 
+                <RecaptchaCheckbox
+                  onVerify={setRecaptchaToken}
+                  onExpire={() => setRecaptchaToken(null)}
+                />
+
                 <Button
                   type="submit"
-                  disabled={isLoading || !email}
+                  disabled={
+                    isLoading ||
+                    !email ||
+                    (recaptchaRequired && !recaptchaToken)
+                  }
                   className="w-full rounded border border-stone-800 bg-stone-800 px-4 py-3 text-xs font-semibold font-mono uppercase text-white hover:bg-stone-700"
                 >
                   {isLoading ? "Sending..." : "Sign in with magic link"}
                 </Button>
+                <p className="text-center text-xs text-stone-500">
+                  By signing in, you agree to our{" "}
+                  <Link
+                    href="/terms"
+                    className="text-stone-800 hover:underline underline-offset-2"
+                  >
+                    Terms of Service
+                  </Link>
+                  .
+                </p>
               </form>
             </>
-          )}
         </div>
 
         <div className="mt-6 space-y-1.5 text-center text-sm text-stone-500">
@@ -207,7 +247,7 @@ function LoginForm() {
             </Link>
           </p>
           <p>
-            <span className="text-stone-400">© 2025 Postmetric LLC</span>
+            <span className="text-stone-400">© 2026 Postmetric LLC</span>
           </p>
         </div>
       </section>

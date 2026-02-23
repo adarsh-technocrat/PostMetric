@@ -25,14 +25,11 @@ export function formatDateDisplay(data: {
   const dataDate = new Date(data.timestamp);
 
   if (isToday) {
-    // Extract hour from timestamp string to get the correct hour
-    // Timestamp format: "2025-12-11T00:00:00+00:00" or "2025-12-11T05:00:00+00:00"
     const hourMatch = data.timestamp.match(/T(\d{2}):/);
     let hour = 0;
     if (hourMatch) {
       hour = parseInt(hourMatch[1], 10);
     } else {
-      // Fallback to UTC hour if regex doesn't match
       hour = dataDate.getUTCHours();
     }
 
@@ -44,11 +41,6 @@ export function formatDateDisplay(data: {
   return data.fullDate || data.date;
 }
 
-/**
- * Calculate the current time index for forecast line rendering
- * @param data - Array of chart data points with date strings
- * @returns The index of the current hour in the data, or null if not hourly data
- */
 export function getCurrentTimeIndex(data: ChartDataPoint[]): number | null {
   if (!data || data.length === 0) return null;
 
