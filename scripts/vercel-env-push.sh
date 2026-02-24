@@ -1,4 +1,4 @@
-
+#!/bin/bash
 set -e
 cd "$(dirname "$0")/.."
 
@@ -7,12 +7,13 @@ if ! npx vercel whoami &>/dev/null; then
   exit 1
 fi
 
-grep -E "^STRIPE_STARTER_|^STRIPE_PRO_" .env.production | while IFS='=' read -r key value; do
+while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
   [ -z "$key" ] && continue
   echo "Adding $key..."
-  printf '%s' "$value" | npx vercel env add "$key" production --yes --force
-done
+  printf '%s' "$value" | npx vercel env add "$key" production --yes --force &
+done < <(grep -E "^STRIPE_STARTER_|^STRIPE_PRO_" .env.production)
+wait
 
 echo "Done. Run 'vercel env pull .env.production' to verify."
