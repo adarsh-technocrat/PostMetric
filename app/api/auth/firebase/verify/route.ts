@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (!idToken) {
       return NextResponse.json(
         { error: "ID token is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         upsert: true,
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     return NextResponse.json({
@@ -69,6 +69,16 @@ export async function POST(request: NextRequest) {
       firebaseUid: uid,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    const isTokenError =
+      error?.code?.startsWith?.("auth/") ||
+      (typeof error?.message === "string" &&
+        /invalid|expired|token/i.test(error.message));
+    if (isTokenError) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: "Authentication service unavailable" },
+      { status: 503 },
+    );
   }
 }
