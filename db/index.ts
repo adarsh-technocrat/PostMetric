@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import dns from "node:dns";
-
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 
@@ -16,6 +13,9 @@ let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
+
+const SRV_ERROR_HINT =
+  "If using mongodb+srv:// and Compass connects but Node fails, use the direct connection string from Atlas: Connect → Drivers → Node.js → switch to 'Direct connection'.";
 
 async function connectDB() {
   if (cached.conn) {
@@ -34,6 +34,9 @@ async function connectDB() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    if (e instanceof Error && /querySrv ECONNREFUSED/i.test(e.message)) {
+      e.message += `\n\n${SRV_ERROR_HINT}`;
+    }
     throw e;
   }
 
