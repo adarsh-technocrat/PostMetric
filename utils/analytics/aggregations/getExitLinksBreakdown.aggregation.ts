@@ -1,11 +1,6 @@
 import connectDB from "@/db";
-import PageView from "@/db/models/PageView";
-import Session from "@/db/models/Session";
-import Payment from "@/db/models/Payment";
-import GoalEvent from "@/db/models/GoalEvent";
+import ExitClick from "@/db/models/ExitClick";
 import { Types } from "mongoose";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
 
 export async function getExitLinksBreakdown(
   websiteId: string,
@@ -21,8 +16,7 @@ export async function getExitLinksBreakdown(
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        exitUrl: { $exists: true, $ne: null },
-        $expr: { $ne: ["$exitUrl", ""] },
+        exitUrl: { $nin: [null, ""] },
       },
     },
     {
@@ -63,20 +57,15 @@ export async function getExitLinksBreakdown(
     {
       $group: {
         _id: "$_id.exitDomain",
-        uniqueVisitors: { $addToSet: "$_id.visitorId" },
+        uniqueVisitors: { $sum: 1 },
         totalExits: { $sum: "$exits" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: { $size: "$uniqueVisitors" },
-        totalExits: 1,
       },
     },
   ];
 
-  const exitLinksData = await PageView.aggregate(exitLinksPipeline);
+  // Exit-link clicks live in their own collection (`exitclicks`); legacy
+  // PageView rows with `exitUrl` are no longer read here.
+  const exitLinksData = await ExitClick.aggregate(exitLinksPipeline);
 
   // Step 2: Format the result with favicon URLs
   const result = exitLinksData.map((item) => {

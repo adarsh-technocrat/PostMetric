@@ -2,24 +2,20 @@ import connectDB from "@/db";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
 import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { bucketKeyExpr, bucketKeyToDate } from "../pipelines";
 
+/** Goal events per time bucket (local website-timezone bucket keys). */
 export async function getGoalsOverTime(
   websiteId: string,
   startDate: Date,
   endDate: Date,
   granularity: Granularity = "daily",
   timezone?: string,
-) {
+): Promise<{ key: string; date: Date; goalCount: number }[]> {
   await connectDB();
 
   const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-  const dateTrunc: { date: string; unit: string; timezone?: string } = {
-    date: "$timestamp",
-    unit,
-  };
-  if (timezone) dateTrunc.timezone = timezone;
+  const tz = timezone || "UTC";
 
   const pipeline = [
     {
@@ -30,23 +26,40 @@ export async function getGoalsOverTime(
     },
     {
       $group: {
-        _id: {
-          $dateTrunc: dateTrunc,
-        },
+        _id: bucketKeyExpr(granularity, tz),
         goalCount: { $sum: 1 },
       },
     },
-    {
-      $project: {
-        date: "$_id",
-        goalCount: 1,
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
+    { $sort: { _id: 1 as const } },
   ];
 
-  return await GoalEvent.aggregate(pipeline);
+  const results = await GoalEvent.aggregate(pipeline);
+  return results.map((r) => ({
+    key: r._id as string,
+    date: bucketKeyToDate(r._id, tz),
+    goalCount: r.goalCount as number,
+  }));
+}
+
+/**
+ * Number of unique visitors with at least one goal event in the window
+ * (numerator of the overview goal conversion rate).
+ */
+export async function getGoalConvertedVisitors(
+  websiteId: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<number> {
+  await connectDB();
+  const res = await GoalEvent.aggregate([
+    {
+      $match: {
+        websiteId: new Types.ObjectId(websiteId),
+        timestamp: { $gte: startDate, $lte: endDate },
+      },
+    },
+    { $group: { _id: "$visitorId" } },
+    { $count: "count" },
+  ]);
+  return res[0]?.count ?? 0;
 }

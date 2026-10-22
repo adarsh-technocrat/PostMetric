@@ -1,11 +1,9 @@
 import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
-import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { COUNTABLE_PAGEVIEW_FILTER, lookupOnePageViewStage } from "../pipelines";
 
 export async function getHostnamesBreakdown(
   websiteId: string,
@@ -22,6 +20,7 @@ export async function getHostnamesBreakdown(
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
+        ...COUNTABLE_PAGEVIEW_FILTER,
       },
     },
     {
@@ -76,7 +75,9 @@ export async function getHostnamesBreakdown(
 
   const revenueData = await Payment.aggregate(revenuePipeline);
 
-  // Step 3: Get goal count per hostname from GoalEvent (via Session -> PageView)
+  // Step 3: Goal count per hostname. Each goal event is counted once, under
+  // the hostname of its session (one page view of the session), instead of
+  // once per page view of the session.
   const goalsPipeline = [
     {
       $match: {
@@ -84,23 +85,12 @@ export async function getHostnamesBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
+    lookupOnePageViewStage(websiteObjectId, "sessionPageView", {
+      project: { _id: 0, hostname: 1 },
+    }),
     {
       $group: {
-        _id: "$pageViews.hostname",
+        _id: { $arrayElemAt: ["$sessionPageView.hostname", 0] },
         goalCount: { $sum: 1 },
       },
     },

@@ -8,8 +8,7 @@ import {
   getFlagEmoji,
   getLocationImageUrlFromCode,
 } from "@/utils/tracking/geolocation";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { activeSessionsMatch, lookupSessionStage } from "../pipelines";
 
 export async function getLocationBreakdown(
   websiteId: string,
@@ -39,19 +38,11 @@ export async function getLocationBreakdown(
     };
   }
 
+  // Visitors from sessions ACTIVE in the window (consistent with the
+  // overview visitors metric). No per-group sessionId arrays (16MB risk).
   const sessionsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: sessionsGroupId,
-        sessionIds: { $addToSet: "$_id" },
-      },
-    },
+    { $match: activeSessionsMatch(websiteObjectId, startDate, endDate) },
+    { $group: { _id: sessionsGroupId } },
     {
       $group: {
         _id: {
@@ -62,25 +53,12 @@ export async function getLocationBreakdown(
               : { $ifNull: ["$_id.country", ""] },
         },
         uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
       },
     },
   ];
 
-  const sessionsData = await Session.aggregate(sessionsPipeline);
+  const sessionsData =
+    await Session.aggregate(sessionsPipeline).allowDiskUse(true);
 
   // Step 2: Get revenue per location type from Payment (via Session)
   let revenueGroupId: any;
@@ -91,10 +69,17 @@ export async function getLocationBreakdown(
     goalsGroupId = "$session.country";
   } else if (type === "region") {
     revenueGroupId = "$session.region";
-    goalsGroupId = "$session.region";
+    // Region/city names are not unique across countries.
+    goalsGroupId = {
+      systemType: "$session.region",
+      country: { $ifNull: ["$session.country", ""] },
+    };
   } else {
     revenueGroupId = "$session.city";
-    goalsGroupId = "$session.city";
+    goalsGroupId = {
+      systemType: "$session.city",
+      country: { $ifNull: ["$session.country", ""] },
+    };
   }
 
   const revenuePipeline = [
@@ -138,14 +123,7 @@ export async function getLocationBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    lookupSessionStage(websiteObjectId),
     {
       $unwind: {
         path: "$session",
@@ -167,8 +145,17 @@ export async function getLocationBreakdown(
   const revenueMap = new Map(
     revenueData.map((item) => [item._id || "Unknown", item]),
   );
+  const goalKey = (code: unknown, country: unknown) =>
+    type === "country"
+      ? String(code || "Unknown")
+      : `${code || "Unknown"}::${country || ""}`;
   const goalsMap = new Map(
-    goalsData.map((item) => [item._id || "Unknown", item]),
+    goalsData.map((item) => [
+      type === "country"
+        ? goalKey(item._id, null)
+        : goalKey(item._id?.systemType, item._id?.country),
+      item,
+    ]),
   );
 
   const result = sessionsData.map((item) => {
@@ -181,7 +168,7 @@ export async function getLocationBreakdown(
       typeof locationId === "string" ? locationId : locationId.country || "";
 
     const revenueInfo = revenueMap.get(locationCode);
-    const goalsInfo = goalsMap.get(locationCode);
+    const goalsInfo = goalsMap.get(goalKey(locationCode, countryCode));
 
     const uv = item.uniqueVisitors || 0;
     const revenue = revenueInfo?.revenue || 0;

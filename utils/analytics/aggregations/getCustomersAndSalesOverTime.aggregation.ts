@@ -20,6 +20,7 @@ export async function getCustomersAndSalesOverTime(
     unit,
   };
   if (timezone) dateTrunc.timezone = timezone;
+  if (unit === "week") (dateTrunc as any).startOfWeek = "monday"; // align with ISO-week buckets
 
   const pipeline = [
     {

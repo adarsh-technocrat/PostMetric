@@ -10,8 +10,11 @@ import {
   getReferrerImageUrl,
 } from "@/utils/tracking/channel";
 import { extractUrlParams } from "@/utils/tracking/utm";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import {
+  activeSessionsMatch,
+  lookupOnePageViewStage,
+  lookupSessionStage,
+} from "../pipelines";
 
 export async function getCampaignBreakdown(
   websiteId: string,
@@ -25,32 +28,16 @@ export async function getCampaignBreakdown(
   // Step 1: Get sessions with their first pageview to extract param_ref, param_source, param_via
   const sessionsPipeline = [
     {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
+      // Sessions active in the window (consistent with overview visitors).
+      $match: activeSessionsMatch(websiteObjectId, startDate, endDate),
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    // Only the session's first page view (website-scoped, sort + limit 1).
+    lookupOnePageViewStage(websiteObjectId, "firstPageViewArr", {
+      project: { _id: 0, path: 1 },
+    }),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$firstPageViewArr", 0] },
       },
     },
     {
@@ -220,41 +207,20 @@ export async function getCampaignBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    lookupSessionStage(websiteObjectId),
     {
       $unwind: {
         path: "$session",
         preserveNullAndEmptyArrays: false,
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    // Only the session's first page view (website-scoped, sort + limit 1).
+    lookupOnePageViewStage(websiteObjectId, "firstPageViewArr", {
+      project: { _id: 0, path: 1 },
+    }),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$firstPageViewArr", 0] },
       },
     },
     {
@@ -262,6 +228,7 @@ export async function getCampaignBreakdown(
         _id: "$sessionId",
         sessionId: { $first: "$sessionId" },
         visitorId: { $first: "$visitorId" },
+        goalCount: { $sum: 1 },
         utmSource: { $first: { $ifNull: ["$session.utmSource", ""] } },
         utmMedium: { $first: { $ifNull: ["$session.utmMedium", ""] } },
         utmCampaign: { $first: { $ifNull: ["$session.utmCampaign", ""] } },
@@ -352,7 +319,7 @@ export async function getCampaignBreakdown(
       goalsMap.set(key, { goalCount: 0, uniqueVisitors: new Set() });
     }
     const goal = goalsMap.get(key);
-    goal.goalCount += 1;
+    goal.goalCount += item.goalCount || 1;
     goal.uniqueVisitors.add(item.visitorId);
   });
 

@@ -1,11 +1,13 @@
 import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
-import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import {
+  COUNTABLE_PAGEVIEW_FILTER,
+  cleanPathExpr,
+  lookupOnePageViewStage,
+} from "../pipelines";
 
 export async function getPagesBreakdown(
   websiteId: string,
@@ -22,28 +24,16 @@ export async function getPagesBreakdown(
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$path", "?"],
-            },
-            0,
-          ],
-        },
+        ...COUNTABLE_PAGEVIEW_FILTER,
       },
     },
     {
       $group: {
         _id: {
-          path: "$cleanPath",
+          path: cleanPathExpr("$path"),
           hostname: "$hostname",
           visitorId: "$visitorId",
         },
-        sessionIds: { $addToSet: "$sessionId" },
       },
     },
     {
@@ -53,25 +43,11 @@ export async function getPagesBreakdown(
           hostname: "$_id.hostname",
         },
         uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
       },
     },
   ];
 
-  const pagesData = await PageView.aggregate(pagesPipeline);
+  const pagesData = await PageView.aggregate(pagesPipeline).allowDiskUse(true);
 
   // Step 2: Get revenue per page from Payment (via Session -> PageView)
   const revenuePipeline = [
@@ -122,7 +98,9 @@ export async function getPagesBreakdown(
 
   const revenueData = await Payment.aggregate(revenuePipeline);
 
-  // Step 3: Get goal count per page from GoalEvent (via Session -> PageView)
+  // Step 3: Goal count per page, attributed to the page the goal fired on
+  // (GoalEvent.path). Each goal event is counted exactly once; the hostname
+  // comes from one page view of the goal's session.
   const goalsPipeline = [
     {
       $match: {
@@ -130,37 +108,19 @@ export async function getPagesBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
+    lookupOnePageViewStage(websiteObjectId, "sessionPageView", {
+      project: { _id: 0, hostname: 1 },
+    }),
     {
       $group: {
         _id: {
-          path: "$cleanPath",
-          hostname: "$pageViews.hostname",
+          path: cleanPathExpr("$path"),
+          hostname: {
+            $ifNull: [
+              { $arrayElemAt: ["$sessionPageView.hostname", 0] },
+              "Unknown",
+            ],
+          },
         },
         goalCount: { $sum: 1 },
         uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },

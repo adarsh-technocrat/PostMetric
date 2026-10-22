@@ -52,36 +52,50 @@ export async function GET(
           encoder.encode(`data: ${JSON.stringify({ type: "connected" })}\n\n`),
         );
 
-        // Poll for updates every 5 seconds
-        const interval = setInterval(async () => {
+        let closed = false;
+        const sendUpdate = async () => {
+          if (closed) return;
           try {
             const visitorsNow = await getVisitorsNow(websiteId);
-
+            if (closed) return;
             const data = {
               type: "update",
               visitorsNow,
               timestamp: new Date().toISOString(),
             };
-
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
             );
           } catch (error) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "error",
-                  message: "Failed to fetch data",
-                })}\n\n`,
-              ),
-            );
+            if (closed) return;
+            try {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "error",
+                    message: "Failed to fetch data",
+                  })}\n\n`,
+                ),
+              );
+            } catch {
+              // stream already closed
+            }
           }
-        }, 5000); // Update every 5 seconds
+        };
+
+        // Emit the current count immediately, then poll every 5 seconds.
+        void sendUpdate();
+        const interval = setInterval(sendUpdate, 5000);
 
         // Clean up on client disconnect
         request.signal.addEventListener("abort", () => {
+          closed = true;
           clearInterval(interval);
-          controller.close();
+          try {
+            controller.close();
+          } catch {
+            // already closed
+          }
         });
       },
     });

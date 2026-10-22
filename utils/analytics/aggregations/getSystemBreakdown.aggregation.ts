@@ -4,8 +4,7 @@ import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
 import { getSystemImageUrl } from "@/utils/tracking/device";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { activeSessionsMatch, lookupSessionStage } from "../pipelines";
 
 export async function getSystemBreakdown(
   websiteId: string,
@@ -29,42 +28,21 @@ export async function getSystemBreakdown(
     sessionsGroupId = { systemType: "$device", visitorId: "$visitorId" };
   }
 
+  // Visitors from sessions ACTIVE in the window (consistent with the
+  // overview visitors metric). No per-group sessionId arrays (16MB risk).
   const sessionsPipeline = [
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
-    },
-    {
-      $group: {
-        _id: sessionsGroupId,
-        sessionIds: { $addToSet: "$_id" },
-      },
-    },
+    { $match: activeSessionsMatch(websiteObjectId, startDate, endDate) },
+    { $group: { _id: sessionsGroupId } },
     {
       $group: {
         _id: "$_id.systemType",
         uniqueVisitors: { $sum: 1 },
-        allSessionIds: { $push: "$sessionIds" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        uniqueVisitors: 1,
-        sessionIds: {
-          $reduce: {
-            input: "$allSessionIds",
-            initialValue: [],
-            in: { $setUnion: ["$$value", "$$this"] },
-          },
-        },
       },
     },
   ];
 
-  const sessionsData = await Session.aggregate(sessionsPipeline);
+  const sessionsData =
+    await Session.aggregate(sessionsPipeline).allowDiskUse(true);
 
   // Step 2: Get revenue per system type from Payment (via Session)
   // Build the group _id dynamically based on type
@@ -123,14 +101,7 @@ export async function getSystemBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    lookupSessionStage(websiteObjectId),
     {
       $unwind: {
         path: "$session",

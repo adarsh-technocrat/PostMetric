@@ -1,11 +1,9 @@
 import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
-import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { COUNTABLE_PAGEVIEW_FILTER, lookupOnePageViewStage } from "../pipelines";
 
 export async function getEntryPagesBreakdown(
   websiteId: string,
@@ -22,6 +20,7 @@ export async function getEntryPagesBreakdown(
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
+        ...COUNTABLE_PAGEVIEW_FILTER,
       },
     },
     {
@@ -64,7 +63,8 @@ export async function getEntryPagesBreakdown(
     },
   ];
 
-  const entryPagesData = await PageView.aggregate(entryPagesPipeline);
+  const entryPagesData =
+    await PageView.aggregate(entryPagesPipeline).allowDiskUse(true);
 
   // Step 2: Get revenue per entry page from Payment (via Session)
   // For entry pages, we need to match payments to sessions and get their first page
@@ -127,7 +127,9 @@ export async function getEntryPagesBreakdown(
 
   const revenueData = await Payment.aggregate(revenuePipeline);
 
-  // Step 3: Get goal count per entry page from GoalEvent (via Session)
+  // Step 3: Goal count per entry page. Goals are grouped per session first,
+  // then joined to that session's first page view only (website-scoped,
+  // sorted + limited in the lookup instead of loading every page view).
   const goalsPipeline = [
     {
       $match: {
@@ -136,49 +138,32 @@ export async function getEntryPagesBreakdown(
       },
     },
     {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
-    {
-      $unwind: {
-        path: "$pageViews",
-        preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $sort: { "pageViews.timestamp": 1 as const },
-    },
-    {
       $group: {
         _id: "$sessionId",
-        firstPath: { $first: "$cleanPath" },
-        firstHostname: { $first: "$pageViews.hostname" },
+        sessionId: { $first: "$sessionId" },
         visitorId: { $first: "$visitorId" },
+        goalCount: { $sum: 1 },
+      },
+    },
+    lookupOnePageViewStage(websiteObjectId, "firstPageView", {
+      direction: 1,
+      project: { _id: 0, path: 1, hostname: 1 },
+    }),
+    {
+      $unwind: {
+        path: "$firstPageView",
+        preserveNullAndEmptyArrays: false,
       },
     },
     {
       $group: {
         _id: {
-          path: "$firstPath",
-          hostname: "$firstHostname",
+          path: {
+            $arrayElemAt: [{ $split: ["$firstPageView.path", "?"] }, 0],
+          },
+          hostname: "$firstPageView.hostname",
         },
-        goalCount: { $sum: 1 },
+        goalCount: { $sum: "$goalCount" },
         uniqueVisitorsWithGoals: { $addToSet: "$visitorId" },
       },
     },

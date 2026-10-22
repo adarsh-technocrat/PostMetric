@@ -10,8 +10,11 @@ import {
   getReferrerImageUrl,
 } from "@/utils/tracking/channel";
 import { extractUrlParams } from "@/utils/tracking/utm";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import {
+  activeSessionsMatch,
+  lookupOnePageViewStage,
+  lookupSessionStage,
+} from "../pipelines";
 
 export async function getReferrersBreakdown(
   websiteId: string,
@@ -25,32 +28,16 @@ export async function getReferrersBreakdown(
   // Step 1: Get sessions with their first pageview to extract param_ref/param_via from path
   const sessionsPipeline = [
     {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
+      // Sessions active in the window (consistent with overview visitors).
+      $match: activeSessionsMatch(websiteObjectId, startDate, endDate),
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    // Only the session's first page view (website-scoped, sort + limit 1).
+    lookupOnePageViewStage(websiteObjectId, "firstPageViewArr", {
+      project: { _id: 0, path: 1 },
+    }),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$firstPageViewArr", 0] },
       },
     },
     {
@@ -461,41 +448,20 @@ export async function getReferrersBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    lookupSessionStage(websiteObjectId),
     {
       $unwind: {
         path: "$session",
         preserveNullAndEmptyArrays: false,
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    // Only the session's first page view (website-scoped, sort + limit 1).
+    lookupOnePageViewStage(websiteObjectId, "firstPageViewArr", {
+      project: { _id: 0, path: 1 },
+    }),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$firstPageViewArr", 0] },
         referrerDomain: {
           $cond: {
             if: { $ne: ["$session.referrer", null] },
@@ -553,6 +519,7 @@ export async function getReferrersBreakdown(
         _id: "$sessionId",
         sessionId: { $first: "$sessionId" },
         visitorId: { $first: "$visitorId" },
+        goalCount: { $sum: 1 },
         referrer: { $first: "$session.referrer" },
         referrerDomain: { $first: "$referrerDomain" },
         channel: { $first: "$channel" },
@@ -684,7 +651,7 @@ export async function getReferrersBreakdown(
         goalsMap.set(domainKey, { goalCount: 0, uniqueVisitors: new Set() });
       }
       const goal = goalsMap.get(domainKey);
-      goal.goalCount += 1;
+      goal.goalCount += item.goalCount || 1;
       goal.uniqueVisitors.add(item.visitorId);
     }
 
@@ -695,7 +662,7 @@ export async function getReferrersBreakdown(
         goalsMap.set(refKey, { goalCount: 0, uniqueVisitors: new Set() });
       }
       const goal = goalsMap.get(refKey);
-      goal.goalCount += 1;
+      goal.goalCount += item.goalCount || 1;
       goal.uniqueVisitors.add(item.visitorId);
     }
 
@@ -706,7 +673,7 @@ export async function getReferrersBreakdown(
         goalsMap.set(viaKey, { goalCount: 0, uniqueVisitors: new Set() });
       }
       const goal = goalsMap.get(viaKey);
-      goal.goalCount += 1;
+      goal.goalCount += item.goalCount || 1;
       goal.uniqueVisitors.add(item.visitorId);
     }
 
@@ -720,7 +687,7 @@ export async function getReferrersBreakdown(
         goalsMap.set(utmKey, { goalCount: 0, uniqueVisitors: new Set() });
       }
       const goal = goalsMap.get(utmKey);
-      goal.goalCount += 1;
+      goal.goalCount += item.goalCount || 1;
       goal.uniqueVisitors.add(item.visitorId);
     }
   });

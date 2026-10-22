@@ -5,6 +5,7 @@ import {
   formatReferrerName,
   getReferrerImageUrl,
 } from "@/utils/tracking/channel";
+import { activeSessionsMatch } from "../pipelines";
 
 export async function getChannelBreakdownWithReferrers(
   websiteId: string,
@@ -15,13 +16,9 @@ export async function getChannelBreakdownWithReferrers(
 
   const websiteObjectId = new Types.ObjectId(websiteId);
   const pipeline = [
-    // Stage 1: Match the specific website
-    {
-      $match: {
-        websiteId: websiteObjectId,
-        firstVisitAt: { $gte: startDate, $lte: endDate },
-      },
-    },
+    // Stage 1: Sessions of this website ACTIVE in the window (consistent
+    // with the overview visitors metric)
+    { $match: activeSessionsMatch(websiteObjectId, startDate, endDate) },
 
     // Stage 2: Add computed fields for channel resolution
     {
@@ -614,23 +611,16 @@ export async function getChannelBreakdownWithReferrers(
     {
       $lookup: {
         from: "goalevents",
-        let: { sessionId: "$sessionId", visitorId: "$visitorId" },
+        localField: "sessionId",
+        foreignField: "sessionId",
         pipeline: [
           {
             $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$sessionId", "$$sessionId"] },
-                  {
-                    $gte: ["$timestamp", startDate],
-                  },
-                  {
-                    $lte: ["$timestamp", endDate],
-                  },
-                ],
-              },
+              websiteId: websiteObjectId,
+              timestamp: { $gte: startDate, $lte: endDate },
             },
           },
+          { $project: { _id: 1 } },
         ],
         as: "goalEvents",
       },
@@ -650,187 +640,151 @@ export async function getChannelBreakdownWithReferrers(
         },
         sessionPaymentCount: { $size: "$payments" },
         sessionGoalCount: { $size: "$goalEvents" },
-        uniqueVisitorsWithGoals: {
-          $size: {
-            $setUnion: [
-              {
-                $map: {
-                  input: "$goalEvents",
-                  as: "goal",
-                  in: "$$goal.visitorId",
+      },
+    },
+
+    // Stage 8: Unique visitors. A visitor can have several sessions, so we
+    // first collapse to one row per (channel, referrer, visitor) and then
+    // count rows; channel totals are computed separately (a visitor may come
+    // through several referrers of the same channel).
+    {
+      $facet: {
+        referrers: [
+          {
+            $group: {
+              _id: {
+                channel: "$channel",
+                referrer: "$referrerName",
+                visitorId: "$visitorId",
+              },
+              revenue: { $sum: "$sessionRevenue" },
+              paymentCount: { $sum: "$sessionPaymentCount" },
+              sessionsWithPaymentsCount: {
+                $sum: { $cond: [{ $gt: ["$sessionPaymentCount", 0] }, 1, 0] },
+              },
+              goalCount: { $sum: "$sessionGoalCount" },
+              hasGoal: { $max: { $gt: ["$sessionGoalCount", 0] } },
+              utmSource: { $first: "$utmSource" },
+              utmMedium: { $first: "$utmMedium" },
+              referrerDomain: { $first: "$referrerDomain" },
+              referrer: { $first: "$referrer" },
+            },
+          },
+          {
+            $group: {
+              _id: { channel: "$_id.channel", referrer: "$_id.referrer" },
+              uv: { $sum: 1 },
+              revenue: { $sum: "$revenue" },
+              paymentCount: { $sum: "$paymentCount" },
+              sessionsWithPaymentsCount: { $sum: "$sessionsWithPaymentsCount" },
+              goalCount: { $sum: "$goalCount" },
+              uniqueVisitorsWithGoalsCount: {
+                $sum: { $cond: ["$hasGoal", 1, 0] },
+              },
+              utmSource: { $first: "$utmSource" },
+              utmMedium: { $first: "$utmMedium" },
+              referrerDomain: { $first: "$referrerDomain" },
+              referrer: { $first: "$referrer" },
+            },
+          },
+          {
+            $addFields: {
+              conversionRate: {
+                $cond: {
+                  if: { $gt: ["$uv", 0] },
+                  then: { $divide: ["$sessionsWithPaymentsCount", "$uv"] },
+                  else: 0,
                 },
               },
-              [],
-            ],
-          },
-        },
-      },
-    },
-
-    // Stage 8: Group by channel and referrer
-    {
-      $group: {
-        _id: {
-          channel: "$channel",
-          referrer: "$referrerName",
-        },
-        uv: { $sum: 1 },
-        revenue: { $sum: "$sessionRevenue" },
-        paymentCount: { $sum: "$sessionPaymentCount" },
-        goalCount: { $sum: "$sessionGoalCount" },
-        uniqueVisitorsWithGoals: {
-          $addToSet: {
-            $cond: {
-              if: { $gt: ["$sessionGoalCount", 0] },
-              then: "$visitorId",
-              else: "$$REMOVE",
+              goalConversionRate: {
+                $cond: {
+                  if: { $gt: ["$uv", 0] },
+                  then: { $divide: ["$uniqueVisitorsWithGoalsCount", "$uv"] },
+                  else: 0,
+                },
+              },
             },
           },
-        },
-        sessionsWithPayments: {
-          $addToSet: {
-            $cond: {
-              if: { $gt: ["$sessionPaymentCount", 0] },
-              then: "$sessionId",
-              else: "$$REMOVE",
+        ],
+        channels: [
+          {
+            $group: {
+              _id: { channel: "$channel", visitorId: "$visitorId" },
+              hasGoal: { $max: { $gt: ["$sessionGoalCount", 0] } },
             },
           },
-        },
-        // Store additional data for referrer details
-        utmSource: { $first: "$utmSource" },
-        utmMedium: { $first: "$utmMedium" },
-        referrerDomain: { $first: "$referrerDomain" },
-        referrer: { $first: "$referrer" },
-      },
-    },
-
-    // Stage 9: Calculate conversion rates and flatten sets
-    {
-      $addFields: {
-        uniqueVisitorsWithGoalsCount: {
-          $size: {
-            $filter: {
-              input: "$uniqueVisitorsWithGoals",
-              as: "visitor",
-              cond: { $ne: ["$$visitor", null] },
+          {
+            $group: {
+              _id: "$_id.channel",
+              uv: { $sum: 1 },
+              visitorsWithGoals: { $sum: { $cond: ["$hasGoal", 1, 0] } },
             },
           },
-        },
-        sessionsWithPaymentsCount: {
-          $size: {
-            $filter: {
-              input: "$sessionsWithPayments",
-              as: "session",
-              cond: { $ne: ["$$session", null] },
-            },
-          },
-        },
+        ],
       },
-    },
-
-    // Stage 10: Calculate conversion rates
-    {
-      $addFields: {
-        conversionRate: {
-          $cond: {
-            if: { $gt: ["$uv", 0] },
-            then: { $divide: ["$sessionsWithPaymentsCount", "$uv"] },
-            else: 0,
-          },
-        },
-        goalConversionRate: {
-          $cond: {
-            if: { $gt: ["$uv", 0] },
-            then: {
-              $divide: ["$uniqueVisitorsWithGoalsCount", "$uv"],
-            },
-            else: 0,
-          },
-        },
-      },
-    },
-
-    // Stage 11: Group referrers under channels
-    {
-      $group: {
-        _id: "$_id.channel",
-        referrers: {
-          $push: {
-            name: "$_id.referrer",
-            channel: "$_id.channel",
-            uv: "$uv",
-            revenue: "$revenue",
-            paymentCount: "$paymentCount",
-            conversionRate: "$conversionRate",
-            goalCount: "$goalCount",
-            goalConversionRate: "$goalConversionRate",
-            utmSource: "$utmSource",
-            utmMedium: "$utmMedium",
-            referrerDomain: "$referrerDomain",
-            referrer: "$referrer",
-          },
-        },
-        totalUv: { $sum: "$uv" },
-        totalRevenue: { $sum: "$revenue" },
-        totalPaymentCount: { $sum: "$paymentCount" },
-        totalGoalCount: { $sum: "$goalCount" },
-      },
-    },
-
-    // Stage 12: Calculate channel-level metrics
-    {
-      $addFields: {
-        conversionRate: {
-          $cond: {
-            if: { $gt: ["$totalUv", 0] },
-            then: { $divide: ["$totalPaymentCount", "$totalUv"] },
-            else: 0,
-          },
-        },
-        goalConversionRate: {
-          $cond: {
-            if: { $gt: ["$totalUv", 0] },
-            then: { $divide: ["$totalGoalCount", "$totalUv"] },
-            else: 0,
-          },
-        },
-      },
-    },
-
-    // Stage 13: Sort referrers within each channel by UV
-    {
-      $addFields: {
-        referrers: {
-          $sortArray: {
-            input: "$referrers",
-            sortBy: { uv: -1 },
-          },
-        },
-      },
-    },
-
-    // Stage 14: Format output
-    {
-      $project: {
-        _id: 0,
-        name: "$_id",
-        uv: "$totalUv",
-        revenue: "$totalRevenue",
-        goalCount: "$totalGoalCount",
-        paymentCount: "$totalPaymentCount",
-        conversionRate: 1,
-        goalConversionRate: 1,
-        referrers: 1,
-      },
-    },
-
-    // Stage 15: Sort channels by UV
-    {
-      $sort: { uv: -1 as const },
     },
   ];
 
-  const result = await Session.aggregate(pipeline);
+  const [facet] = await Session.aggregate(pipeline).allowDiskUse(true);
+  const referrerRows: any[] = facet?.referrers ?? [];
+  const channelRows: any[] = facet?.channels ?? [];
+
+  // Group referrers under channels (channel totals: revenue/payments/goals are
+  // sums over referrers; visitors are unique per channel).
+  const channelUv = new Map<string, { uv: number; visitorsWithGoals: number }>(
+    channelRows.map((c) => [
+      c._id,
+      { uv: c.uv, visitorsWithGoals: c.visitorsWithGoals },
+    ]),
+  );
+  const grouped = new Map<string, any>();
+  for (const r of referrerRows) {
+    const name = r._id.channel;
+    if (!grouped.has(name)) {
+      grouped.set(name, {
+        name,
+        uv: channelUv.get(name)?.uv ?? 0,
+        revenue: 0,
+        goalCount: 0,
+        paymentCount: 0,
+        referrers: [] as any[],
+      });
+    }
+    const ch = grouped.get(name);
+    ch.revenue += r.revenue;
+    ch.paymentCount += r.paymentCount;
+    ch.goalCount += r.goalCount;
+    ch.referrers.push({
+      name: r._id.referrer,
+      channel: name,
+      uv: r.uv,
+      revenue: r.revenue,
+      paymentCount: r.paymentCount,
+      conversionRate: r.conversionRate,
+      goalCount: r.goalCount,
+      goalConversionRate: r.goalConversionRate,
+      utmSource: r.utmSource,
+      utmMedium: r.utmMedium,
+      referrerDomain: r.referrerDomain,
+      referrer: r.referrer,
+    });
+  }
+  const result = Array.from(grouped.values())
+    .map((ch) => {
+      const totalUv = ch.uv;
+      return {
+        ...ch,
+        conversionRate: totalUv > 0 ? ch.paymentCount / totalUv : 0,
+        // Unique visitors with >= 1 goal / unique visitors (<= 1).
+        goalConversionRate:
+          totalUv > 0
+            ? (channelUv.get(ch.name)?.visitorsWithGoals ?? 0) / totalUv
+            : 0,
+        referrers: ch.referrers.sort((a: any, b: any) => b.uv - a.uv),
+      };
+    })
+    .sort((a, b) => b.uv - a.uv);
+
 
   // Post-process to add formatting, images, and handle referrer names
   const channels = result.map((channel) => {
