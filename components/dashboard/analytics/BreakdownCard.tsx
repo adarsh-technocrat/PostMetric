@@ -25,6 +25,7 @@ import {
 } from "@/components/chart";
 import type { HorizontalStackedBarChartData } from "@/components/chart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { Spinner } from "@/components/ui/spinner";
 import type { BreakdownData } from "./tooltips/PieChartTooltip";
 
 interface BreakdownCardProps {
@@ -36,6 +37,10 @@ interface BreakdownCardProps {
   chartType?: "bar" | "pie" | "horizontalBar";
   colors?: string[];
   colorScheme?: string;
+  /** True while this card's breakdown request is in flight. */
+  loading?: boolean;
+  /** Error from the latest breakdown request (shown instead of stale rows). */
+  error?: string | null;
 }
 
 const DEFAULT_COLORS = ["#4f6d85", "#4a6880", "#6b8aa7", "#7a99b5", "#2d3d4d"];
@@ -61,7 +66,8 @@ const generateStackedData = (
       name: itemName,
       icon: iconUrl,
       visitors: item.uv || 0,
-      revenue: item.revenue ? Math.round(item.revenue / 100) : 0,
+      // Breakdown revenue is already in major units (see API contract).
+      revenue: item.revenue ? Math.round(item.revenue) : 0,
     };
   });
 };
@@ -86,6 +92,8 @@ export function BreakdownCard({
   chartType = "bar",
   colors = DEFAULT_COLORS,
   colorScheme = "#E78468",
+  loading = false,
+  error = null,
 }: BreakdownCardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const chartConfig = getChartConfig(colorScheme);
@@ -199,11 +207,28 @@ export function BreakdownCard({
             </div>
           </div>
         </div>
-        <div className="relative h-96 w-full max-w-full overflow-hidden">
-          {(title === "Location" && selectedTab === "Map") ||
-          chartType === "horizontalBar" ||
-          chartType === "pie" ? (
-            <div className="w-full h-full max-w-full">{renderChart()}</div>
+        <div
+          className="relative h-96 w-full max-w-full overflow-hidden"
+          aria-busy={loading}
+        >
+          {error ? (
+            <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-textSecondary">
+              Couldn&apos;t load {title.toLowerCase()} data. {error}
+            </div>
+          ) : loading && sanitizedData.length === 0 ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <Spinner className="size-5 text-textSecondary" />
+            </div>
+          ) : (title === "Location" && selectedTab === "Map") ||
+            chartType === "horizontalBar" ||
+            chartType === "pie" ? (
+            <div
+              className={`w-full h-full max-w-full transition-opacity ${
+                loading ? "opacity-50" : ""
+              }`}
+            >
+              {renderChart()}
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {renderChart()}

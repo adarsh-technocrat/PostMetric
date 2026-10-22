@@ -49,6 +49,12 @@ const COLOR_OPTIONS = [
   "#64748B",
 ];
 
+/**
+ * The public dashboard page is not built yet (the public API route returns no
+ * analytics), so enabling it would hand out a link to nothing.
+ */
+const PUBLIC_DASHBOARD_AVAILABLE = false;
+
 interface GeneralSettingsProps {
   website: {
     _id: string;
@@ -82,6 +88,7 @@ export function GeneralSettings({
   const [timezone, setTimezone] = useState("Asia/Calcutta");
   const [colorScheme, setColorScheme] = useState("#E78468");
   const [publicDashboard, setPublicDashboard] = useState(false);
+  const [publicDashboardSaving, setPublicDashboardSaving] = useState(false);
   const [allowLocalhost, setAllowLocalhost] = useState(false);
   const [additionalDomain, setAdditionalDomain] = useState("");
   const [loading, setLoading] = useState(false);
@@ -180,7 +187,12 @@ export function GeneralSettings({
   };
 
   const handleTogglePublicDashboard = async (checked: boolean) => {
+    // Enabling is blocked until the public dashboard exists; turning an
+    // already-enabled one off is still allowed.
+    if (checked && !PUBLIC_DASHBOARD_AVAILABLE) return;
+    const previous = publicDashboard;
     setPublicDashboard(checked);
+    setPublicDashboardSaving(true);
     try {
       await dispatch(
         updateWebsiteSettingsAndConfiguration({
@@ -200,7 +212,17 @@ export function GeneralSettings({
         }),
       ).unwrap();
       onUpdate();
-    } catch (error) {}
+    } catch (error) {
+      // Don't leave the switch showing a state that wasn't saved.
+      setPublicDashboard(previous);
+      toast.error(
+        typeof error === "string" && error
+          ? error
+          : "Couldn't update the public dashboard setting",
+      );
+    } finally {
+      setPublicDashboardSaving(false);
+    }
   };
 
   const getTrackingCodeForDisplay = () => {
@@ -517,8 +539,13 @@ export function GeneralSettings({
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-textPrimary">
+              <h3 className="flex items-center gap-2 font-semibold text-textPrimary">
                 Public dashboard
+                {!PUBLIC_DASHBOARD_AVAILABLE && (
+                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-textSecondary">
+                    Coming soon
+                  </span>
+                )}
               </h3>
               <p className="text-sm text-textSecondary mt-1">
                 Share your analytics with a public link
@@ -527,6 +554,11 @@ export function GeneralSettings({
             <Switch
               checked={publicDashboard}
               onCheckedChange={handleTogglePublicDashboard}
+              disabled={
+                publicDashboardSaving ||
+                (!PUBLIC_DASHBOARD_AVAILABLE && !publicDashboard)
+              }
+              aria-label="Public dashboard"
             />
           </div>
         </div>

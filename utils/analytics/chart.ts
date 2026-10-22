@@ -2,87 +2,105 @@ interface ChartDataPoint {
   date: string;
   fullDate?: string;
   timestamp?: string;
+  granularity?: "hourly" | "daily" | "weekly" | "monthly";
+  timezone?: string;
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/** `yyyy-MM-dd` and 0-23 hour of `date` in `timezone` (browser tz if unset). */
+function getZonedParts(
+  date: Date,
+  timezone?: string,
+): { ymd: string; hour: number } | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+      ...(timezone ? { timeZone: timezone } : {}),
+    }).formatToParts(date);
+    const get = (type: string) =>
+      parts.find((p) => p.type === type)?.value ?? "";
+    const hour = parseInt(get("hour"), 10);
+    return {
+      ymd: `${get("year")}-${get("month")}-${get("day")}`,
+      hour: Number.isNaN(hour) ? 0 : hour % 24,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatHour(hour: number): string {
+  const hour12 = hour % 12 || 12;
+  return `${hour12} ${hour < 12 ? "AM" : "PM"}`;
 }
 
 /**
- * Format date display for tooltip: "Today [time]" if today, otherwise use fullDate
- * @param data - Chart data point with date information
- * @returns Formatted date string
+ * Tooltip date for a chart point. Only hourly buckets carry a time
+ * ("Today 3 PM" / "Monday, October 20, 2026, 3 PM"); daily, weekly and
+ * monthly buckets show the date only. "Today" is evaluated in the website
+ * timezone carried on the point (falls back to the browser timezone).
  */
-export function formatDateDisplay(data: {
-  date: string;
-  fullDate?: string;
-  timestamp?: string;
-}): string {
-  if (!data.timestamp) {
-    return data.fullDate || data.date;
+export function formatDateDisplay(data: ChartDataPoint): string {
+  const fallback = data.fullDate || data.date;
+  if (!data.timestamp || data.granularity !== "hourly") {
+    return fallback;
   }
 
-  const bucketDateStr = data.timestamp.slice(0, 10);
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const isToday = bucketDateStr === todayStr;
-  const dataDate = new Date(data.timestamp);
+  const bucket = new Date(data.timestamp);
+  if (Number.isNaN(bucket.getTime())) return fallback;
 
-  if (isToday) {
-    const hourMatch = data.timestamp.match(/T(\d{2}):/);
-    let hour = 0;
-    if (hourMatch) {
-      hour = parseInt(hourMatch[1], 10);
-    } else {
-      hour = dataDate.getUTCHours();
-    }
+  const bucketParts = getZonedParts(bucket, data.timezone);
+  const nowParts = getZonedParts(new Date(), data.timezone);
+  if (!bucketParts || !nowParts) return fallback;
 
-    const hour12 = hour % 12 || 12;
-    const ampm = hour < 12 ? "AM" : "PM";
-    return `Today ${hour12} ${ampm}`;
+  const hourLabel = formatHour(bucketParts.hour);
+  if (bucketParts.ymd === nowParts.ymd) {
+    return `Today ${hourLabel}`;
   }
-
-  return data.fullDate || data.date;
+  return `${fallback}, ${hourLabel}`;
 }
 
+const HOURLY_LABEL_RE = /^\s*(\d{1,2})(?::\d{2})?\s*(am|pm)\s*$/i;
+
+/**
+ * Index of the bucket containing "now" for hourly charts (used for the
+ * current-hour marker / forecast), or null for non-hourly data or when the
+ * chart does not include the current hour.
+ */
 export function getCurrentTimeIndex(data: ChartDataPoint[]): number | null {
   if (!data || data.length === 0) return null;
 
-  const now = new Date();
-  const currentHour = now.getHours();
+  const first = data[0];
+  const isHourly =
+    first?.granularity === "hourly" ||
+    (first?.granularity === undefined && HOURLY_LABEL_RE.test(first?.date ?? ""));
+  if (!isHourly) return null;
 
-  // Check if data is hourly format (e.g., "12am", "1am", etc.)
-  const firstDate = data[0]?.date;
-  if (firstDate && (firstDate.includes("am") || firstDate.includes("pm"))) {
-    // Find the index of the current hour in the data
-    const hour12 = currentHour % 12 || 12;
-    const ampm = currentHour < 12 ? "am" : "pm";
-    const formattedHour = `${hour12}${ampm}`;
-
-    const exactIndex = data.findIndex((d) => d.date === formattedHour);
-    if (exactIndex !== -1) {
-      return exactIndex;
-    }
-
-    // Find the closest hour
-    const hourValues = data.map((d, idx) => {
-      const hourStr = d.date.replace(/[^0-9]/g, "");
-      const hour = parseInt(hourStr) || 12;
-      const isPM = d.date.includes("pm");
-      const hour24 = hour === 12 ? (isPM ? 12 : 0) : hour + (isPM ? 12 : 0);
-      return {
-        index: idx,
-        hour24: hour24,
-      };
+  // Preferred: match by absolute bucket time (timezone-independent).
+  const now = Date.now();
+  if (data.every((d) => d.timestamp)) {
+    const idx = data.findIndex((d) => {
+      const start = new Date(d.timestamp as string).getTime();
+      return !Number.isNaN(start) && now >= start && now < start + HOUR_MS;
     });
-
-    const closest = hourValues.reduce((prev, curr) => {
-      const prevDiff = Math.abs(prev.hour24 - currentHour);
-      const currDiff = Math.abs(curr.hour24 - currentHour);
-      return currDiff < prevDiff ? curr : prev;
-    });
-
-    return closest.index;
+    return idx === -1 ? null : idx;
   }
 
-  // For non-hourly data, return null (no forecast)
-  return null;
+  // Fallback: compare labels like "1:00 PM" / "1pm" by hour, case-insensitively.
+  const currentHour = new Date().getHours();
+  const idx = data.findIndex((d) => {
+    const m = HOURLY_LABEL_RE.exec(d.date ?? "");
+    if (!m) return false;
+    const h = parseInt(m[1], 10) % 12;
+    const hour24 = m[2].toLowerCase() === "pm" ? h + 12 : h;
+    return hour24 === currentHour;
+  });
+  return idx === -1 ? null : idx;
 }
 
 export interface BarShapeProps {

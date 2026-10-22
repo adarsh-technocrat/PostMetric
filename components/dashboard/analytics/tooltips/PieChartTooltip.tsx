@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppSelector } from "@/store/hooks";
+
 export interface ReferrerData {
   name: string;
   channel?: string;
@@ -50,6 +52,8 @@ interface PieTooltipProps {
   payload?: RechartsPiePayload[];
   allData?: BreakdownData[];
   colorScheme?: string;
+  /** ISO currency code; defaults to the current website's currency. */
+  currency?: string;
 }
 
 const DEFAULT_COLORS = ["#4f6d85", "#4a6880", "#6b8aa7", "#7a99b5", "#2d3d4d"];
@@ -59,7 +63,18 @@ export const PieChartTooltip = ({
   payload,
   allData,
   colorScheme = "#E78468",
+  currency,
 }: PieTooltipProps) => {
+  const websiteCurrency = useAppSelector(
+    (state) =>
+      (
+        state.websites.currentWebsite?.settings as
+          | { currency?: string }
+          | undefined
+      )?.currency,
+  );
+  const currencyCode = currency || websiteCurrency || "USD";
+
   if (!active || !payload || !payload.length || !allData) {
     return null;
   }
@@ -93,15 +108,18 @@ export const PieChartTooltip = ({
     return num.toLocaleString("en-US");
   };
 
-  const formatCurrency = (cents: number) => {
-    const dollars = cents / 100;
-    if (dollars >= 1000) {
-      return `$${(dollars / 1000).toFixed(1)}k`;
+  // Breakdown revenue is already in major units: do not divide by 100.
+  const formatCurrency = (amount: number) => {
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: currencyCode,
+        notation: amount >= 1000 ? "compact" : "standard",
+        maximumFractionDigits: amount >= 1000 ? 1 : 0,
+      }).format(amount);
+    } catch {
+      return `${Math.round(amount).toLocaleString("en-US")} ${currencyCode}`;
     }
-    return `$${dollars.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })}`;
   };
 
   const channelName = activeChannel?.name || "Unknown";
