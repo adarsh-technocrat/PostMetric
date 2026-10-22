@@ -13,11 +13,35 @@ import { getEntryPagesBreakdown } from "@/utils/analytics/aggregations/getEntryP
 import { getExitLinksBreakdown } from "@/utils/analytics/aggregations/getExitLinksBreakdown.aggregation";
 import { getLocationBreakdown } from "@/utils/analytics/aggregations/getLocationBreakdown.aggregation";
 import { getSystemBreakdown } from "@/utils/analytics/aggregations/getSystemBreakdown.aggregation";
+import { getGoalsBreakdown } from "@/utils/analytics/aggregations/getGoalsBreakdown.aggregation";
 import {
   BREAKDOWN_KEYS,
   isBreakdownKey,
 } from "@/lib/constants/analytics-breakdowns";
 import { TimeZone } from "timezones-list";
+
+// Served here rather than listed in BREAKDOWN_KEYS, which the client uses to
+// lay out its breakdown cards.
+const GOALS_BREAKDOWN = "goals";
+
+/**
+ * Payments are stored ×100; every breakdown reports `revenue` in major units
+ * like the overview. The channels breakdown already converts.
+ */
+function revenueInMajorUnits(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(revenueInMajorUnits);
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, v]) => [
+        key,
+        key === "revenue" && typeof v === "number"
+          ? v / 100
+          : revenueInMajorUnits(v),
+      ]),
+    );
+  }
+  return value;
+}
 
 export async function GET(
   request: NextRequest,
@@ -26,7 +50,7 @@ export async function GET(
   try {
     const { websiteId, breakdown } = await params;
 
-    if (!isBreakdownKey(breakdown)) {
+    if (breakdown !== GOALS_BREAKDOWN && !isBreakdownKey(breakdown)) {
       return NextResponse.json(
         {
           error: "Invalid breakdown",
@@ -87,6 +111,9 @@ export async function GET(
     let data: unknown;
 
     switch (breakdown) {
+      case GOALS_BREAKDOWN:
+        data = await getGoalsBreakdown(websiteId, startDate, endDate);
+        break;
       case "source-channel":
         data = await getSourceBreakdown(
           websiteId,
@@ -189,7 +216,8 @@ export async function GET(
           end: endDate.toISOString(),
           timezone,
         },
-        data,
+        data:
+          breakdown === "source-channels" ? data : revenueInMajorUnits(data),
       },
       { status: 200 },
     );

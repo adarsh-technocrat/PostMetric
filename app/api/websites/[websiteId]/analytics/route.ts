@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { formatInTimeZone } from "date-fns-tz";
 import { getVisitorsOverTime } from "@/utils/analytics/aggregations/getVisitorsOverTime.aggregation";
 import { getRevenueOverTime } from "@/utils/analytics/aggregations/getRevenueOverTime.aggregation";
-import { getCustomersAndSalesOverTime } from "@/utils/analytics/aggregations/getCustomersAndSalesOverTime.aggregation";
+import {
+  getCustomersAndSalesOverTime,
+  getCustomersAndSalesTotals,
+} from "@/utils/analytics/aggregations/getCustomersAndSalesOverTime.aggregation";
 import {
   getGoalsOverTime,
   getGoalConvertedVisitors,
@@ -222,6 +225,7 @@ export async function GET(
       customersSalesOverTime,
       goalsOverTime,
       goalVisitors,
+      customersSalesTotals,
     ] = await Promise.all([
       getMetrics(websiteId, startDate, endDate),
       getMetrics(websiteId, prevStart, prevEnd),
@@ -236,6 +240,7 @@ export async function GET(
       ),
       getGoalsOverTime(websiteId, startDate, endDate, granularity, timezone),
       getGoalConvertedVisitors(websiteId, startDate, endDate),
+      getCustomersAndSalesTotals(websiteId, startDate, endDate),
     ]);
 
     const revenueSums = revenueOverTime.reduce(
@@ -248,14 +253,10 @@ export async function GET(
     );
 
     const totalGoal = goalsOverTime.reduce((sum, r) => sum + r.goalCount, 0);
-    const totalCustomers = customersSalesOverTime.reduce(
-      (sum, r) => sum + r.customers,
-      0,
-    );
-    const totalSales = customersSalesOverTime.reduce(
-      (sum, r) => sum + r.sales,
-      0,
-    );
+    // Unique over the whole period; summing buckets counts a returning
+    // customer once per bucket.
+    const totalCustomers = customersSalesTotals.customers;
+    const totalSales = customersSalesTotals.sales;
 
     const processedData = mergeTimeSeries(
       visitorsOverTime,
