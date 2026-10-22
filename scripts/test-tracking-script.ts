@@ -143,6 +143,34 @@ function testApiUrl(scriptContent: string): void {
   );
 }
 
+function testRegressions(scriptContent: string): void {
+  // Each entry guards a previously shipped ingestion bug.
+  const mustNotMatch: Array<[string, RegExp]> = [
+    ["goal attr prefix is 21 chars (not substring(20))", /substring\(20\)/],
+    ["scroll attr prefix is 23 chars (not substring(25))", /substring\(25\)/],
+    ["scroll goals use their real name", /trackGoal\(\s*['"]custom['"]/],
+    [
+      "goal/identify URLs not built by replacing /api/track",
+      /apiUrl\.replace\(\s*['"]\/api\/track['"]/,
+    ],
+  ];
+  mustNotMatch.forEach(([name, regex]) => {
+    const found = regex.test(scriptContent);
+    addTest(`Regression: ${name}`, !found, found ? `Matched ${regex}` : undefined);
+  });
+
+  const mustMatch: Array<[string, RegExp]> = [
+    ["goal GET sends visitorId", /['"]&visitorId=['"]/],
+    ["goal GET sends sessionId", /['"]&sessionId=['"]/],
+    ["data-goals-url attribute supported", /['"]goals-url['"]/],
+    ["data-identify-url attribute supported", /['"]identify-url['"]/],
+  ];
+  mustMatch.forEach(([name, regex]) => {
+    const found = regex.test(scriptContent);
+    addTest(`Regression: ${name}`, found, found ? undefined : `Missing ${regex}`);
+  });
+}
+
 async function testMinification(scriptContent: string): Promise<void> {
   try {
     const result = await minify(scriptContent, {
@@ -274,6 +302,7 @@ async function main() {
     testNoConsoleErrors(scriptContent);
     testApiUrl(scriptContent);
     testValidJavaScript(scriptContent);
+    testRegressions(scriptContent);
 
     // Run async minification test
     await testMinification(scriptContent);
