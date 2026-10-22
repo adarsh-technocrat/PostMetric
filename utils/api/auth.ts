@@ -25,9 +25,9 @@ export async function authenticateApiRequest(
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     // Find API key
-    const apiKey = await ApiKey.findOne({ key: hashedToken }).populate(
-      "websiteId"
-    );
+    // Only the id is needed. Populating would also require the Website model
+    // to be registered in this bundle, which it isn't on every route.
+    const apiKey = await ApiKey.findOne({ key: hashedToken });
 
     if (!apiKey) {
       return null;
@@ -37,12 +37,9 @@ export async function authenticateApiRequest(
     apiKey.lastUsedAt = new Date();
     await apiKey.save();
 
-    // websiteId is populated, so take the id off the document rather than
-    // stringifying the whole thing.
-    const website = apiKey.websiteId as any;
     return {
       apiKey,
-      websiteId: (website?._id ?? website).toString(),
+      websiteId: apiKey.websiteId.toString(),
     };
   } catch (error) {
     return null;
