@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { recordPaymentHint } from "@/utils/revenue/linkPayment";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
 import Session from "@/db/models/Session";
@@ -44,6 +45,15 @@ export async function POST(request: NextRequest) {
         { error: "User identification is not enabled for this website" },
         { status: 403 }
       );
+    }
+
+    // The email is how a later payment from this customer finds the visitor
+    // when the checkout carried no visitor id.
+    if (visitorId && typeof email === "string" && email.includes("@")) {
+      await recordPaymentHint(website._id, "email", email, {
+        visitorId,
+        sessionId: sessionId || undefined,
+      }).catch(() => {});
     }
 
     // If visitorId is provided, update all sessions for this visitor

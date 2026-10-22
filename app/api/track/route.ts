@@ -25,6 +25,7 @@ import {
 import type { IWebsite } from "@/db/models/Website";
 import type { ISession } from "@/db/models/Session";
 import type { IPageView } from "@/db/models/PageView";
+import { handlePaymentEvent } from "@/utils/revenue/paymentEvents";
 
 const PIXEL = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
@@ -36,7 +37,8 @@ type TrackingEventType =
   | "exit_link"
   | "scroll"
   | "click"
-  | "custom";
+  | "custom"
+  | "payment";
 
 interface UtmParams {
   utm_source?: string;
@@ -169,6 +171,27 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
     const isNewSession: boolean = !sessionId;
     if (!sessionId) {
       sessionId = generateSessionId();
+    }
+
+    // A payment event ties a checkout or email to this visitor. It is not a
+    // page view, so it must not touch the session or page view counts.
+    if (eventType === "payment") {
+      try {
+        await handlePaymentEvent(website, extraData as Record<string, unknown>, {
+          visitorId,
+          sessionId: isNewSession ? undefined : sessionId,
+        });
+      } catch {
+        // Revenue still arrives through the provider sync.
+      }
+      return new NextResponse(PIXEL, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/gif",
+          "Cache-Control": "no-cache, no-store, must-revalidate, private",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
 
     // Sanitize and validate inputs

@@ -4,9 +4,10 @@ import Payment from "@/db/models/Payment";
 import {
   createPayment,
   deletePaymentsByProvider,
+  type NewPayment,
 } from "@/utils/database/payment";
 import { Types } from "mongoose";
-import type { IWebsite } from "@/db/models/Website";
+import Website, { type IWebsite } from "@/db/models/Website";
 
 export interface SyncResult {
   synced: number;
@@ -67,7 +68,6 @@ export class StripeHelper {
 
       const params = new URLSearchParams();
       params.append("limit", "100");
-      params.append("expand[]", "data.invoice");
 
       if (startingAfter) {
         params.append("starting_after", startingAfter);
@@ -118,6 +118,52 @@ export class StripeHelper {
     return paymentIntents;
   }
 
+  /**
+   * PaymentIntents lost their `invoice` field in API 2025-03-31.basil; the
+   * link now lives on InvoicePayment.
+   */
+  async findInvoiceForPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.Invoice | null> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const { data } = await this.stripe.invoicePayments.list({
+      payment: { type: "payment_intent", payment_intent: paymentIntentId },
+      expand: ["data.invoice"],
+      limit: 1,
+    });
+    const invoice = data[0]?.invoice;
+    return invoice && typeof invoice === "object" ? (invoice as Stripe.Invoice) : null;
+  }
+
+  /**
+   * The Checkout Session behind a payment, which is where checkout code puts
+   * the visitor ids. A subscription's first invoice is found through the
+   * subscription; one-time payments through their PaymentIntent.
+   */
+  async findCheckoutSession(
+    paymentIntentId: string,
+    subscriptionId: string | null,
+  ): Promise<Stripe.Checkout.Session | null> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const byIntent = await this.stripe.checkout.sessions.list({
+      payment_intent: paymentIntentId,
+      limit: 1,
+    });
+    if (byIntent.data[0]) return byIntent.data[0];
+    if (!subscriptionId) return null;
+    const bySubscription = await this.stripe.checkout.sessions.list({
+      subscription: subscriptionId,
+      limit: 1,
+    });
+    return bySubscription.data[0] ?? null;
+  }
+
+  async retrieveCheckoutSession(
+    checkoutSessionId: string,
+  ): Promise<Stripe.Checkout.Session> {
+    return await this.stripe.checkout.sessions.retrieve(checkoutSessionId);
+  }
+
   async retrieveInvoice(invoiceId: string): Promise<Stripe.Invoice> {
     await new Promise((resolve) => setTimeout(resolve, 100));
     return await this.stripe.invoices.retrieve(invoiceId, {
@@ -130,6 +176,14 @@ export class StripeHelper {
     return await this.stripe.charges.retrieve(chargeId, {
       expand: ["customer"],
     });
+  }
+
+  async listInvoicePayments(invoiceId: string) {
+    const { data } = await this.stripe.invoicePayments.list({
+      invoice: invoiceId,
+      limit: 10,
+    });
+    return data;
   }
 
   async retrievePaymentIntent(
@@ -337,101 +391,123 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
     paymentIntent: Stripe.PaymentIntent,
     websiteId: string,
   ): Promise<"synced" | "skipped" | "error"> {
-    const websiteObjectId = new Types.ObjectId(websiteId);
-
     const existingPayment = await Payment.findOne({
-      websiteId: websiteObjectId,
+      websiteId: new Types.ObjectId(websiteId),
       provider: "stripe",
       providerPaymentId: paymentIntent.id,
     });
 
-    if (existingPayment) {
+    // Attributed payments are settled; unattributed ones are looked at again
+    // in case the browser has since reported their checkout or email.
+    if (existingPayment?.visitorId) {
       return "skipped";
     }
 
-    const invoice = (paymentIntent as any).invoice as
-      | Stripe.Invoice
-      | string
-      | null;
-    let expandedInvoice: Stripe.Invoice | null = null;
-
-    if (invoice) {
-      if (typeof invoice === "object" && invoice !== null && "id" in invoice) {
-        expandedInvoice = invoice as Stripe.Invoice;
-      } else if (typeof invoice === "string") {
-        try {
-          expandedInvoice = await this.helper.retrieveInvoice(invoice);
-        } catch (error: any) {
-          if (error.type === "StripeRateLimitError") {
-          } else {
-          }
-        }
-      }
-    }
-
-    let paymentType: "new" | "renewal" | "one-time" = "one-time";
-    if (expandedInvoice?.billing_reason === "subscription_cycle") {
-      paymentType = "renewal";
-    } else if (expandedInvoice?.billing_reason === "subscription_create") {
-      paymentType = "new";
-    }
-
-    let customerEmail: string | undefined;
-    let customerId: string | undefined;
-    let metadata: Record<string, any> = {
-      paymentType,
-      billingReason: expandedInvoice?.billing_reason || null,
-      invoiceId: expandedInvoice?.id || null,
-    };
-
-    if (paymentIntent.receipt_email) {
-      customerEmail = paymentIntent.receipt_email;
-    }
-
-    if (paymentIntent.customer) {
-      customerId =
-        typeof paymentIntent.customer === "string"
-          ? paymentIntent.customer
-          : paymentIntent.customer.id;
-    }
-
-    if (paymentIntent.metadata) {
-      metadata = { ...metadata, ...paymentIntent.metadata };
-    }
-
-    if (expandedInvoice?.customer_email && !customerEmail) {
-      customerEmail = expandedInvoice.customer_email;
-    }
-
-    if (expandedInvoice?.customer) {
-      const invoiceCustomerId =
-        typeof expandedInvoice.customer === "string"
-          ? expandedInvoice.customer
-          : expandedInvoice.customer.id;
-      if (!customerId) {
-        customerId = invoiceCustomerId;
-      }
-    }
-
     try {
-      await createPayment({
-        websiteId,
-        provider: "stripe",
-        providerPaymentId: paymentIntent.id,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        renewal: paymentType === "renewal",
-        refunded: false,
-        customerEmail,
-        customerId,
-        metadata,
-        timestamp: new Date(paymentIntent.created * 1000),
-      });
-
-      return "synced";
+      await createPayment(
+        await this.describePaymentIntent(paymentIntent, websiteId),
+      );
+      return existingPayment ? "skipped" : "synced";
     } catch (error) {
       return "error";
     }
+  }
+
+  async describePaymentIntent(
+    paymentIntent: Stripe.PaymentIntent,
+    websiteId: string,
+  ): Promise<NewPayment> {
+    const invoice = await this.helper
+      .findInvoiceForPaymentIntent(paymentIntent.id)
+      .catch(() => null);
+    const subscriptionDetails = invoice?.parent?.subscription_details;
+    const subscriptionId = subscriptionDetails?.subscription
+      ? typeof subscriptionDetails.subscription === "string"
+        ? subscriptionDetails.subscription
+        : subscriptionDetails.subscription.id
+      : null;
+
+    // Renewals inherit attribution from the customer's first payment, so the
+    // Checkout Session is only needed for first payments.
+    const checkoutSession =
+      invoice?.billing_reason === "subscription_cycle"
+        ? null
+        : await this.helper
+            .findCheckoutSession(paymentIntent.id, subscriptionId)
+            .catch(() => null);
+
+    let paymentType: "new" | "renewal" | "one-time" = "one-time";
+    if (invoice?.billing_reason === "subscription_cycle") {
+      paymentType = "renewal";
+    } else if (invoice?.billing_reason === "subscription_create") {
+      paymentType = "new";
+    }
+
+    const idOf = (value: string | { id: string } | null | undefined) =>
+      typeof value === "string" ? value : (value?.id ?? undefined);
+
+    return {
+      websiteId,
+      provider: "stripe",
+      providerPaymentId: paymentIntent.id,
+      amount: paymentIntent.amount_received || paymentIntent.amount,
+      currency: paymentIntent.currency,
+      renewal: paymentType === "renewal",
+      refunded: false,
+      customerEmail:
+        paymentIntent.receipt_email ||
+        invoice?.customer_email ||
+        checkoutSession?.customer_details?.email ||
+        undefined,
+      customerId:
+        idOf(paymentIntent.customer) ||
+        idOf(invoice?.customer) ||
+        idOf(checkoutSession?.customer),
+      checkoutSessionId: checkoutSession?.id,
+      // Later spreads win: the PaymentIntent's own metadata beats the
+      // subscription's, which beats the Checkout Session's.
+      metadata: {
+        ...checkoutSession?.metadata,
+        ...subscriptionDetails?.metadata,
+        ...paymentIntent.metadata,
+        paymentType,
+        billingReason: invoice?.billing_reason || null,
+        invoiceId: invoice?.id || null,
+        subscriptionId,
+        checkoutSessionId: checkoutSession?.id || null,
+      },
+      timestamp: new Date(paymentIntent.created * 1000),
+    };
+  }
+
+  /**
+   * A browser reported `?session_id=cs_...` from a success page. Record the
+   * payment now instead of waiting for the next sync.
+   */
+  async recordCheckoutSession(
+    checkoutSessionId: string,
+    websiteId: string,
+  ): Promise<void> {
+    const session = await this.helper.retrieveCheckoutSession(checkoutSessionId);
+    if (session.payment_status !== "paid") return;
+
+    let paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+    if (!paymentIntentId && session.invoice) {
+      const invoiceId =
+        typeof session.invoice === "string" ? session.invoice : session.invoice.id;
+      const payments = await this.helper.listInvoicePayments(invoiceId);
+      paymentIntentId = payments.find((p) => p.payment.payment_intent)?.payment
+        .payment_intent as string | undefined;
+    }
+    if (!paymentIntentId) return;
+
+    const paymentIntent = await this.helper.retrievePaymentIntent(paymentIntentId);
+    if (paymentIntent.status !== "succeeded") return;
+    await createPayment(await this.describePaymentIntent(paymentIntent, websiteId));
   }
 
   private async saveRefundToDatabase(
@@ -531,6 +607,34 @@ export async function syncStripePayments(
   const end = endDate || new Date();
   const result = await syncer.syncPayments(start, end, websiteId);
   return result;
+}
+
+export async function recordStripeCheckoutSession(
+  websiteId: string,
+  apiKey: string,
+  checkoutSessionId: string,
+): Promise<void> {
+  await connectDB();
+  const syncer = new StripePaymentSyncer(apiKey);
+  await syncer.recordCheckoutSession(checkoutSessionId, websiteId);
+}
+
+/** The PaymentIntent that paid a Stripe invoice, when Stripe is connected. */
+export async function stripePaymentIntentForInvoice(
+  websiteId: string,
+  invoiceId: string,
+): Promise<string | null> {
+  const website = await Website.findById(websiteId);
+  const apiKey = website?.paymentProviders?.stripe?.apiKey;
+  if (!apiKey) return null;
+  try {
+    const payments = await new StripeHelper(apiKey).listInvoicePayments(invoiceId);
+    const paid = payments.find((p) => p.payment.payment_intent);
+    const intent = paid?.payment.payment_intent;
+    return typeof intent === "string" ? intent : (intent?.id ?? null);
+  } catch {
+    return null;
+  }
 }
 
 export function detectStripeChanges(

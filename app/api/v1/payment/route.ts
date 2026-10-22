@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/utils/api/auth";
-import { linkPaymentToVisitor } from "@/utils/revenue/linkPayment";
+import { createPayment, type NewPayment } from "@/utils/database/payment";
+import { stripePaymentIntentForInvoice } from "@/utils/integrations/stripe";
 import connectDB from "@/db";
 import Payment from "@/db/models/Payment";
+
+const KNOWN_PROVIDERS = new Set([
+  "stripe",
+  "lemonsqueezy",
+  "polar",
+  "paddle",
+  "other",
+]);
 
 /**
  * POST /api/v1/payment
@@ -30,28 +39,43 @@ export async function POST(request: NextRequest) {
     const { websiteId } = auth;
     const body = await request.json();
 
-    const {
-      provider,
-      providerPaymentId,
-      amount,
-      currency = "USD",
-      customerEmail,
-      customerId,
-      visitorId,
-      sessionId,
-      metadata,
-      renewal = false,
-      timestamp,
-    } = body;
+    // Field names follow PostMetric's docs, with DataFast's accepted as
+    // aliases so a site can switch by changing only the URL and key.
+    const pick = (...keys: string[]) => {
+      for (const key of keys) {
+        const value = body?.[key];
+        if (value !== undefined && value !== null && value !== "") return value;
+      }
+      return undefined;
+    };
+    const provider = String(pick("provider") ?? "other");
+    let providerPaymentId = pick("providerPaymentId", "transaction_id");
+    const amount = Number(pick("amount"));
+    const currency = String(pick("currency") ?? "USD").toUpperCase();
+    const visitorId = pick("visitorId", "postmetric_visitor_id", "datafast_visitor_id");
+    const sessionId = pick("sessionId", "postmetric_session_id", "datafast_session_id");
+    const customerEmail = pick("customerEmail", "customer_email", "email");
+    const customerId = pick("customerId", "customer_id");
+    const timestamp = pick("timestamp");
 
-    if (!provider || !providerPaymentId || !amount) {
+    if (!providerPaymentId || !Number.isFinite(amount) || amount < 0) {
       return NextResponse.json(
         {
           status: "error",
           error: {
             code: 400,
-            message: "provider, providerPaymentId, and amount are required",
+            message: "providerPaymentId (or transaction_id) and amount are required",
           },
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!KNOWN_PROVIDERS.has(provider)) {
+      return NextResponse.json(
+        {
+          status: "error",
+          error: { code: 400, message: `Unknown provider "${provider}"` },
         },
         { status: 400 },
       );
@@ -59,59 +83,43 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Webhook senders retry, so a payment we already have is a success.
-    const existing = await Payment.findOne({ provider, providerPaymentId });
-    if (existing) {
-      return NextResponse.json({
-        status: "success",
-        data: {
-          paymentId: existing._id.toString(),
-          message: "Payment already recorded",
-        },
-      });
+    // With Stripe connected, the sync stores payments by PaymentIntent id.
+    // Store an invoice reported here under the same id so it isn't counted
+    // twice.
+    if (provider === "stripe" && String(providerPaymentId).startsWith("in_")) {
+      providerPaymentId =
+        (await stripePaymentIntentForInvoice(websiteId, String(providerPaymentId))) ??
+        providerPaymentId;
     }
 
-    const payment = new Payment({
-      websiteId,
+    const existing = await Payment.findOne({
       provider,
-      providerPaymentId,
-      amount: Math.round(amount * 100),
-      currency,
-      renewal: Boolean(renewal),
-      refunded: false,
-      customerEmail,
-      customerId,
-      sessionId,
-      visitorId,
-      metadata,
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      providerPaymentId: String(providerPaymentId),
     });
 
-    if (!visitorId && !sessionId) {
-      try {
-        const link = await linkPaymentToVisitor(
-          {
-            metadata,
-            customerEmail,
-            timestamp: payment.timestamp,
-          },
-          websiteId,
-        );
-
-        if (link) {
-          if (link.visitorId) payment.visitorId = link.visitorId;
-          if (link.sessionId) payment.sessionId = link.sessionId;
-        }
-      } catch (error) {}
-    }
-
-    await payment.save();
+    const payment = await createPayment({
+      websiteId,
+      provider: provider as NewPayment["provider"],
+      providerPaymentId: String(providerPaymentId),
+      amount: Math.round(amount * 100),
+      currency,
+      renewal: Boolean(pick("renewal")),
+      refunded: Boolean(pick("refunded")),
+      customerEmail: customerEmail ? String(customerEmail) : undefined,
+      customerId: customerId ? String(customerId) : undefined,
+      visitorId: visitorId ? String(visitorId) : undefined,
+      sessionId: sessionId ? String(sessionId) : undefined,
+      metadata: typeof body?.metadata === "object" ? body.metadata : undefined,
+      timestamp: timestamp ? new Date(String(timestamp)) : undefined,
+    });
 
     return NextResponse.json({
       status: "success",
       data: {
         paymentId: payment._id.toString(),
-        message: "Payment recorded successfully",
+        transaction_id: String(providerPaymentId),
+        attributed: Boolean(payment.visitorId),
+        message: existing ? "Payment already recorded" : "Payment recorded successfully",
       },
     });
   } catch (error: any) {

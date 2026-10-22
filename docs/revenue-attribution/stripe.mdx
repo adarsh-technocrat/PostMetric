@@ -1,138 +1,84 @@
 ---
 title: "Stripe"
-description: "Connect Stripe Checkout, PaymentIntent, and Payment Links"
+description: "Attribute Stripe Checkout, PaymentIntent, Payment Links and subscriptions"
 ---
 
-Connect Stripe to automatically track revenue and link it to your marketing campaigns.
+Connect Stripe and PostMetric pulls your payments every 5 minutes, then credits each one to the visitor and marketing channel that produced it.
 
-## Supported Stripe methods
+## Connect Stripe
 
-- **Stripe Checkout** - Hosted checkout pages
-- **PaymentIntent API** - Custom payment flows
-- **Payment Links** - Shareable payment links
-- **Other Stripe methods** - Any Stripe payment method
+1. Create a **restricted key** (`rk_…`) with read access to Core, Billing and Checkout.
+2. In PostMetric, open your website's settings and paste the key under **Revenue → Stripe**.
 
-## Setup
+PostMetric imports past payments when you connect, then keeps syncing. Refunds are synced too, and subscription renewals are marked as renewals.
 
-### Step 1: Get your webhook URL
+## How a payment finds its visitor
 
-Your webhook URL is:
+PostMetric checks these in order and uses the first that matches:
 
-```
-https://your-domain.com/api/webhooks/stripe
-```
+1. **Visitor ids in Stripe metadata.** On the PaymentIntent, the subscription, or the Checkout Session that created the payment.
+2. **The success page.** The tracking script reports `?session_id=cs_…` when the customer lands back on your site.
+3. **The same customer's earlier payment.** Renewals and later purchases inherit the attribution of the customer's first payment.
+4. **The customer's email.** From `postmetric("payment", { email })` or user identification.
 
-### Step 2: Configure Stripe webhook
+A payment that matches none of these stays unattributed. It still counts toward revenue.
 
-1. Go to your [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
-2. Click **"Add endpoint"**
-3. Enter your webhook URL: `https://your-domain.com/api/webhooks/stripe`
-4. Select events to listen for:
-   - `checkout.session.completed`
-   - `payment_intent.succeeded`
-   - `charge.refunded`
-5. Copy the **Signing secret** (you'll need this for verification)
+## Stripe Checkout (recommended)
 
-### Step 3: Add webhook secret to environment
-
-Add your Stripe webhook secret to your environment variables:
-
-```env
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-## Stripe Checkout
-
-### Include visitor/session IDs in metadata
-
-When creating a checkout session, include visitor and session IDs in the metadata:
+Pass the two PostMetric cookies as Checkout Session metadata. For subscriptions, PostMetric finds the session through the subscription, so there is nothing else to add.
 
 ```javascript
-// Client-side: Get visitor/session IDs
-const visitorId = window.postMetric?.getVisitorId();
-const sessionId = window.postMetric?.getSessionId();
+import { cookies } from "next/headers";
 
-// Server-side: Create checkout session
+const cookieStore = await cookies();
+
 const session = await stripe.checkout.sessions.create({
-  payment_method_types: ["card"],
-  line_items: [
-    /* your items */
-  ],
-  mode: "payment",
-  success_url: "https://your-site.com/success",
-  cancel_url: "https://your-site.com/cancel",
+  mode: "subscription",
+  line_items: [{ price: "price_123", quantity: 1 }],
+  success_url: "https://your-site.com/welcome",
   metadata: {
-    websiteId: "your-website-id",
-    visitorId: visitorId, // From client
-    sessionId: sessionId, // From client
+    postmetric_visitor_id: cookieStore.get("_pm_vid")?.value,
+    postmetric_session_id: cookieStore.get("_pm_sid")?.value,
   },
 });
 ```
 
-### Redirect to checkout
-
-```javascript
-window.location.href = session.url;
-```
+`visitorId` / `sessionId`, and DataFast's `datafast_visitor_id` / `datafast_session_id`, are accepted as the same keys.
 
 ## PaymentIntent API
 
-### Include visitor/session IDs in metadata
-
-```javascript
-const paymentIntent = await stripe.paymentIntents.create({
-  amount: 1000, // $10.00
-  currency: "usd",
-  metadata: {
-    websiteId: "your-website-id",
-    visitorId: visitorId,
-    sessionId: sessionId,
-  },
-});
-```
+Put the same two keys in the PaymentIntent's `metadata`.
 
 ## Payment Links
 
-For Payment Links, you can't add metadata directly. Instead, use the customer email matching method:
+In the Payment Link's **After payment** tab, redirect to your site with:
 
-1. Enable [user identification](/advanced/user-identification) in PostMetric
-2. Identify users before they purchase
-3. Payments will be linked via email matching
+```
+?session_id={CHECKOUT_SESSION_ID}
+```
 
-## View revenue data
+The tracking script reports it and the payment is recorded immediately. This works best when the customer pays in the same browser they browsed in.
 
-Once payments are linked, you can view:
+## Anything else
 
-- Revenue by source/channel
-- Revenue by campaign
-- Conversion rates
-- Average order value
+After a successful payment, send the customer's email from the page they land on:
 
-## Refunds
+```javascript
+window.postmetric("payment", { email: "customer@example.com" });
+```
 
-Refunds are automatically tracked when a `charge.refunded` event is received. The payment status will be updated to "refunded" in your dashboard.
+## Avoid double counting
 
-## Troubleshooting
+Each Stripe payment is stored once, by its PaymentIntent, however it is reported. If you also report payments yourself through the [Payments API](/api-reference/payment), connect Stripe **or** use the API, not both, unless you send the PaymentIntent (`pi_…`) or invoice (`in_…`) id as `providerPaymentId`.
 
-### Payments not appearing
+If your checkout sends visitor ids in metadata, you can stop the script reading payment ids from URLs:
 
-1. Check that the webhook is configured correctly
-2. Verify the `websiteId` is included in payment metadata
-3. Check webhook logs in Stripe Dashboard
-4. Verify the webhook secret is set correctly
-
-### Payments not linked to visitors
-
-1. Ensure visitor/session IDs are included in payment metadata
-2. Enable user identification for email matching fallback
-3. Check that the visitor was tracked before the payment
-
-## Next steps
-
-<Card
-  title="Revenue attribution guide"
-  icon="dollar-sign"
-  href="/revenue-attribution/get-started"
->
-  Learn more about revenue attribution
-</Card>
+```html
+<script
+  defer
+  data-website-id="YOUR_TRACKING_CODE"
+  data-domain="your-site.com"
+  data-disable-payments="true"
+  src="https://www.postmetric.io/js/script.js"
+></script>
+```

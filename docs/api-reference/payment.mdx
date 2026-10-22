@@ -17,17 +17,22 @@ Requires API key authentication.
 
 ## Request body
 
-| Field               | Type   | Required | Description                                                 |
-| ------------------- | ------ | -------- | ----------------------------------------------------------- |
-| `provider`          | string | Yes      | Payment provider (e.g., "stripe", "lemonsqueezy", "custom") |
-| `providerPaymentId` | string | Yes      | Payment ID from the provider                                |
-| `amount`            | number | Yes      | Payment amount (in dollars, e.g., 99.99)                    |
-| `currency`          | string | No       | Currency code (defaults to "USD")                           |
-| `customerEmail`     | string | No       | Customer email address                                      |
-| `customerId`        | string | No       | Customer ID from provider                                   |
-| `visitorId`         | string | No       | Visitor ID (for linking)                                    |
-| `sessionId`         | string | No       | Session ID (for linking)                                    |
-| `metadata`          | object | No       | Additional metadata                                         |
+| Field               | Type    | Required | Description                                                          |
+| ------------------- | ------- | -------- | -------------------------------------------------------------------- |
+| `providerPaymentId` | string  | Yes      | Unique payment id. Re-sending the same id is safe. Alias: `transaction_id` |
+| `amount`            | number  | Yes      | Amount in major units (e.g. 99.99). `0` for a free trial             |
+| `provider`          | string  | No       | `stripe`, `lemonsqueezy`, `polar`, `paddle` or `other` (default)     |
+| `currency`          | string  | No       | ISO code, defaults to `USD`                                          |
+| `visitorId`         | string  | No       | From the `_pm_vid` cookie. Aliases: `postmetric_visitor_id`, `datafast_visitor_id` |
+| `sessionId`         | string  | No       | From the `_pm_sid` cookie                                            |
+| `customerEmail`     | string  | No       | Aliases: `customer_email`, `email`                                   |
+| `customerId`        | string  | No       | Your billing system's customer id. Alias: `customer_id`              |
+| `renewal`           | boolean | No       | Marks a recurring renewal                                            |
+| `refunded`          | boolean | No       | Marks a refund                                                       |
+| `timestamp`         | string  | No       | ISO 8601 time of the payment, defaults to now                        |
+| `metadata`          | object  | No       | Anything else to store                                               |
+
+Without `visitorId`, the payment is attributed through the customer's earlier payments or a reported email, the same way synced payments are.
 
 ## Request example
 

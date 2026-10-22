@@ -1,8 +1,8 @@
 import connectDB from "@/db";
-import Payment from "@/db/models/Payment";
+import Payment, { type IPayment } from "@/db/models/Payment";
 import { linkPaymentToVisitor } from "@/utils/revenue/linkPayment";
 
-export async function createPayment(data: {
+export type NewPayment = {
   websiteId: string;
   provider: "stripe" | "lemonsqueezy" | "polar" | "paddle" | "other";
   providerPaymentId: string;
@@ -12,38 +12,68 @@ export async function createPayment(data: {
   refunded: boolean;
   customerEmail?: string;
   customerId?: string;
+  checkoutSessionId?: string;
   metadata?: Record<string, any>;
+  // Set when the caller already knows the visitor (payments API).
+  visitorId?: string;
+  sessionId?: string;
   timestamp?: Date;
-}) {
+};
+
+/**
+ * Bring an already-stored payment up to date: renewal/refund flags can change
+ * on a later sync, and a payment synced before its browser clue arrived can
+ * be attributed once it does.
+ */
+async function refreshExisting(
+  existing: IPayment,
+  data: NewPayment,
+): Promise<IPayment> {
+  let changed = false;
+  if (existing.renewal !== data.renewal || existing.refunded !== data.refunded) {
+    existing.renewal = data.renewal;
+    existing.refunded = data.refunded;
+    changed = true;
+  }
+  if (!existing.visitorId) {
+    const link = await attribute(data);
+    if (link?.visitorId) {
+      existing.visitorId = link.visitorId;
+      existing.sessionId = link.sessionId;
+      changed = true;
+    }
+  }
+  if (changed) await existing.save();
+  return existing;
+}
+
+async function attribute(data: NewPayment) {
+  return linkPaymentToVisitor(
+    {
+      metadata: data.visitorId
+        ? { visitorId: data.visitorId, sessionId: data.sessionId }
+        : data.metadata,
+      customerEmail: data.customerEmail,
+      customerId: data.customerId,
+      checkoutSessionId: data.checkoutSessionId,
+      timestamp: data.timestamp || new Date(),
+    },
+    data.websiteId,
+  );
+}
+
+export async function createPayment(data: NewPayment) {
   await connectDB();
 
+  const existingPayment = await Payment.findOne({
+    provider: data.provider,
+    providerPaymentId: data.providerPaymentId,
+  });
+  if (existingPayment) return refreshExisting(existingPayment, data);
+
+  const link = await attribute(data);
+
   try {
-    const existingPayment = await Payment.findOne({
-      provider: data.provider,
-      providerPaymentId: data.providerPaymentId,
-    });
-
-    if (existingPayment) {
-      if (
-        existingPayment.renewal !== data.renewal ||
-        existingPayment.refunded !== data.refunded
-      ) {
-        existingPayment.renewal = data.renewal;
-        existingPayment.refunded = data.refunded;
-        await existingPayment.save();
-      }
-      return existingPayment;
-    }
-
-    const link = await linkPaymentToVisitor(
-      {
-        metadata: data.metadata,
-        customerEmail: data.customerEmail,
-        timestamp: data.timestamp || new Date(),
-      },
-      data.websiteId,
-    );
-
     const payment = new Payment({
       websiteId: data.websiteId,
       provider: data.provider,
@@ -63,26 +93,13 @@ export async function createPayment(data: {
     await payment.save();
     return payment;
   } catch (error: any) {
-    // Handle duplicate key error (race condition when multiple jobs sync the same payment)
+    // Another sync or the browser created it first.
     if (error.code === 11000) {
-      // Payment was created by another process, fetch and return it
-      const existingPayment = await Payment.findOne({
+      const raced = await Payment.findOne({
         provider: data.provider,
         providerPaymentId: data.providerPaymentId,
       });
-
-      if (existingPayment) {
-        // Update renewal/refunded status if needed
-        if (
-          existingPayment.renewal !== data.renewal ||
-          existingPayment.refunded !== data.refunded
-        ) {
-          existingPayment.renewal = data.renewal;
-          existingPayment.refunded = data.refunded;
-          await existingPayment.save();
-        }
-        return existingPayment;
-      }
+      if (raced) return refreshExisting(raced, data);
     }
     throw error;
   }
