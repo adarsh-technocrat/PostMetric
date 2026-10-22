@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
 import { isDemoWebsite } from "@/lib/demo-website";
-import { getDateRangeForPeriod } from "@/lib/date-time-conversion";
+import { resolvePeriodRange } from "@/lib/date-time-conversion";
 import { getSourceBreakdown } from "@/utils/analytics/aggregations/getSourceBreakdown.aggregation";
 import { getReferrersBreakdown } from "@/utils/analytics/aggregations/getReferrersBreakdown.aggregation";
 import { getCampaignBreakdown } from "@/utils/analytics/aggregations/getCampaignBreakdown.aggregation";
@@ -53,22 +53,35 @@ export async function GET(
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const period = searchParams.get("period") || "today";
+    const periodParam = searchParams.get("period");
     const startDateStr = searchParams.get("startDate");
     const endDateStr = searchParams.get("endDate");
     const timezone: string =
-      (website.settings?.timezone as TimeZone["tzCode"]) || "Asia/Kolkata";
+      (website.settings?.timezone as TimeZone["tzCode"]) || "UTC";
 
     let startDate: Date;
     let endDate: Date;
 
-    if (startDateStr && endDateStr) {
-      startDate = new Date(startDateStr);
-      endDate = new Date(endDateStr);
+    // `period` (preset or custom:YYYY-MM-DD:YYYY-MM-DD in the website
+    // timezone, plus optional `offset`) is authoritative. Raw ISO
+    // startDate/endDate are only a legacy fallback when no period is sent.
+    const legacyStart = startDateStr ? new Date(startDateStr) : null;
+    const legacyEnd = endDateStr ? new Date(endDateStr) : null;
+    if (
+      !periodParam &&
+      legacyStart &&
+      legacyEnd &&
+      !isNaN(legacyStart.getTime()) &&
+      !isNaN(legacyEnd.getTime())
+    ) {
+      startDate = legacyStart;
+      endDate = legacyEnd;
     } else {
-      const dateRange = getDateRangeForPeriod(period, timezone);
-      startDate = dateRange.startDate;
-      endDate = dateRange.endDate;
+      const range = resolvePeriodRange(periodParam || "today", timezone, {
+        offset: searchParams.get("offset"),
+      });
+      startDate = range.startDate;
+      endDate = range.endDate;
     }
 
     let data: unknown;
@@ -166,7 +179,18 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { breakdown, startDate, endDate, timezone, data },
+      {
+        breakdown,
+        startDate,
+        endDate,
+        timezone,
+        range: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          timezone,
+        },
+        data,
+      },
       { status: 200 },
     );
   } catch (error) {

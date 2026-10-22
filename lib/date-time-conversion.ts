@@ -2,6 +2,7 @@ import { type TimeZone } from "timezones-list";
 import {
   toZonedTime,
   fromZonedTime,
+  formatInTimeZone,
   getTimezoneOffset as getTzOffsetMs,
 } from "date-fns-tz";
 import { startOfDay, endOfDay } from "date-fns";
@@ -84,119 +85,312 @@ export function getTimezoneOffsetString(timezone: string, date: Date): string {
   return `${sign}${String(offsetHours).padStart(2, "0")}:${String(offsetMinutes).padStart(2, "0")}`;
 }
 
-export function getDateRangeForPeriod(
-  period: string,
-  timezone: TimeZone["tzCode"],
-  _website?: { createdAt?: Date },
-  earliestDataPoint?: Date | null,
-): { startDate: Date; endDate: Date } {
-  if (period.startsWith("custom:")) {
-    const parts = period.split(":");
-    if (parts.length === 3) {
-      return {
-        startDate: new Date(parts[1] + "T00:00:00"),
-        endDate: new Date(parts[2] + "T23:59:59"),
-      };
-    }
-  }
+// ---------------------------------------------------------------------------
+// Period resolution (website-timezone aware)
+//
+// All calendar maths below is done on plain local Y/M/D components and turned
+// into instants with `fromZonedTime("yyyy-MM-ddTHH:mm:ss", tz)`, so neither the
+// server clock's timezone nor DST transitions can shift a boundary.
+// ---------------------------------------------------------------------------
 
-  const periodLower = period.toLowerCase();
-  const now = new Date();
+export type LocalYMD = { y: number; m: number; d: number };
 
-  let startDate: Date;
-  let endDate: Date;
+const pad2 = (n: number) => String(n).padStart(2, "0");
 
-  switch (periodLower) {
+export function formatYMD({ y, m, d }: LocalYMD): string {
+  return `${y}-${pad2(m)}-${pad2(d)}`;
+}
+
+/** Local calendar date of an instant in `timezone`. */
+export function localYMD(date: Date, timezone: string): LocalYMD {
+  const [y, m, d] = formatInTimeZone(date, timezone, "yyyy-MM-dd")
+    .split("-")
+    .map((p) => parseInt(p, 10));
+  return { y, m, d };
+}
+
+/** Normalised calendar arithmetic (handles month/year overflow). */
+export function addLocalDays(ymd: LocalYMD, days: number): LocalYMD {
+  const dt = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d + days));
+  return {
+    y: dt.getUTCFullYear(),
+    m: dt.getUTCMonth() + 1,
+    d: dt.getUTCDate(),
+  };
+}
+
+export function addLocalMonths(ymd: LocalYMD, months: number): LocalYMD {
+  const dt = new Date(Date.UTC(ymd.y, ymd.m - 1 + months, 1));
+  const lastDay = new Date(
+    Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  return {
+    y: dt.getUTCFullYear(),
+    m: dt.getUTCMonth() + 1,
+    d: Math.min(ymd.d, lastDay),
+  };
+}
+
+/** ISO weekday of a local date: 1 = Monday ... 7 = Sunday. */
+export function isoWeekday(ymd: LocalYMD): number {
+  const dow = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d)).getUTCDay();
+  return dow === 0 ? 7 : dow;
+}
+
+/** Instant of local midnight (00:00) of `ymd` in `timezone`. */
+export function zonedStartOfDay(ymd: LocalYMD, timezone: string): Date {
+  return fromZonedTime(`${formatYMD(ymd)}T00:00:00`, timezone);
+}
+
+/** Last millisecond of local day `ymd` (= next local midnight - 1ms). */
+export function zonedEndOfDay(ymd: LocalYMD, timezone: string): Date {
+  return new Date(
+    zonedStartOfDay(addLocalDays(ymd, 1), timezone).getTime() - 1,
+  );
+}
+
+export type ResolvedPeriodRange = {
+  /** Inclusive start instant. */
+  startDate: Date;
+  /** Inclusive end instant (may lie in the future for in-progress periods). */
+  endDate: Date;
+  /** Comparison window (same length, ending at the same relative time). */
+  previousStartDate: Date;
+  previousEndDate: Date;
+  timezone: string;
+};
+
+type PeriodKey =
+  | "today"
+  | "yesterday"
+  | "last24h"
+  | "last7d"
+  | "last30d"
+  | "last12m"
+  | "wtd"
+  | "mtd"
+  | "ytd"
+  | "all";
+
+function normalizePeriod(period: string): PeriodKey | null {
+  switch (period.trim().toLowerCase()) {
     case "today":
-      startDate = startOfDayInTimezone(now, timezone);
-      endDate = endOfDayInTimezone(now, timezone);
-      break;
-    case "yesterday": {
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      startDate = startOfDayInTimezone(yesterday, timezone);
-      endDate = endOfDayInTimezone(yesterday, timezone);
-      break;
-    }
+      return "today";
+    case "yesterday":
+      return "yesterday";
     case "last24h":
     case "last 24 hours":
-      endDate = new Date();
-      startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      break;
+      return "last24h";
     case "last7d":
     case "last7days":
     case "last 7 days":
-      endDate = endOfDayInTimezone(now, timezone);
-      startDate = startOfDayInTimezone(
-        new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        timezone,
-      );
-      break;
+      return "last7d";
     case "last30d":
     case "last30days":
     case "last 30 days":
-      endDate = endOfDayInTimezone(now, timezone);
-      startDate = startOfDayInTimezone(
-        new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        timezone,
-      );
-      break;
+      return "last30d";
     case "last12m":
     case "last12months":
     case "last 12 months":
-      endDate = endOfDayInTimezone(now, timezone);
-      const twelveMonthsAgo = new Date(now);
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-      twelveMonthsAgo.setDate(1);
-      startDate = startOfDayInTimezone(twelveMonthsAgo, timezone);
-      break;
+      return "last12m";
     case "week":
     case "week to date":
-      endDate = endOfDayInTimezone(now, timezone);
-      const nowInTz = new Date(
-        now.toLocaleString("en-US", { timeZone: timezone }),
-      );
-      const dayOfWeek = nowInTz.getDay();
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - dayOfWeek);
-      startDate = startOfDayInTimezone(weekStart, timezone);
-      break;
+      return "wtd";
     case "month":
     case "month to date":
-      endDate = endOfDayInTimezone(now, timezone);
-      const monthStart = new Date(now);
-      monthStart.setDate(1);
-      startDate = startOfDayInTimezone(monthStart, timezone);
-      break;
+      return "mtd";
     case "year":
     case "year to date":
-      endDate = endOfDayInTimezone(now, timezone);
-      const yearStart = new Date(now);
-      yearStart.setMonth(0);
-      yearStart.setDate(1);
-      startDate = startOfDayInTimezone(yearStart, timezone);
-      break;
+      return "ytd";
     case "all":
     case "all time":
-      endDate = endOfDayInTimezone(now, timezone);
-      const maxYearsBack = 3;
-      const maxDate = new Date(
-        now.getTime() - maxYearsBack * 365 * 24 * 60 * 60 * 1000,
-      );
-      if (earliestDataPoint) {
-        const earliest = new Date(earliestDataPoint);
-        startDate = earliest > maxDate ? earliest : maxDate;
-      } else {
-        startDate = maxDate;
-      }
-      const startMonth = new Date(startDate);
-      startMonth.setDate(1);
-      startMonth.setHours(0, 0, 0, 0);
-      startDate = startOfDayInTimezone(startMonth, timezone);
-      break;
+      return "all";
     default:
-      startDate = startOfDayInTimezone(now, timezone);
-      endDate = endOfDayInTimezone(now, timezone);
+      return null;
+  }
+}
+
+const CUSTOM_RE = /^custom:(\d{4})-(\d{2})-(\d{2}):(\d{4})-(\d{2})-(\d{2})$/i;
+
+function parseCustom(period: string): { from: LocalYMD; to: LocalYMD } | null {
+  const m = CUSTOM_RE.exec(period.trim());
+  if (!m) return null;
+  const n = m.slice(1).map((p) => parseInt(p, 10));
+  let from: LocalYMD = { y: n[0], m: n[1], d: n[2] };
+  let to: LocalYMD = { y: n[3], m: n[4], d: n[5] };
+  if (formatYMD(from) > formatYMD(to)) [from, to] = [to, from];
+  return { from, to };
+}
+
+function dayDiff(a: LocalYMD, b: LocalYMD): number {
+  return Math.round(
+    (Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000,
+  );
+}
+
+/**
+ * Resolve the [start, end] range of a period at a given offset (offset <= 0,
+ * "shift the whole range back by |offset| period lengths").
+ * For to-date presets a non-zero offset yields the full calendar unit
+ * (e.g. Month to date, offset -1 = the whole previous month).
+ */
+function rangeAtOffset(
+  key: PeriodKey | "custom",
+  offset: number,
+  timezone: string,
+  now: Date,
+  custom: { from: LocalYMD; to: LocalYMD } | null,
+  earliestDataPoint?: Date | null,
+): { startDate: Date; endDate: Date } {
+  const today = localYMD(now, timezone);
+  const n = -offset; // number of period lengths to go back (>= 0)
+  const days = (from: LocalYMD, to: LocalYMD) => ({
+    startDate: zonedStartOfDay(from, timezone),
+    endDate: zonedEndOfDay(to, timezone),
+  });
+
+  switch (key) {
+    case "custom": {
+      const len = dayDiff(custom!.from, custom!.to) + 1;
+      return days(
+        addLocalDays(custom!.from, -len * n),
+        addLocalDays(custom!.to, -len * n),
+      );
+    }
+    case "today": {
+      const d = addLocalDays(today, -n);
+      return days(d, d);
+    }
+    case "yesterday": {
+      const d = addLocalDays(today, -1 - n);
+      return days(d, d);
+    }
+    case "last24h": {
+      const end = now.getTime() - n * 86_400_000;
+      return { startDate: new Date(end - 86_400_000), endDate: new Date(end) };
+    }
+    case "last7d":
+    case "last30d": {
+      const len = key === "last7d" ? 7 : 30;
+      const last = addLocalDays(today, -len * n);
+      return days(addLocalDays(last, -(len - 1)), last);
+    }
+    case "last12m": {
+      // 12 calendar months including the current (partial) one.
+      const start = addLocalMonths({ ...today, d: 1 }, -11 - 12 * n);
+      if (n === 0) return days(start, today);
+      return days(start, addLocalDays(addLocalMonths(start, 12), -1));
+    }
+    case "wtd": {
+      const monday = addLocalDays(today, -(isoWeekday(today) - 1) - 7 * n);
+      return days(monday, n === 0 ? today : addLocalDays(monday, 6));
+    }
+    case "mtd": {
+      const first = addLocalMonths({ ...today, d: 1 }, -n);
+      return days(
+        first,
+        n === 0 ? today : addLocalDays(addLocalMonths(first, 1), -1),
+      );
+    }
+    case "ytd": {
+      const first = { y: today.y - n, m: 1, d: 1 };
+      return days(first, n === 0 ? today : { y: first.y, m: 12, d: 31 });
+    }
+    case "all":
+    default: {
+      // "All time": capped at 3 years back, starting on the 1st of a month.
+      const cap = addLocalMonths({ ...today, d: 1 }, -36);
+      let start = cap;
+      if (earliestDataPoint) {
+        const e = localYMD(new Date(earliestDataPoint), timezone);
+        const eFirst = { ...e, d: 1 };
+        if (formatYMD(eFirst) > formatYMD(cap)) start = eFirst;
+      }
+      return days(start, today);
+    }
+  }
+}
+
+/**
+ * Resolve a period (preset or `custom:YYYY-MM-DD:YYYY-MM-DD`, inclusive local
+ * dates) into a concrete range plus its comparison range, in the website's
+ * timezone. `offset` (integer <= 0) shifts the whole range back by |offset|
+ * period lengths.
+ *
+ * Previous period = the same preset one period length earlier. When the
+ * current range is still in progress (ends after `now`) the previous range is
+ * truncated to the same elapsed duration ("today so far" vs "yesterday up to
+ * the same time").
+ */
+export function resolvePeriodRange(
+  period: string | null | undefined,
+  timezone: string = "UTC",
+  options: {
+    offset?: number | string | null;
+    now?: Date;
+    earliestDataPoint?: Date | null;
+  } = {},
+): ResolvedPeriodRange {
+  const tz = timezone || "UTC";
+  const now = options.now ?? new Date();
+  const rawOffset = Math.trunc(Number(options.offset ?? 0));
+  const offset = Number.isFinite(rawOffset) && rawOffset < 0 ? rawOffset : 0;
+
+  const p = (period || "today").trim();
+  const custom = parseCustom(p);
+  const key: PeriodKey | "custom" = custom
+    ? "custom"
+    : (normalizePeriod(p) ?? "today");
+
+  const current = rangeAtOffset(
+    key,
+    key === "all" ? 0 : offset,
+    tz,
+    now,
+    custom,
+    options.earliestDataPoint,
+  );
+
+  let previous: { startDate: Date; endDate: Date };
+  if (key === "all") {
+    const span = current.endDate.getTime() - current.startDate.getTime();
+    previous = {
+      startDate: new Date(current.startDate.getTime() - span - 1),
+      endDate: new Date(current.startDate.getTime() - 1),
+    };
+  } else {
+    previous = rangeAtOffset(key, offset - 1, tz, now, custom);
   }
 
-  return { startDate, endDate };
+  // In-progress period: compare like-for-like elapsed time.
+  if (current.endDate.getTime() > now.getTime() && now >= current.startDate) {
+    const elapsed = now.getTime() - current.startDate.getTime();
+    const cappedEnd = previous.startDate.getTime() + elapsed;
+    if (cappedEnd < previous.endDate.getTime()) {
+      previous = { ...previous, endDate: new Date(cappedEnd) };
+    }
+  }
+
+  return {
+    startDate: current.startDate,
+    endDate: current.endDate,
+    previousStartDate: previous.startDate,
+    previousEndDate: previous.endDate,
+    timezone: tz,
+  };
+}
+
+/** Backwards-compatible wrapper around {@link resolvePeriodRange}. */
+export function getDateRangeForPeriod(
+  period: string,
+  timezone: TimeZone["tzCode"] | string,
+  _website?: { createdAt?: Date },
+  earliestDataPoint?: Date | null,
+  offset: number = 0,
+): { startDate: Date; endDate: Date } {
+  const r = resolvePeriodRange(period, timezone || "UTC", {
+    offset,
+    earliestDataPoint,
+  });
+  return { startDate: r.startDate, endDate: r.endDate };
 }

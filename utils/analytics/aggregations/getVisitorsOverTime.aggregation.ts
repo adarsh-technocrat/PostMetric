@@ -2,55 +2,52 @@ import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
 import { Types } from "mongoose";
 import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import {
+  COUNTABLE_PAGEVIEW_FILTER,
+  bucketKeyExpr,
+  bucketKeyToDate,
+} from "../pipelines";
 
+/**
+ * Unique visitors per time bucket. Buckets are keyed by the local
+ * (website-timezone) bucket key, see `bucketKeyExpr`.
+ */
 export async function getVisitorsOverTime(
   websiteId: string,
   startDate: Date,
   endDate: Date,
   granularity: Granularity = "daily",
   timezone?: string,
-) {
+): Promise<{ key: string; date: Date; visitors: number }[]> {
   await connectDB();
 
   const websiteObjectId = new Types.ObjectId(websiteId);
-  const unit = getDateTruncUnit(granularity);
-  const dateTrunc: { date: string; unit: string; timezone?: string } = {
-    date: "$timestamp",
-    unit,
-  };
-  if (timezone) dateTrunc.timezone = timezone;
+  const tz = timezone || "UTC";
 
   const pipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
+        ...COUNTABLE_PAGEVIEW_FILTER,
       },
     },
     {
       $group: {
         _id: {
-          $dateTrunc: dateTrunc,
+          bucket: bucketKeyExpr(granularity, tz),
+          visitorId: "$visitorId",
         },
-        visitors: { $addToSet: "$visitorId" },
       },
     },
-    {
-      $project: {
-        date: "$_id",
-        count: { $size: "$visitors" },
-        _id: 0,
-      },
-    },
-    {
-      $sort: { date: 1 as const },
-    },
+    { $group: { _id: "$_id.bucket", count: { $sum: 1 } } },
+    { $sort: { _id: 1 as const } },
   ];
 
-  const results = await PageView.aggregate(pipeline);
+  const results = await PageView.aggregate(pipeline).allowDiskUse(true);
   return results.map((r) => ({
-    date: r.date,
-    visitors: r.count,
+    key: r._id as string,
+    date: bucketKeyToDate(r._id, tz),
+    visitors: r.count as number,
   }));
 }

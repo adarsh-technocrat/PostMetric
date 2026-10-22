@@ -3,6 +3,7 @@ import PageView from "@/db/models/PageView";
 import Payment from "@/db/models/Payment";
 import Session from "@/db/models/Session";
 import { Types } from "mongoose";
+import { COUNTABLE_PAGEVIEW_FILTER } from "../pipelines";
 
 export async function getMetrics(
   websiteId: string,
@@ -16,6 +17,8 @@ export async function getMetrics(
     websiteId: websiteObjectId,
     timestamp: { $gte: startDate, $lte: endDate },
   };
+  // Legacy exit-link rows stored as PageViews are not page views.
+  const pageViewMatch = { ...match, ...COUNTABLE_PAGEVIEW_FILTER };
   const sessionMatch = {
     websiteId: websiteObjectId,
     firstVisitAt: { $gte: startDate, $lte: endDate },
@@ -29,11 +32,11 @@ export async function getMetrics(
     sessionsWithPaymentsResult,
   ] = await Promise.all([
     PageView.aggregate([
-      { $match: match },
+      { $match: pageViewMatch },
       { $group: { _id: "$visitorId" } },
       { $count: "count" },
     ]),
-    PageView.countDocuments(match),
+    PageView.countDocuments(pageViewMatch),
     Payment.aggregate([
       { $match: match },
       {

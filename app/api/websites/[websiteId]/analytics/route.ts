@@ -1,96 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { formatInTimeZone, toZonedTime, fromZonedTime } from "date-fns-tz";
-import { add, differenceInMilliseconds } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { getVisitorsOverTime } from "@/utils/analytics/aggregations/getVisitorsOverTime.aggregation";
 import { getRevenueOverTime } from "@/utils/analytics/aggregations/getRevenueOverTime.aggregation";
 import { getCustomersAndSalesOverTime } from "@/utils/analytics/aggregations/getCustomersAndSalesOverTime.aggregation";
-import { getGoalsOverTime } from "@/utils/analytics/aggregations/getGoalsOverTime.aggregation";
+import {
+  getGoalsOverTime,
+  getGoalConvertedVisitors,
+} from "@/utils/analytics/aggregations/getGoalsOverTime.aggregation";
 import { getMetrics } from "@/utils/analytics/aggregations/getMetrics.aggregation";
 import type { Granularity } from "@/utils/analytics/types";
 import { getWebsiteById } from "@/utils/database/website";
 import { getUserId } from "@/lib/get-session";
 import { isDemoWebsite } from "@/lib/demo-website";
-import { getDateRangeForPeriod } from "@/lib/date-time-conversion";
+import {
+  addLocalDays,
+  localYMD,
+  resolvePeriodRange,
+  zonedStartOfDay,
+} from "@/lib/date-time-conversion";
+import { bucketKeyForDate, getBucketKeys } from "@/utils/analytics/pipelines";
 import { type TimeZone } from "timezones-list";
 
 const CENTS_TO_DOLLARS = 1 / 100;
-
-function startOfHourInTimezone(date: Date, timezone: string): Date {
-  const zoned = toZonedTime(date, timezone);
-  zoned.setMinutes(0, 0, 0);
-  return fromZonedTime(zoned, timezone);
-}
-
-function startOfMonthInTimezone(date: Date, timezone: string): Date {
-  const zoned = toZonedTime(date, timezone);
-  zoned.setDate(1);
-  zoned.setHours(0, 0, 0, 0);
-  return fromZonedTime(zoned, timezone);
-}
-
-function startOfWeekInTimezone(date: Date, timezone: string): Date {
-  const y = parseInt(formatInTimeZone(date, timezone, "yyyy"), 10);
-  const mo = parseInt(formatInTimeZone(date, timezone, "MM"), 10);
-  const day = parseInt(formatInTimeZone(date, timezone, "dd"), 10);
-  const e = parseInt(formatInTimeZone(date, timezone, "e"), 10);
-  const mondayDate = new Date(y, mo - 1, day, 0, 0, 0, 0);
-  mondayDate.setDate(mondayDate.getDate() - (e - 1));
-  return fromZonedTime(mondayDate, timezone);
-}
-
-function getBucketDates(
-  startDate: Date,
-  endDate: Date,
-  granularity: Granularity,
-  timezone?: string,
-): Date[] {
-  const buckets: Date[] = [];
-  let cursor: Date;
-  const step =
-    granularity === "hourly"
-      ? { hours: 1 }
-      : granularity === "daily"
-        ? { days: 1 }
-        : granularity === "weekly"
-          ? { weeks: 1 }
-          : { months: 1 };
-
-  if (granularity === "hourly" && timezone) {
-    cursor = startOfHourInTimezone(startDate, timezone);
-  } else if (granularity === "weekly" && timezone) {
-    cursor = startOfWeekInTimezone(startDate, timezone);
-  } else if (granularity === "monthly" && timezone) {
-    cursor = startOfMonthInTimezone(startDate, timezone);
-  } else {
-    cursor = new Date(startDate.getTime());
-  }
-
-  while (cursor <= endDate) {
-    buckets.push(new Date(cursor.getTime()));
-    cursor = add(cursor, step);
-  }
-  return buckets;
-}
-
-function getPreviousPeriodRange(
-  startDate: Date,
-  endDate: Date,
-): { startDate: Date; endDate: Date } {
-  const spanMs = differenceInMilliseconds(endDate, startDate);
-  return {
-    startDate: new Date(startDate.getTime() - spanMs),
-    endDate: new Date(startDate.getTime() - 1),
-  };
-}
 
 function formatBucketLabel(
   date: Date,
   granularity: Granularity,
   timezone: string,
 ): string {
-  const zonedDate = toZonedTime(date, timezone);
-  const currentYear = new Date().getFullYear();
-  const yearInTz = zonedDate.getFullYear();
+  const currentYear = parseInt(
+    formatInTimeZone(new Date(), timezone, "yyyy"),
+    10,
+  );
+  const yearInTz = parseInt(formatInTimeZone(date, timezone, "yyyy"), 10);
   const showYear = yearInTz !== currentYear;
   switch (granularity) {
     case "hourly":
@@ -102,8 +44,13 @@ function formatBucketLabel(
         showYear ? "MMM d, yyyy" : "MMM d",
       );
     case "weekly": {
-      const weekEnd = add(date, { days: 6 });
-      return formatInTimeZone(weekEnd, timezone, "dd MMM");
+      // Label = local Sunday ending the ISO week (Monday + 6 local days).
+      const weekEnd = addLocalDays(localYMD(date, timezone), 6);
+      return formatInTimeZone(
+        zonedStartOfDay(weekEnd, timezone),
+        timezone,
+        "dd MMM",
+      );
     }
     case "monthly":
       return formatInTimeZone(date, timezone, "MMM yyyy");
@@ -112,8 +59,18 @@ function formatBucketLabel(
   }
 }
 
+type BucketRow = {
+  visitors: number;
+  revenue: number;
+  renewalRevenue: number;
+  refundedRevenue: number;
+  customers: number;
+  sales: number;
+  goal: number;
+};
+
 function mergeTimeSeries(
-  visitors: { date: Date; visitors: number }[],
+  visitors: { key: string; visitors: number }[],
   revenue: {
     date: Date;
     revenueNew: number;
@@ -121,7 +78,7 @@ function mergeTimeSeries(
     revenueRefund: number;
   }[],
   customersSales: { date: Date; customers: number; sales: number }[],
-  goals: { date: Date; goalCount: number }[],
+  goals: { key: string; goalCount: number }[],
   timezone: string,
   granularity: Granularity,
   startDate: Date,
@@ -129,6 +86,7 @@ function mergeTimeSeries(
 ): {
   name: string;
   timestamp: string;
+  key: string;
   visitors: number | null;
   revenue: number | null;
   renewalRevenue: number | null;
@@ -138,25 +96,12 @@ function mergeTimeSeries(
   goal: number | null;
 }[] {
   const now = new Date();
-  const byKey = new Map<
-    string,
-    {
-      date: Date;
-      visitors: number;
-      revenue: number;
-      renewalRevenue: number;
-      refundedRevenue: number;
-      customers: number;
-      sales: number;
-      goal: number;
-    }
-  >();
+  const byKey = new Map<string, BucketRow>();
 
-  const setDefault = (date: Date) => {
-    const key = date.toISOString();
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        date,
+  const row = (key: string) => {
+    let r = byKey.get(key);
+    if (!r) {
+      r = {
         visitors: 0,
         revenue: 0,
         renewalRevenue: 0,
@@ -164,71 +109,66 @@ function mergeTimeSeries(
         customers: 0,
         sales: 0,
         goal: 0,
-      });
+      };
+      byKey.set(key, r);
     }
-    return byKey.get(key)!;
+    return r;
   };
+  // Revenue/customer series come back as $dateTrunc instants (local bucket
+  // starts); map them onto the same local bucket keys. Sum (not overwrite)
+  // so a repeated DST hour folds into its single local key.
+  const keyOf = (d: Date | string) =>
+    bucketKeyForDate(new Date(d), granularity, timezone);
 
   visitors.forEach((r) => {
-    const row = setDefault(r.date);
-    row.visitors = r.visitors;
+    row(r.key).visitors += r.visitors;
   });
   revenue.forEach((r) => {
-    const row = setDefault(r.date);
-    row.revenue = r.revenueNew;
-    row.renewalRevenue = r.renewalRevenue;
-    row.refundedRevenue = r.revenueRefund;
+    const b = row(keyOf(r.date));
+    b.revenue += r.revenueNew;
+    b.renewalRevenue += r.renewalRevenue;
+    b.refundedRevenue += r.revenueRefund;
   });
   customersSales.forEach((r) => {
-    const row = setDefault(r.date);
-    row.customers = r.customers;
-    row.sales = r.sales;
+    const b = row(keyOf(r.date));
+    b.customers += r.customers;
+    b.sales += r.sales;
   });
   goals.forEach((r) => {
-    const row = setDefault(r.date);
-    row.goal = r.goalCount;
+    row(r.key).goal += r.goalCount;
   });
 
-  const bucketDates = getBucketDates(startDate, endDate, granularity, timezone);
-
-  return bucketDates.map((date) => {
-    const key = date.toISOString();
-    const isFuture = date > now;
-    const row = byKey.get(key) ?? {
-      date,
-      visitors: 0,
-      revenue: 0,
-      renewalRevenue: 0,
-      refundedRevenue: 0,
-      customers: 0,
-      sales: 0,
-      goal: 0,
-    };
-    return {
-      name: formatBucketLabel(row.date, granularity, timezone),
-      timestamp: formatInTimeZone(
-        row.date,
-        timezone,
-        "yyyy-MM-dd'T'HH:mm:ssXXX",
-      ),
-      visitors: isFuture ? null : row.visitors,
-      revenue: isFuture ? null : row.revenue * CENTS_TO_DOLLARS,
-      renewalRevenue: isFuture ? null : row.renewalRevenue * CENTS_TO_DOLLARS,
-      refundedRevenue: isFuture ? null : row.refundedRevenue * CENTS_TO_DOLLARS,
-      customers: isFuture ? null : row.customers,
-      sales: isFuture ? null : row.sales,
-      goal: isFuture ? null : row.goal,
-    };
-  });
+  return getBucketKeys(startDate, endDate, granularity, timezone).map(
+    ({ key, date }) => {
+      const isFuture = date > now;
+      const r = byKey.get(key);
+      const v = (n: number | undefined, scale = 1) =>
+        isFuture ? null : (n ?? 0) * scale;
+      return {
+        name: formatBucketLabel(date, granularity, timezone),
+        timestamp: formatInTimeZone(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+        key,
+        visitors: v(r?.visitors),
+        revenue: v(r?.revenue, CENTS_TO_DOLLARS),
+        renewalRevenue: v(r?.renewalRevenue, CENTS_TO_DOLLARS),
+        refundedRevenue: v(r?.refundedRevenue, CENTS_TO_DOLLARS),
+        customers: v(r?.customers),
+        sales: v(r?.sales),
+        goal: v(r?.goal),
+      };
+    },
+  );
 }
 
+/** % change rounded to 1 decimal; null when there is no baseline. */
 function computePercentageChange(
   current: number,
   previous: number,
-): string | null {
-  if (previous === 0) return current > 0 ? "100" : null;
+): number | null {
+  if (!Number.isFinite(previous) || previous === 0) return null;
+  if (!Number.isFinite(current)) return null;
   const pct = ((current - previous) / previous) * 100;
-  return pct.toFixed(1);
+  return Math.round(pct * 10) / 10;
 }
 
 export async function GET(
@@ -255,18 +195,24 @@ export async function GET(
 
     const searchParams = request.nextUrl.searchParams;
     const period = (searchParams.get("period") || "today").toString();
-    const granularity = (
+    const rawGranularity = (
       searchParams.get("granularity") || "daily"
-    ).toLowerCase() as Granularity;
+    ).toLowerCase();
+    const granularity: Granularity = (
+      ["hourly", "daily", "weekly", "monthly"] as const
+    ).includes(rawGranularity as Granularity)
+      ? (rawGranularity as Granularity)
+      : "daily";
     const timezone =
       (website.settings?.timezone as TimeZone["tzCode"]) || "UTC";
     const currency = website.settings?.currency ?? "USD";
 
-    const { startDate, endDate } = getDateRangeForPeriod(period, timezone);
-    const { startDate: prevStart, endDate: prevEnd } = getPreviousPeriodRange(
-      startDate,
-      endDate,
-    );
+    const range = resolvePeriodRange(period, timezone, {
+      offset: searchParams.get("offset"),
+    });
+    const { startDate, endDate } = range;
+    const prevStart = range.previousStartDate;
+    const prevEnd = range.previousEndDate;
 
     const [
       metrics,
@@ -275,6 +221,7 @@ export async function GET(
       revenueOverTime,
       customersSalesOverTime,
       goalsOverTime,
+      goalVisitors,
     ] = await Promise.all([
       getMetrics(websiteId, startDate, endDate),
       getMetrics(websiteId, prevStart, prevEnd),
@@ -288,6 +235,7 @@ export async function GET(
         timezone,
       ),
       getGoalsOverTime(websiteId, startDate, endDate, granularity, timezone),
+      getGoalConvertedVisitors(websiteId, startDate, endDate),
     ]);
 
     const revenueSums = revenueOverTime.reduce(
@@ -320,17 +268,33 @@ export async function GET(
       endDate,
     );
 
+    // Goal conversion: unique visitors with >= 1 goal / unique visitors (%).
+    const goalConversionRate =
+      metrics.visitors > 0 ? (goalVisitors / metrics.visitors) * 100 : null;
+
     const percentageChange = {
       visitors: computePercentageChange(metrics.visitors, prevMetrics.visitors),
-      revenue: computePercentageChange(metrics.revenue, prevMetrics.revenue),
       sessions: computePercentageChange(metrics.sessions, prevMetrics.sessions),
-      conversionRate: computePercentageChange(
-        metrics.conversionRate,
-        prevMetrics.conversionRate,
+      pageViews: computePercentageChange(
+        metrics.pageViews,
+        prevMetrics.pageViews,
       ),
       bounceRate: computePercentageChange(
         metrics.bounceRate,
         prevMetrics.bounceRate,
+      ),
+      sessionDuration: computePercentageChange(
+        metrics.sessionTime,
+        prevMetrics.sessionTime,
+      ),
+      conversionRate: computePercentageChange(
+        metrics.conversionRate,
+        prevMetrics.conversionRate,
+      ),
+      revenue: computePercentageChange(metrics.revenue, prevMetrics.revenue),
+      revenuePerVisitor: computePercentageChange(
+        metrics.revenuePerVisitor,
+        prevMetrics.revenuePerVisitor,
       ),
     };
 
@@ -345,6 +309,7 @@ export async function GET(
       processedData,
       totalVisitors: metrics.visitors,
       totalSessions: metrics.sessions,
+      totalPageViews: metrics.pageViews,
       totalCustomers,
       totalSales,
       totalRevenue: totalRevenueDollars,
@@ -354,12 +319,22 @@ export async function GET(
       totalGoal,
       revenuePerVisitor: metrics.revenuePerVisitor * CENTS_TO_DOLLARS,
       conversionRate: metrics.conversionRate,
-      goalConversionRate:
-        metrics.visitors > 0 ? (totalGoal / metrics.visitors) * 100 : null,
+      goalConversionRate,
+      goalVisitors,
       bounceRate: metrics.bounceRate,
       sessionDuration: metrics.sessionTime,
       currency,
       percentageChange,
+      range: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        timezone,
+      },
+      previousRange: {
+        start: prevStart.toISOString(),
+        end: prevEnd.toISOString(),
+        timezone,
+      },
       includeRenewalRevenue: true,
     };
 

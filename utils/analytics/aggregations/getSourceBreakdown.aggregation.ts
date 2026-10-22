@@ -10,8 +10,7 @@ import {
   getReferrerImageUrl,
 } from "@/utils/tracking/channel";
 import { extractUrlParams } from "@/utils/tracking/utm";
-import type { Granularity } from "../types";
-import { getDateTruncUnit } from "../utils";
+import { activeSessionsMatch, lookupSessionStage } from "../pipelines";
 
 export async function getSourceBreakdown(
   websiteId: string,
@@ -99,12 +98,8 @@ export async function getSourceBreakdown(
 
   if (type === "channel") {
     sessionsPipeline = [
-      {
-        $match: {
-          websiteId: websiteObjectId,
-          firstVisitAt: { $gte: startDate, $lte: endDate },
-        },
-      },
+      // Sessions active in the window (consistent with overview visitors).
+      { $match: activeSessionsMatch(websiteObjectId, startDate, endDate) },
       {
         $addFields: {
           referrerDomain: {
@@ -156,6 +151,9 @@ export async function getSourceBreakdown(
           },
         },
       },
+      // One row per (source attributes, visitor). Referrer/channel unique
+      // visitors are de-duplicated in JS after resolving the channel (no
+      // per-group sessionId arrays).
       {
         $group: {
           _id: {
@@ -165,73 +163,25 @@ export async function getSourceBreakdown(
             utmSource: "$utmSource",
             visitorId: "$visitorId",
           },
-          sessionIds: { $addToSet: "$_id" },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            referrer: "$_id.referrer",
-            utmMedium: "$_id.utmMedium",
-            referrerDomain: "$_id.referrerDomain",
-            utmSource: "$_id.utmSource",
-          },
-          uniqueVisitors: { $sum: 1 },
-          allSessionIds: { $push: "$sessionIds" },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          uniqueVisitors: 1,
-          sessionIds: {
-            $reduce: {
-              input: "$allSessionIds",
-              initialValue: [],
-              in: { $setUnion: ["$$value", "$$this"] },
-            },
-          },
         },
       },
     ];
   } else {
     sessionsPipeline = [
-      {
-        $match: {
-          websiteId: websiteObjectId,
-          firstVisitAt: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: sessionsGroupId,
-          sessionIds: { $addToSet: "$_id" },
-        },
-      },
+      // Sessions active in the window (consistent with overview visitors).
+      { $match: activeSessionsMatch(websiteObjectId, startDate, endDate) },
+      { $group: { _id: sessionsGroupId } },
       {
         $group: {
           _id: "$_id.sourceType",
           uniqueVisitors: { $sum: 1 },
-          allSessionIds: { $push: "$sessionIds" },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          uniqueVisitors: 1,
-          sessionIds: {
-            $reduce: {
-              input: "$allSessionIds",
-              initialValue: [],
-              in: { $setUnion: ["$$value", "$$this"] },
-            },
-          },
         },
       },
     ];
   }
 
-  const sessionsData = await Session.aggregate(sessionsPipeline);
+  const sessionsData =
+    await Session.aggregate(sessionsPipeline).allowDiskUse(true);
 
   // Step 2: Get revenue per source type from Payment (via Session)
   let revenueGroupId: any;
@@ -462,14 +412,7 @@ export async function getSourceBreakdown(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    lookupSessionStage(websiteObjectId),
     {
       $unwind: {
         path: "$session",
@@ -538,10 +481,53 @@ export async function getSourceBreakdown(
       }
     });
 
-    // Group sessions by channel and referrer, then build referrers
+    // Collapse visitor-level rows into one entry per channel::referrerDomain
+    // with unique visitors, and collect unique visitors per channel.
+    const referrerAgg = new Map<
+      string,
+      { _id: any; visitors: Set<string> }
+    >();
+    const channelVisitors = new Map<string, Set<string>>();
+    sessionsData.forEach((row) => {
+      const resolvedChannel = resolveChannel(
+        row._id.referrer || null,
+        row._id.utmMedium || null,
+      );
+      const referrerDomain = row._id.referrerDomain || "direct";
+      const key = `${resolvedChannel}::${referrerDomain}`;
+      let entry = referrerAgg.get(key);
+      if (!entry) {
+        entry = { _id: { ...row._id }, visitors: new Set<string>() };
+        referrerAgg.set(key, entry);
+      }
+      entry.visitors.add(row._id.visitorId);
+      if (!entry._id.utmSource && row._id.utmSource)
+        entry._id.utmSource = row._id.utmSource;
+      if (!entry._id.utmMedium && row._id.utmMedium)
+        entry._id.utmMedium = row._id.utmMedium;
+      if (!channelVisitors.has(resolvedChannel))
+        channelVisitors.set(resolvedChannel, new Set<string>());
+      channelVisitors.get(resolvedChannel)!.add(row._id.visitorId);
+    });
+    const referrerRows = Array.from(referrerAgg.values()).map((e) => ({
+      _id: e._id,
+      uniqueVisitors: e.visitors.size,
+    }));
+
+    // Unique visitors with >= 1 goal per channel.
+    const channelGoalVisitors = new Map<string, Set<string>>();
+    goalsMap.forEach((goal, key: string) => {
+      const ch = key.split("::")[0];
+      if (!channelGoalVisitors.has(ch)) channelGoalVisitors.set(ch, new Set());
+      goal.uniqueVisitorsWithGoals.forEach((vid: string) =>
+        channelGoalVisitors.get(ch)!.add(vid),
+      );
+    });
+
+    // Group referrers by channel, then build referrers
     const channelMap = new Map<string, any>();
 
-    sessionsData.forEach((item) => {
+    referrerRows.forEach((item) => {
       const resolvedChannel = resolveChannel(
         item._id.referrer || null,
         item._id.utmMedium || null,
@@ -667,15 +653,15 @@ export async function getSourceBreakdown(
 
     // Calculate channel-level metrics and format result
     const result = Array.from(channelMap.values()).map((channel) => {
+      // Channel visitors are unique across its referrers (not a sum).
+      channel.uv = channelVisitors.get(channel.name)?.size ?? channel.uv;
       const totalUv = channel.uv;
       const totalSessionsWithPayments = channel.referrers.reduce(
         (sum: number, ref: any) => sum + (ref.paymentCount || 0),
         0,
       );
-      const totalUniqueVisitorsWithGoals = channel.referrers.reduce(
-        (sum: number, ref: any) => sum + (ref.goalCount || 0),
-        0,
-      );
+      const totalUniqueVisitorsWithGoals =
+        channelGoalVisitors.get(channel.name)?.size ?? 0;
 
       channel.conversionRate =
         totalUv > 0 ? totalSessionsWithPayments / totalUv : 0;

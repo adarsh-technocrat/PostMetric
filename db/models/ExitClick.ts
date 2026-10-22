@@ -51,6 +51,7 @@ const ExitClickSchema = new Schema<IExitClick>(
   },
   {
     timestamps: true,
+    collection: "exitclicks",
   },
 );
 
