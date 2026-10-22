@@ -156,6 +156,8 @@ SessionSchema.index({ websiteId: 1, createdAt: -1 });
 SessionSchema.index({ websiteId: 1, lastSeenAt: -1 });
 SessionSchema.index({ websiteId: 1, firstVisitAt: 1 });
 SessionSchema.index({ visitorId: 1, websiteId: 1 });
+// One session document per (website, sessionId). Tracking upserts on this key.
+SessionSchema.index({ websiteId: 1, sessionId: 1 }, { unique: true });
 
 // Prevent model re-compilation during hot reload in development
 const Session: Model<ISession> =
