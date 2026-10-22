@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/utils/api/auth";
-import { createPayment, type NewPayment } from "@/utils/database/payment";
-import { stripePaymentIntentForInvoice } from "@/utils/integrations/stripe";
+import {
+  createPayment,
+  paymentKey,
+  type NewPayment,
+} from "@/utils/database/payment";
+import { mapApiPaymentToStripe } from "@/utils/integrations/stripe";
 import connectDB from "@/db";
 import Payment from "@/db/models/Payment";
 
@@ -48,12 +52,20 @@ export async function POST(request: NextRequest) {
       }
       return undefined;
     };
-    const provider = String(pick("provider") ?? "other");
+    let provider = String(pick("provider") ?? "other");
     let providerPaymentId = pick("providerPaymentId", "transaction_id");
     const amount = Number(pick("amount"));
     const currency = String(pick("currency") ?? "USD").toUpperCase();
-    const visitorId = pick("visitorId", "postmetric_visitor_id", "datafast_visitor_id");
-    const sessionId = pick("sessionId", "postmetric_session_id", "datafast_session_id");
+    const visitorId = pick(
+      "visitorId",
+      "postmetric_visitor_id",
+      "datafast_visitor_id",
+    );
+    const sessionId = pick(
+      "sessionId",
+      "postmetric_session_id",
+      "datafast_session_id",
+    );
     const customerEmail = pick("customerEmail", "customer_email", "email");
     const customerId = pick("customerId", "customer_id");
     const timestamp = pick("timestamp");
@@ -64,7 +76,8 @@ export async function POST(request: NextRequest) {
           status: "error",
           error: {
             code: 400,
-            message: "providerPaymentId (or transaction_id) and amount are required",
+            message:
+              "providerPaymentId (or transaction_id) and amount are required",
           },
         },
         { status: 400 },
@@ -84,31 +97,71 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // With Stripe connected, the sync stores payments by PaymentIntent id.
-    // Store an invoice reported here under the same id so it isn't counted
-    // twice.
-    if (provider === "stripe" && String(providerPaymentId).startsWith("in_")) {
-      providerPaymentId =
-        (await stripePaymentIntentForInvoice(websiteId, String(providerPaymentId))) ??
-        providerPaymentId;
+    // A Stripe id reported here (pi_/ch_/in_/cs_, whatever `provider` says)
+    // is stored under the same key so it is never counted twice.
+    const mapped = await mapApiPaymentToStripe(
+      websiteId,
+      provider,
+      String(providerPaymentId),
+    );
+    provider = mapped.provider;
+    providerPaymentId = mapped.providerPaymentId;
+    const refunded = Boolean(pick("refunded"));
+
+    // Stripe refunds arrive through the sync as their own re_ records.
+    if (mapped.stripeConnected && provider === "stripe" && refunded) {
+      return NextResponse.json({
+        status: "success",
+        data: {
+          paymentId: null,
+          transaction_id: String(providerPaymentId),
+          attributed: false,
+          message: "Stripe refunds are recorded by the Stripe sync",
+        },
+      });
     }
 
-    const existing = await Payment.findOne({
-      provider,
-      providerPaymentId: String(providerPaymentId),
-    });
+    // A refund is its own record (subtracted from revenue), so one reported
+    // under the sale's id must not overwrite the sale.
+    const storedId = refunded
+      ? `${providerPaymentId}:refund`
+      : String(providerPaymentId);
+
+    const existing = await Payment.findOne(
+      paymentKey(websiteId, provider, storedId),
+    );
+
+    // A refund counts against the visitor of the sale it refunds.
+    const sale = refunded
+      ? await Payment.findOne(
+          paymentKey(websiteId, provider, String(providerPaymentId)),
+        )
+      : null;
+    const visitor = visitorId
+      ? {
+          visitorId: String(visitorId),
+          sessionId: sessionId ? String(sessionId) : undefined,
+        }
+      : sale?.visitorId
+        ? { visitorId: sale.visitorId, sessionId: sale.sessionId }
+        : {
+            visitorId: undefined,
+            sessionId: sessionId ? String(sessionId) : undefined,
+          };
 
     const payment = await createPayment({
       websiteId,
       provider: provider as NewPayment["provider"],
-      providerPaymentId: String(providerPaymentId),
+      providerPaymentId: storedId,
+      // Major units in, stored ×100 (see Payment.amount).
       amount: Math.round(amount * 100),
       currency,
       renewal: Boolean(pick("renewal")),
-      refunded: Boolean(pick("refunded")),
+      refunded,
       customerEmail: customerEmail ? String(customerEmail) : undefined,
       customerId: customerId ? String(customerId) : undefined,
-      visitorId: visitorId ? String(visitorId) : undefined,
-      sessionId: sessionId ? String(sessionId) : undefined,
+      visitorId: visitor.visitorId,
+      sessionId: visitor.sessionId,
       metadata: typeof body?.metadata === "object" ? body.metadata : undefined,
       timestamp: timestamp ? new Date(String(timestamp)) : undefined,
     });
@@ -119,7 +172,9 @@ export async function POST(request: NextRequest) {
         paymentId: payment._id.toString(),
         transaction_id: String(providerPaymentId),
         attributed: Boolean(payment.visitorId),
-        message: existing ? "Payment already recorded" : "Payment recorded successfully",
+        message: existing
+          ? "Payment already recorded"
+          : "Payment recorded successfully",
       },
     });
   } catch (error: any) {

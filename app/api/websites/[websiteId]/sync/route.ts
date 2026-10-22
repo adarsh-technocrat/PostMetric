@@ -3,6 +3,9 @@ import { getUserId } from "@/lib/get-session";
 import { getWebsiteById } from "@/utils/database/website";
 import { syncStripePayments } from "@/utils/integrations/stripe";
 
+export const maxDuration = 60;
+const SYNC_BUDGET_MS = 45_000;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ websiteId: string }> },
@@ -64,6 +67,7 @@ export async function POST(
       stripeApiKey,
       startDate,
       endDate,
+      { deadline: Date.now() + SYNC_BUDGET_MS },
     );
 
     return NextResponse.json({
@@ -118,6 +122,18 @@ export async function GET(
         frequency: stripeConfig?.frequency || "realtime",
         lastSyncAt: stripeConfig?.lastSyncAt,
         nextSyncAt: stripeConfig?.nextSyncAt,
+        lastEventAt: stripeConfig?.lastEventAt,
+        lastError: stripeConfig?.lastError ?? null,
+        keyRejected: Boolean(stripeConfig?.authFailedAt),
+        backfill: stripeConfig?.backfill
+          ? {
+              status: stripeConfig.backfill.status,
+              phase: stripeConfig.backfill.phase,
+              startedAt: stripeConfig.backfill.startedAt,
+              finishedAt: stripeConfig.backfill.finishedAt,
+              lastError: stripeConfig.backfill.lastError ?? null,
+            }
+          : null,
       };
     }
 

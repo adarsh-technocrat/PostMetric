@@ -1,6 +1,11 @@
 import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
 import { COUNTABLE_PAGEVIEW_FILTER, lookupOnePageViewStage } from "../pipelines";
@@ -41,23 +46,20 @@ export async function getHostnamesBreakdown(
 
   const hostnamesData = await PageView.aggregate(hostnamesPipeline);
 
-  // Step 2: Get revenue per hostname from Payment (via Session -> PageView)
+  // Step 2: Get revenue per hostname from Payment (via Session -> PageView).
+  // Net of refunds, in the site currency; each payment counts once per
+  // hostname however many pageviews its session had there.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("pageviews", "pageViews", [{ $project: { hostname: 1 } }]),
     {
       $unwind: {
         path: "$pageViews",
@@ -66,9 +68,16 @@ export async function getHostnamesBreakdown(
     },
     {
       $group: {
-        _id: "$pageViews.hostname",
+        _id: { paymentId: "$_id", hostname: "$pageViews.hostname" },
+        amount: { $first: "$netRevenueAmount" },
+        refunded: { $first: "$refunded" },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.hostname",
         revenue: { $sum: "$amount" },
-        paymentCount: { $sum: 1 },
+        paymentCount: { $sum: { $cond: [{ $eq: ["$refunded", true] }, 0, 1] } },
       },
     },
   ];

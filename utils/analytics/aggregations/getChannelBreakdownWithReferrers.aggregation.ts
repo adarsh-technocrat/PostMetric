@@ -1,6 +1,7 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import { Types } from "mongoose";
+import { getSiteCurrency, revenueAmountStage } from "../revenueAmount";
 import {
   formatReferrerName,
   getReferrerImageUrl,
@@ -15,6 +16,7 @@ export async function getChannelBreakdownWithReferrers(
   await connectDB();
 
   const websiteObjectId = new Types.ObjectId(websiteId);
+  const currency = await getSiteCurrency(websiteObjectId);
   const pipeline = [
     // Stage 1: Sessions of this website ACTIVE in the window (consistent
     // with the overview visitors metric)
@@ -582,16 +584,19 @@ export async function getChannelBreakdownWithReferrers(
 
     // Stage 5: Lookup payments for each session
     {
+      // This website's payments and refunds for the session, valued in the
+      // site currency (refunds negative in netRevenueAmount).
       $lookup: {
         from: "payments",
-        let: { sessionId: "$sessionId" },
+        localField: "sessionId",
+        foreignField: "sessionId",
+        let: { sessionWebsiteId: "$websiteId" },
         pipeline: [
           {
             $match: {
               $expr: {
                 $and: [
-                  { $eq: ["$sessionId", "$$sessionId"] },
-                  { $eq: ["$refunded", false] },
+                  { $eq: ["$websiteId", "$$sessionWebsiteId"] },
                   {
                     $gte: ["$timestamp", startDate],
                   },
@@ -600,6 +605,14 @@ export async function getChannelBreakdownWithReferrers(
                   },
                 ],
               },
+            },
+          },
+          revenueAmountStage(currency),
+          {
+            $project: {
+              netRevenueAmount: 1,
+              isConversion: 1,
+              refunded: 1,
             },
           },
         ],
@@ -634,11 +647,28 @@ export async function getChannelBreakdownWithReferrers(
             $map: {
               input: "$payments",
               as: "payment",
-              in: { $divide: ["$$payment.amount", 100] }, // Convert cents to dollars
+              in: { $divide: ["$$payment.netRevenueAmount", 100] }, // Convert cents to dollars
             },
           },
         },
-        sessionPaymentCount: { $size: "$payments" },
+        sessionPaymentCount: {
+          $size: {
+            $filter: {
+              input: "$payments",
+              as: "payment",
+              cond: { $ne: ["$$payment.refunded", true] },
+            },
+          },
+        },
+        sessionConversionCount: {
+          $size: {
+            $filter: {
+              input: "$payments",
+              as: "payment",
+              cond: "$$payment.isConversion",
+            },
+          },
+        },
         sessionGoalCount: { $size: "$goalEvents" },
       },
     },
@@ -659,8 +689,9 @@ export async function getChannelBreakdownWithReferrers(
               },
               revenue: { $sum: "$sessionRevenue" },
               paymentCount: { $sum: "$sessionPaymentCount" },
+              // Only first payments convert; renewals and refunds don't.
               sessionsWithPaymentsCount: {
-                $sum: { $cond: [{ $gt: ["$sessionPaymentCount", 0] }, 1, 0] },
+                $sum: { $cond: [{ $gt: ["$sessionConversionCount", 0] }, 1, 0] },
               },
               goalCount: { $sum: "$sessionGoalCount" },
               hasGoal: { $max: { $gt: ["$sessionGoalCount", 0] } },
@@ -692,7 +723,9 @@ export async function getChannelBreakdownWithReferrers(
               conversionRate: {
                 $cond: {
                   if: { $gt: ["$uv", 0] },
-                  then: { $divide: ["$sessionsWithPaymentsCount", "$uv"] },
+                  then: {
+                    $min: [1, { $divide: ["$sessionsWithPaymentsCount", "$uv"] }],
+                  },
                   else: 0,
                 },
               },
@@ -747,12 +780,14 @@ export async function getChannelBreakdownWithReferrers(
         revenue: 0,
         goalCount: 0,
         paymentCount: 0,
+        convertedSessions: 0,
         referrers: [] as any[],
       });
     }
     const ch = grouped.get(name);
     ch.revenue += r.revenue;
     ch.paymentCount += r.paymentCount;
+    ch.convertedSessions += r.sessionsWithPaymentsCount ?? 0;
     ch.goalCount += r.goalCount;
     ch.referrers.push({
       name: r._id.referrer,
@@ -774,7 +809,8 @@ export async function getChannelBreakdownWithReferrers(
       const totalUv = ch.uv;
       return {
         ...ch,
-        conversionRate: totalUv > 0 ? ch.paymentCount / totalUv : 0,
+        conversionRate:
+          totalUv > 0 ? Math.min(1, ch.convertedSessions / totalUv) : 0,
         // Unique visitors with >= 1 goal / unique visitors (<= 1).
         goalConversionRate:
           totalUv > 0

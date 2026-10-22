@@ -6,8 +6,14 @@ import { sanitizeWebsiteForFrontend } from "@/utils/database/website-sanitize";
 import {
   validateStripeApiKey,
   initializeStripeSyncConfig,
-  syncStripePayments,
+  startStripeBackfill,
+  runStripeSync,
 } from "@/utils/integrations/stripe";
+
+export const maxDuration = 60;
+
+/** Import a first slice of history before responding; the cron does the rest. */
+const FIRST_CHUNK_BUDGET_MS = 15_000;
 
 export async function POST(
   request: NextRequest,
@@ -65,14 +71,20 @@ export async function POST(
     };
     initializeStripeSyncConfig(paymentProviders);
 
-    const updatedWebsite = await updateWebsite(websiteId, {
+    await updateWebsite(websiteId, {
       paymentProviders,
     });
 
-    const twoYearsAgo = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000);
-    syncStripePayments(websiteId, apiKey, twoYearsAgo, new Date()).catch(
-      () => {},
-    );
+    // The history import is resumable and runs a few pages per cron run.
+    await startStripeBackfill(websiteId);
+    let updatedWebsite = await getWebsiteById(websiteId);
+    if (updatedWebsite) {
+      await runStripeSync(updatedWebsite, {
+        deadline: Date.now() + FIRST_CHUNK_BUDGET_MS,
+        skipIncremental: true,
+      }).catch(() => {});
+      updatedWebsite = await getWebsiteById(websiteId);
+    }
 
     const sanitizedWebsite = sanitizeWebsiteForFrontend(updatedWebsite);
     return NextResponse.json(

@@ -7,10 +7,14 @@ Connect Stripe and PostMetric pulls your payments every 5 minutes, then credits 
 
 ## Connect Stripe
 
-1. Create a **restricted key** (`rk_…`) with read access to Core, Billing and Checkout.
+1. Create a **restricted key** (`rk_…`) with read access to Core, Billing, Checkout and **Events** (under *All core resources → Events*).
 2. In PostMetric, open your website's settings and paste the key under **Revenue → Stripe**.
 
-PostMetric imports past payments when you connect, then keeps syncing. Refunds are synced too, and subscription renewals are marked as renewals.
+PostMetric imports past payments when you connect, a few pages at a time in the background, so a large account can take a while to fill in. After that it reads your account's Stripe Events every 5 minutes, so a payment is picked up when it succeeds, however long after the checkout started. Without Events access the sync falls back to re-reading the last 3 days of payments on every run.
+
+Refunds are synced too and are subtracted from revenue, and subscription renewals are marked as renewals.
+
+Payments in a currency other than your website's currency are counted using the amount Stripe settled to your balance when that matches your website's currency; otherwise they are left out of revenue totals.
 
 ## How a payment finds its visitor
 

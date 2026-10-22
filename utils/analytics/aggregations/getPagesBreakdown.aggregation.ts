@@ -8,6 +8,11 @@ import {
   cleanPathExpr,
   lookupOnePageViewStage,
 } from "../pipelines";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 
 export async function getPagesBreakdown(
   websiteId: string,
@@ -49,23 +54,22 @@ export async function getPagesBreakdown(
 
   const pagesData = await PageView.aggregate(pagesPipeline).allowDiskUse(true);
 
-  // Step 2: Get revenue per page from Payment (via Session -> PageView)
+  // Step 2: Get revenue per page from Payment (via Session -> PageView).
+  // Net of refunds, in the site currency; each payment counts once per page
+  // however many times its session viewed that page.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("pageviews", "pageViews", [
+      { $project: { path: 1, hostname: 1 } },
+    ]),
     {
       $unwind: {
         path: "$pageViews",
@@ -73,25 +77,31 @@ export async function getPagesBreakdown(
       },
     },
     {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
+      $group: {
+        _id: {
+          paymentId: "$_id",
+          path: {
+            $arrayElemAt: [{ $split: ["$pageViews.path", "?"] }, 0],
+          },
+          hostname: "$pageViews.hostname",
         },
+        amount: { $first: "$netRevenueAmount" },
+        sessionId: { $first: "$sessionId" },
+        isConversion: { $first: "$isConversion" },
       },
     },
     {
       $group: {
         _id: {
-          path: "$cleanPath",
-          hostname: "$pageViews.hostname",
+          path: "$_id.path",
+          hostname: "$_id.hostname",
         },
         revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
+        sessionsWithPayments: {
+          $addToSet: {
+            $cond: ["$isConversion", "$sessionId", "$$REMOVE"],
+          },
+        },
       },
     },
   ];
@@ -155,7 +165,7 @@ export async function getPagesBreakdown(
     const uv = item.uniqueVisitors || 0;
     const revenue = revenueInfo?.revenue || 0;
     const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+    const conversionRate = uv > 0 ? Math.min(1, sessionsWithPayments / uv) : 0;
     const goalCount = goalsInfo?.goalCount || 0;
     const goalConversionRate =
       uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;
