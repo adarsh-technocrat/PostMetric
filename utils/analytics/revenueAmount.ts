@@ -1,5 +1,5 @@
 import Website from "@/db/models/Website";
-import { Types } from "mongoose";
+import { Types, type PipelineStage } from "mongoose";
 
 /**
  * Shared pieces for every aggregation that sums Payment amounts.
@@ -104,7 +104,7 @@ export function revenueFieldExprs(currency: string, prefix = "$") {
  * `$addFields` stage adding `revenueAmount`, `netRevenueAmount` and
  * `isConversion` (see revenueFieldExprs) to Payment documents.
  */
-export function revenueAmountStage(currency: string) {
+export function revenueAmountStage(currency: string): PipelineStage.AddFields {
   return { $addFields: revenueFieldExprs(currency) };
 }
 
@@ -115,8 +115,8 @@ export function revenueAmountStage(currency: string) {
 export function sameSiteLookup(
   from: "sessions" | "pageviews",
   as: string,
-  extraPipeline: Record<string, unknown>[] = [],
-) {
+  extraPipeline: any[] = [],
+): PipelineStage.Lookup {
   return {
     $lookup: {
       from,

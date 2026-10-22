@@ -94,9 +94,7 @@ export function isStripeAuthError(error: any) {
 }
 
 export function isStripePermissionError(error: any) {
-  return (
-    error?.type === "StripePermissionError" || error?.statusCode === 403
-  );
+  return error?.type === "StripePermissionError" || error?.statusCode === 403;
 }
 
 async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
@@ -133,7 +131,9 @@ export interface StripeApi {
     startingAfter?: string;
   }): Promise<Page<Stripe.Event>>;
   listRefundsForCharge(chargeId: string): Promise<Stripe.Refund[]>;
-  findInvoiceForPaymentIntent(paymentIntentId: string): Promise<Stripe.Invoice | null>;
+  findInvoiceForPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.Invoice | null>;
   findCheckoutSession(
     paymentIntentId: string,
     subscriptionId: string | null,
@@ -224,7 +224,9 @@ export class StripeHelper implements StripeApi {
       }),
     );
     const invoice = data[0]?.invoice;
-    return invoice && typeof invoice === "object" ? (invoice as Stripe.Invoice) : null;
+    return invoice && typeof invoice === "object"
+      ? (invoice as Stripe.Invoice)
+      : null;
   }
 
   /**
@@ -320,12 +322,13 @@ export class StripeHelper implements StripeApi {
     endDate: Date,
     deadline?: number,
   ): Promise<Stripe.PaymentIntent[]> {
-    return collectPages((startingAfter) =>
-      this.listPaymentIntentsPage({
-        createdGte: Math.floor(startDate.getTime() / 1000),
-        createdLte: Math.floor(endDate.getTime() / 1000),
-        startingAfter,
-      }),
+    return collectPages(
+      (startingAfter) =>
+        this.listPaymentIntentsPage({
+          createdGte: Math.floor(startDate.getTime() / 1000),
+          createdLte: Math.floor(endDate.getTime() / 1000),
+          startingAfter,
+        }),
       deadline,
     );
   }
@@ -335,12 +338,13 @@ export class StripeHelper implements StripeApi {
     endDate: Date,
     deadline?: number,
   ): Promise<Stripe.Refund[]> {
-    return collectPages((startingAfter) =>
-      this.listRefundsPage({
-        createdGte: Math.floor(startDate.getTime() / 1000),
-        createdLte: Math.floor(endDate.getTime() / 1000),
-        startingAfter,
-      }),
+    return collectPages(
+      (startingAfter) =>
+        this.listRefundsPage({
+          createdGte: Math.floor(startDate.getTime() / 1000),
+          createdLte: Math.floor(endDate.getTime() / 1000),
+          startingAfter,
+        }),
       deadline,
     );
   }
@@ -466,7 +470,10 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
       try {
         if (event.type === "payment_intent.succeeded") {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          tally(result, await this.processPaymentIntent(paymentIntent, websiteId));
+          tally(
+            result,
+            await this.processPaymentIntent(paymentIntent, websiteId),
+          );
         } else if (event.type === "charge.refunded") {
           const charge = event.data.object as Stripe.Charge;
           const refunds = await this.helper.listRefundsForCharge(charge.id);
@@ -511,7 +518,9 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
     state.phase = state.phase ?? "payment_intents";
     state.startedAt = state.startedAt ?? new Date();
 
-    const createdGte = Math.floor((until.getTime() - BACKFILL_HISTORY_MS) / 1000);
+    const createdGte = Math.floor(
+      (until.getTime() - BACKFILL_HISTORY_MS) / 1000,
+    );
     const createdLte = Math.floor(until.getTime() / 1000);
 
     while (Date.now() < deadline) {
@@ -534,7 +543,10 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
         }
         const outcome =
           state.phase === "payment_intents"
-            ? await this.processPaymentIntent(item as Stripe.PaymentIntent, websiteId)
+            ? await this.processPaymentIntent(
+                item as Stripe.PaymentIntent,
+                websiteId,
+              )
             : await this.processRefund(item as Stripe.Refund, websiteId);
         tally(result, outcome);
         state.startingAfter = item.id;
@@ -607,7 +619,9 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
       return "skipped";
     }
 
-    await createPayment(await this.describePaymentIntent(paymentIntent, websiteId));
+    await createPayment(
+      await this.describePaymentIntent(paymentIntent, websiteId),
+    );
     return existingPayment ? "skipped" : "synced";
   }
 
@@ -647,7 +661,9 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
     try {
       const bt =
         typeof refund.balance_transaction === "string"
-          ? await this.helper.retrieveBalanceTransaction(refund.balance_transaction)
+          ? await this.helper.retrieveBalanceTransaction(
+              refund.balance_transaction,
+            )
           : refund.balance_transaction;
       if (!bt) return {};
       return {
@@ -743,7 +759,8 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
     checkoutSessionId: string,
     websiteId: string,
   ): Promise<void> {
-    const session = await this.helper.retrieveCheckoutSession(checkoutSessionId);
+    const session =
+      await this.helper.retrieveCheckoutSession(checkoutSessionId);
     if (session.payment_status !== "paid") return;
     const paymentIntentId = await paymentIntentForCheckoutSession(
       this.helper,
@@ -751,9 +768,12 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
     );
     if (!paymentIntentId) return;
 
-    const paymentIntent = await this.helper.retrievePaymentIntent(paymentIntentId);
+    const paymentIntent =
+      await this.helper.retrievePaymentIntent(paymentIntentId);
     if (paymentIntent.status !== "succeeded") return;
-    await createPayment(await this.describePaymentIntent(paymentIntent, websiteId));
+    await createPayment(
+      await this.describePaymentIntent(paymentIntent, websiteId),
+    );
   }
 
   private async saveRefundToDatabase(
@@ -836,13 +856,18 @@ export class StripePaymentSyncer extends PaymentProviderSyncer {
 
 export type BackfillState = NonNullable<
   NonNullable<
-    NonNullable<NonNullable<IWebsite["paymentProviders"]>["stripe"]>["syncConfig"]
+    NonNullable<
+      NonNullable<IWebsite["paymentProviders"]>["stripe"]
+    >["syncConfig"]
   >["backfill"]
 >;
 
 const SYNC_CONFIG = "paymentProviders.stripe.syncConfig";
 
-async function setSyncConfig(websiteId: string, fields: Record<string, unknown>) {
+async function setSyncConfig(
+  websiteId: string,
+  fields: Record<string, unknown>,
+) {
   const $set: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
     $set[`${SYNC_CONFIG}.${key}`] = value;
@@ -1081,11 +1106,17 @@ export async function mapApiPaymentToStripe(
   websiteId: string,
   provider: string,
   providerPaymentId: string,
-  makeApi: (apiKey: string) => Pick<
+  makeApi: (
+    apiKey: string,
+  ) => Pick<
     StripeApi,
     "retrieveCharge" | "listInvoicePayments" | "retrieveCheckoutSession"
   > = (apiKey) => new StripeHelper(apiKey),
-): Promise<{ provider: string; providerPaymentId: string; stripeConnected: boolean }> {
+): Promise<{
+  provider: string;
+  providerPaymentId: string;
+  stripeConnected: boolean;
+}> {
   const unchanged = { provider, providerPaymentId, stripeConnected: false };
   const website = await Website.findById(websiteId)
     .select("paymentProviders.stripe.apiKey")
@@ -1103,7 +1134,11 @@ export async function mapApiPaymentToStripe(
     providerPaymentId,
   );
   return paymentIntentId
-    ? { provider: "stripe", providerPaymentId: paymentIntentId, stripeConnected: true }
+    ? {
+        provider: "stripe",
+        providerPaymentId: paymentIntentId,
+        stripeConnected: true,
+      }
     : { ...unchanged, stripeConnected: true };
 }
 

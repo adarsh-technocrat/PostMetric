@@ -42,7 +42,10 @@ async function runSync() {
   const worker = async () => {
     while (next < websites.length && Date.now() < runDeadline) {
       const website = websites[next++];
-      const deadline = Math.min(runDeadline, Date.now() + PER_WEBSITE_BUDGET_MS);
+      const deadline = Math.min(
+        runDeadline,
+        Date.now() + PER_WEBSITE_BUDGET_MS,
+      );
       try {
         results.push(await runStripeSync(website, { deadline }));
       } catch (error: any) {

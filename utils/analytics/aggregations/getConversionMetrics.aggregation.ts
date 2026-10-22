@@ -1,6 +1,11 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import PageView from "@/db/models/PageView";
 import GoalEvent from "@/db/models/GoalEvent";
 import Goal from "@/db/models/Goal";
@@ -39,6 +44,7 @@ export async function getConversionMetrics(
   const websiteObjectId = new Types.ObjectId(websiteId);
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - DAYS * 24 * 60 * 60 * 1000);
+  const currency = await getSiteCurrency(websiteObjectId);
 
   const [
     paymentsWithSessions,
@@ -46,7 +52,7 @@ export async function getConversionMetrics(
     sessionsForVisitors,
     goalsList,
   ] = await Promise.all([
-    getPaymentsWithSessions(websiteObjectId, startDate, endDate),
+    getPaymentsWithSessions(websiteObjectId, startDate, endDate, currency),
     PageView.distinct("visitorId", {
       websiteId: websiteObjectId,
       timestamp: { $gte: startDate, $lte: endDate },
@@ -55,14 +61,18 @@ export async function getConversionMetrics(
     Goal.find({ websiteId: websiteObjectId }).lean(),
   ]);
 
-  const totalConversions = paymentsWithSessions.length;
+  // A conversion is a session that made a first (non-renewal) payment.
+  const totalConversions = new Set(paymentsWithSessions.map((p) => p.sessionId))
+    .size;
   const totalRevenueCents = paymentsWithSessions.reduce(
     (sum, p) => sum + (p.amount ?? 0),
     0,
   );
   const totalRevenue = totalRevenueCents / 100;
   const baselineConversionRate =
-    totalVisitorsCount > 0 ? totalConversions / totalVisitorsCount : 0;
+    totalVisitorsCount > 0
+      ? Math.min(1, totalConversions / totalVisitorsCount)
+      : 0;
   const baselineAverageValue =
     totalConversions > 0 ? totalRevenue / totalConversions : 0;
   const averageDailyVisitors = totalVisitorsCount / DAYS;
@@ -75,6 +85,7 @@ export async function getConversionMetrics(
     websiteObjectId,
     startDate,
     endDate,
+    currency,
     totalConversions,
     totalVisitorsCount,
   );
@@ -82,6 +93,7 @@ export async function getConversionMetrics(
     websiteObjectId,
     startDate,
     endDate,
+    currency,
     goalsList,
     totalConversions,
     totalRevenue,
@@ -128,10 +140,12 @@ interface PaymentWithSession {
   referrerDomain?: string;
 }
 
+/** First (non-renewal, non-refund) payments made in a session, site currency. */
 async function getPaymentsWithSessions(
   websiteId: Types.ObjectId,
   startDate: Date,
   endDate: Date,
+  currency: string,
 ): Promise<PaymentWithSession[]> {
   const payments = await Payment.aggregate([
     {
@@ -139,20 +153,16 @@ async function getPaymentsWithSessions(
         websiteId,
         timestamp: { $gte: startDate, $lte: endDate },
         refunded: false,
+        renewal: { $ne: true },
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("sessions", "session"),
     { $unwind: { path: "$session", preserveNullAndEmptyArrays: true } },
     {
       $project: {
-        amount: 1,
+        amount: { $ifNull: ["$revenueAmount", 0] },
         timestamp: 1,
         sessionId: 1,
         visitorId: 1,
@@ -361,16 +371,35 @@ async function buildDimensions(
   websiteId: Types.ObjectId,
   startDate: Date,
   endDate: Date,
+  currency: string,
   totalConversions: number,
   totalVisitors: number,
 ): Promise<ConversionMetricsPayload["dimensions"]> {
   const [deviceRows, osRows, browserRows, countryRows, referrerRows] =
     await Promise.all([
-      getDimensionFromPayments(websiteId, startDate, endDate, "device"),
-      getDimensionFromPayments(websiteId, startDate, endDate, "os"),
-      getDimensionFromPayments(websiteId, startDate, endDate, "browser"),
-      getDimensionFromPayments(websiteId, startDate, endDate, "country"),
-      getReferrerDimension(websiteId, startDate, endDate),
+      getDimensionFromPayments(
+        websiteId,
+        startDate,
+        endDate,
+        "device",
+        currency,
+      ),
+      getDimensionFromPayments(websiteId, startDate, endDate, "os", currency),
+      getDimensionFromPayments(
+        websiteId,
+        startDate,
+        endDate,
+        "browser",
+        currency,
+      ),
+      getDimensionFromPayments(
+        websiteId,
+        startDate,
+        endDate,
+        "country",
+        currency,
+      ),
+      getReferrerDimension(websiteId, startDate, endDate, currency),
     ]);
 
   const devices: Record<string, DimensionRow> = {};
@@ -450,6 +479,7 @@ async function getDimensionFromPayments(
   startDate: Date,
   endDate: Date,
   field: "device" | "os" | "browser" | "country",
+  currency: string,
 ): Promise<
   Array<{
     _id: string;
@@ -480,23 +510,22 @@ async function getDimensionFromPayments(
           websiteId,
           timestamp: { $gte: startDate, $lte: endDate },
           refunded: false,
+          renewal: { $ne: true },
+          sessionId: { $nin: [null, ""] },
         },
       },
-      {
-        $lookup: {
-          from: "sessions",
-          localField: "sessionId",
-          foreignField: "sessionId",
-          as: "session",
-        },
-      },
+      revenueAmountStage(currency),
+      sameSiteLookup("sessions", "session"),
       { $unwind: { path: "$session", preserveNullAndEmptyArrays: false } },
       {
         $group: {
           _id: `$${sessionField}`,
-          conversions: { $sum: 1 },
-          totalRevenue: { $sum: "$amount" },
+          convertedSessions: { $addToSet: "$sessionId" },
+          totalRevenue: { $sum: { $ifNull: ["$revenueAmount", 0] } },
         },
+      },
+      {
+        $addFields: { conversions: { $size: "$convertedSessions" } },
       },
     ]),
   ]);
@@ -538,7 +567,8 @@ async function getDimensionFromPayments(
       _id: field === "country" ? id : key,
       visitors,
       conversions: pay?.conversions ?? 0,
-      conversionRate: visitors > 0 ? (pay?.conversions ?? 0) / visitors : 0,
+      conversionRate:
+        visitors > 0 ? Math.min(1, (pay?.conversions ?? 0) / visitors) : 0,
       totalRevenue: pay?.totalRevenue ?? 0,
     });
   }
@@ -549,6 +579,7 @@ async function getReferrerDimension(
   websiteId: Types.ObjectId,
   startDate: Date,
   endDate: Date,
+  currency: string,
 ): Promise<
   Array<{
     _id: string;
@@ -588,16 +619,12 @@ async function getReferrerDimension(
           websiteId,
           timestamp: { $gte: startDate, $lte: endDate },
           refunded: false,
+          renewal: { $ne: true },
+          sessionId: { $nin: [null, ""] },
         },
       },
-      {
-        $lookup: {
-          from: "sessions",
-          localField: "sessionId",
-          foreignField: "sessionId",
-          as: "session",
-        },
-      },
+      revenueAmountStage(currency),
+      sameSiteLookup("sessions", "session"),
       { $unwind: { path: "$session", preserveNullAndEmptyArrays: false } },
       {
         $addFields: {
@@ -618,9 +645,12 @@ async function getReferrerDimension(
       {
         $group: {
           _id: "$ref",
-          conversions: { $sum: 1 },
-          totalRevenue: { $sum: "$amount" },
+          convertedSessions: { $addToSet: "$sessionId" },
+          totalRevenue: { $sum: { $ifNull: ["$revenueAmount", 0] } },
         },
+      },
+      {
+        $addFields: { conversions: { $size: "$convertedSessions" } },
       },
     ]),
   ]);
@@ -639,7 +669,8 @@ async function getReferrerDimension(
       _id: id,
       visitors,
       conversions: p.conversions ?? 0,
-      conversionRate: visitors > 0 ? (p.conversions ?? 0) / visitors : 0,
+      conversionRate:
+        visitors > 0 ? Math.min(1, (p.conversions ?? 0) / visitors) : 0,
       totalRevenue: p.totalRevenue ?? 0,
     };
   });
@@ -649,6 +680,7 @@ async function buildCustomEvents(
   websiteId: Types.ObjectId,
   startDate: Date,
   endDate: Date,
+  currency: string,
   goalsList: Array<{
     _id: Types.ObjectId;
     event: string;
@@ -703,7 +735,13 @@ async function buildCustomEvents(
           visitorId: { $in: eventsWithConverters.map((e) => e._id) },
         },
       },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
+      revenueAmountStage(currency),
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ["$revenueAmount", 0] } },
+        },
+      },
     ]);
     const totalRev = (revenueFromPayments[0]?.total ?? 0) / 100;
 

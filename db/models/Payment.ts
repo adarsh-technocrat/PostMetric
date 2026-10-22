@@ -106,7 +106,7 @@ const PaymentSchema = new Schema<IPayment>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes

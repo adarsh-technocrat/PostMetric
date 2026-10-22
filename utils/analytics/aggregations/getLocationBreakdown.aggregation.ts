@@ -1,6 +1,11 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
 import {
@@ -97,22 +102,19 @@ export async function getLocationBreakdown(
     goalsGroupId = "$session.city";
   }
 
+  // Net of refunds (refunds carry their payment's session), in the site
+  // currency; sessions from this website only.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("sessions", "session"),
     {
       $unwind: {
         path: "$session",
@@ -122,8 +124,10 @@ export async function getLocationBreakdown(
     {
       $group: {
         _id: revenueGroupId,
-        revenue: { $sum: "$amount" },
-        sessionsWithPayments: { $addToSet: "$sessionId" },
+        revenue: { $sum: "$netRevenueAmount" },
+        sessionsWithPayments: {
+          $addToSet: { $cond: ["$isConversion", "$sessionId", "$$REMOVE"] },
+        },
       },
     },
   ];
@@ -187,7 +191,7 @@ export async function getLocationBreakdown(
     const revenue = revenueInfo?.revenue || 0;
     const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
     // Conversion rate: sessions with payments / unique visitors
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+    const conversionRate = uv > 0 ? Math.min(1, sessionsWithPayments / uv) : 0;
     const goalCount = goalsInfo?.goalCount || 0;
     // Goal conversion rate: unique visitors with goals / unique visitors
     const goalConversionRate =

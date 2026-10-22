@@ -2,6 +2,11 @@ import connectDB from "@/db";
 import PageView from "@/db/models/PageView";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import GoalEvent from "@/db/models/GoalEvent";
 import { Types } from "mongoose";
 import type { Granularity } from "../types";
@@ -66,61 +71,44 @@ export async function getEntryPagesBreakdown(
 
   const entryPagesData = await PageView.aggregate(entryPagesPipeline);
 
-  // Step 2: Get revenue per entry page from Payment (via Session)
-  // For entry pages, we need to match payments to sessions and get their first page
+  // Step 2: Get revenue per entry page from Payment (via Session): each
+  // payment is credited once, to its session's first page. Net of refunds,
+  // in the site currency.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("pageviews", "entryPage", [
+      { $sort: { timestamp: 1 } },
+      { $limit: 1 },
+      { $project: { path: 1, hostname: 1 } },
+    ]),
     {
       $unwind: {
-        path: "$pageViews",
+        path: "$entryPage",
         preserveNullAndEmptyArrays: false,
-      },
-    },
-    {
-      $addFields: {
-        cleanPath: {
-          $arrayElemAt: [
-            {
-              $split: ["$pageViews.path", "?"],
-            },
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $sort: { "pageViews.timestamp": 1 as const },
-    },
-    {
-      $group: {
-        _id: "$sessionId",
-        firstPath: { $first: "$cleanPath" },
-        firstHostname: { $first: "$pageViews.hostname" },
-        revenue: { $sum: "$amount" },
       },
     },
     {
       $group: {
         _id: {
-          path: "$firstPath",
-          hostname: "$firstHostname",
+          path: {
+            $arrayElemAt: [{ $split: ["$entryPage.path", "?"] }, 0],
+          },
+          hostname: "$entryPage.hostname",
         },
-        revenue: { $sum: "$revenue" },
-        sessionsWithPayments: { $addToSet: "$_id" },
+        revenue: { $sum: "$netRevenueAmount" },
+        sessionsWithPayments: {
+          $addToSet: {
+            $cond: ["$isConversion", "$sessionId", "$$REMOVE"],
+          },
+        },
       },
     },
   ];
@@ -211,7 +199,7 @@ export async function getEntryPagesBreakdown(
     const uv = item.uniqueVisitors || 0;
     const revenue = revenueInfo?.revenue || 0;
     const sessionsWithPayments = revenueInfo?.sessionsWithPayments?.length || 0;
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+    const conversionRate = uv > 0 ? Math.min(1, sessionsWithPayments / uv) : 0;
     const goalCount = goalsInfo?.goalCount || 0;
     const goalConversionRate =
       uv > 0 ? (goalsInfo?.uniqueVisitorsWithGoals?.length || 0) / uv : 0;

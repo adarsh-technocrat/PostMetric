@@ -1,6 +1,7 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import { Types } from "mongoose";
+import { getSiteCurrency, revenueAmountStage } from "../revenueAmount";
 import {
   formatReferrerName,
   getReferrerImageUrl,
@@ -14,6 +15,7 @@ export async function getChannelBreakdownWithReferrers(
   await connectDB();
 
   const websiteObjectId = new Types.ObjectId(websiteId);
+  const currency = await getSiteCurrency(websiteObjectId);
   const pipeline = [
     // Stage 1: Match the specific website
     {
@@ -585,16 +587,19 @@ export async function getChannelBreakdownWithReferrers(
 
     // Stage 5: Lookup payments for each session
     {
+      // This website's payments and refunds for the session, valued in the
+      // site currency (refunds negative in netRevenueAmount).
       $lookup: {
         from: "payments",
-        let: { sessionId: "$sessionId" },
+        localField: "sessionId",
+        foreignField: "sessionId",
+        let: { sessionWebsiteId: "$websiteId" },
         pipeline: [
           {
             $match: {
               $expr: {
                 $and: [
-                  { $eq: ["$sessionId", "$$sessionId"] },
-                  { $eq: ["$refunded", false] },
+                  { $eq: ["$websiteId", "$$sessionWebsiteId"] },
                   {
                     $gte: ["$timestamp", startDate],
                   },
@@ -603,6 +608,14 @@ export async function getChannelBreakdownWithReferrers(
                   },
                 ],
               },
+            },
+          },
+          revenueAmountStage(currency),
+          {
+            $project: {
+              netRevenueAmount: 1,
+              isConversion: 1,
+              refunded: 1,
             },
           },
         ],
@@ -644,11 +657,28 @@ export async function getChannelBreakdownWithReferrers(
             $map: {
               input: "$payments",
               as: "payment",
-              in: { $divide: ["$$payment.amount", 100] }, // Convert cents to dollars
+              in: { $divide: ["$$payment.netRevenueAmount", 100] }, // Convert cents to dollars
             },
           },
         },
-        sessionPaymentCount: { $size: "$payments" },
+        sessionPaymentCount: {
+          $size: {
+            $filter: {
+              input: "$payments",
+              as: "payment",
+              cond: { $ne: ["$$payment.refunded", true] },
+            },
+          },
+        },
+        sessionConversionCount: {
+          $size: {
+            $filter: {
+              input: "$payments",
+              as: "payment",
+              cond: "$$payment.isConversion",
+            },
+          },
+        },
         sessionGoalCount: { $size: "$goalEvents" },
         uniqueVisitorsWithGoals: {
           $size: {
@@ -690,7 +720,7 @@ export async function getChannelBreakdownWithReferrers(
         sessionsWithPayments: {
           $addToSet: {
             $cond: {
-              if: { $gt: ["$sessionPaymentCount", 0] },
+              if: { $gt: ["$sessionConversionCount", 0] },
               then: "$sessionId",
               else: "$$REMOVE",
             },
@@ -773,6 +803,7 @@ export async function getChannelBreakdownWithReferrers(
         totalUv: { $sum: "$uv" },
         totalRevenue: { $sum: "$revenue" },
         totalPaymentCount: { $sum: "$paymentCount" },
+        totalConvertedSessions: { $sum: "$sessionsWithPaymentsCount" },
         totalGoalCount: { $sum: "$goalCount" },
       },
     },
@@ -783,7 +814,7 @@ export async function getChannelBreakdownWithReferrers(
         conversionRate: {
           $cond: {
             if: { $gt: ["$totalUv", 0] },
-            then: { $divide: ["$totalPaymentCount", "$totalUv"] },
+            then: { $divide: ["$totalConvertedSessions", "$totalUv"] },
             else: 0,
           },
         },

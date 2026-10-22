@@ -56,8 +56,16 @@ export async function POST(request: NextRequest) {
     let providerPaymentId = pick("providerPaymentId", "transaction_id");
     const amount = Number(pick("amount"));
     const currency = String(pick("currency") ?? "USD").toUpperCase();
-    const visitorId = pick("visitorId", "postmetric_visitor_id", "datafast_visitor_id");
-    const sessionId = pick("sessionId", "postmetric_session_id", "datafast_session_id");
+    const visitorId = pick(
+      "visitorId",
+      "postmetric_visitor_id",
+      "datafast_visitor_id",
+    );
+    const sessionId = pick(
+      "sessionId",
+      "postmetric_session_id",
+      "datafast_session_id",
+    );
     const customerEmail = pick("customerEmail", "customer_email", "email");
     const customerId = pick("customerId", "customer_id");
     const timestamp = pick("timestamp");
@@ -68,7 +76,8 @@ export async function POST(request: NextRequest) {
           status: "error",
           error: {
             code: 400,
-            message: "providerPaymentId (or transaction_id) and amount are required",
+            message:
+              "providerPaymentId (or transaction_id) and amount are required",
           },
         },
         { status: 400 },
@@ -129,10 +138,16 @@ export async function POST(request: NextRequest) {
         )
       : null;
     const visitor = visitorId
-      ? { visitorId: String(visitorId), sessionId: sessionId ? String(sessionId) : undefined }
+      ? {
+          visitorId: String(visitorId),
+          sessionId: sessionId ? String(sessionId) : undefined,
+        }
       : sale?.visitorId
         ? { visitorId: sale.visitorId, sessionId: sale.sessionId }
-        : { visitorId: undefined, sessionId: sessionId ? String(sessionId) : undefined };
+        : {
+            visitorId: undefined,
+            sessionId: sessionId ? String(sessionId) : undefined,
+          };
 
     const payment = await createPayment({
       websiteId,
@@ -157,7 +172,9 @@ export async function POST(request: NextRequest) {
         paymentId: payment._id.toString(),
         transaction_id: String(providerPaymentId),
         attributed: Boolean(payment.visitorId),
-        message: existing ? "Payment already recorded" : "Payment recorded successfully",
+        message: existing
+          ? "Payment already recorded"
+          : "Payment recorded successfully",
       },
     });
   } catch (error: any) {

@@ -1,6 +1,11 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import GoalEvent from "@/db/models/GoalEvent";
 import PageView from "@/db/models/PageView";
 import { Types } from "mongoose";
@@ -149,49 +154,33 @@ export async function getCampaignBreakdown(
   });
 
   // Step 3: Get revenue per campaign combination from Payment (via Session)
+  // Net of refunds (refunds carry their payment's session), in the site
+  // currency; sessions and pageviews from this website only.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("sessions", "session"),
     {
       $unwind: {
         path: "$session",
         preserveNullAndEmptyArrays: false,
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    sameSiteLookup("pageviews", "pageViews", [
+      { $sort: { timestamp: 1 } },
+      { $limit: 1 },
+      { $project: { path: 1, timestamp: 1 } },
+    ]),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$pageViews", 0] },
       },
     },
     {
@@ -204,8 +193,11 @@ export async function getCampaignBreakdown(
         utmTerm: { $first: { $ifNull: ["$session.utmTerm", ""] } },
         utmContent: { $first: { $ifNull: ["$session.utmContent", ""] } },
         firstPageViewPath: { $first: "$firstPageView.path" },
-        revenue: { $sum: "$amount" },
-        paymentCount: { $sum: 1 },
+        revenue: { $sum: "$netRevenueAmount" },
+        paymentCount: {
+          $sum: { $cond: [{ $eq: ["$refunded", true] }, 0, 1] },
+        },
+        converted: { $max: "$isConversion" },
       },
     },
   ];

@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import type { Granularity } from "../types";
 import { getDateTruncUnit } from "../utils";
 import { TimeZone } from "timezones-list";
+import { getSiteCurrency, revenueAmountStage } from "../revenueAmount";
 
 export async function getRevenueOverTime(
   websiteId: string,
@@ -15,6 +16,7 @@ export async function getRevenueOverTime(
   await connectDB();
 
   const websiteObjectId = new Types.ObjectId(websiteId);
+  const currency = await getSiteCurrency(websiteObjectId);
   const unit = getDateTruncUnit(granularity);
   const dateTrunc: { date: string; unit: string; timezone?: string } = {
     date: "$timestamp",
@@ -29,6 +31,8 @@ export async function getRevenueOverTime(
         timestamp: { $gte: startDate, $lte: endDate },
       },
     },
+    // Each payment valued in the site currency (unconvertible ones count 0).
+    revenueAmountStage(currency),
     {
       $group: {
         _id: {
@@ -43,7 +47,7 @@ export async function getRevenueOverTime(
                   { $eq: ["$renewal", false] },
                 ],
               },
-              "$amount",
+              { $ifNull: ["$revenueAmount", 0] },
               0,
             ],
           },
@@ -57,14 +61,18 @@ export async function getRevenueOverTime(
                   { $eq: ["$renewal", true] },
                 ],
               },
-              "$amount",
+              { $ifNull: ["$revenueAmount", 0] },
               0,
             ],
           },
         },
         revenueRefund: {
           $sum: {
-            $cond: [{ $eq: ["$refunded", true] }, "$amount", 0],
+            $cond: [
+              { $eq: ["$refunded", true] },
+              { $ifNull: ["$revenueAmount", 0] },
+              0,
+            ],
           },
         },
       },

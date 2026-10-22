@@ -40,7 +40,10 @@ async function refreshExisting(
 ): Promise<IPayment> {
   let changed = false;
   if (data.authoritativeAmount) {
-    if (existing.amount !== data.amount || existing.currency !== data.currency) {
+    if (
+      existing.amount !== data.amount ||
+      existing.currency !== data.currency
+    ) {
       existing.amount = data.amount;
       existing.currency = data.currency;
       changed = true;

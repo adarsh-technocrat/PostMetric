@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
-import {
-  runStripeSync,
-  syncStripePayments,
-} from "@/utils/integrations/stripe";
+import { runStripeSync, syncStripePayments } from "@/utils/integrations/stripe";
 
 export const maxDuration = 60;
 const SYNC_BUDGET_MS = 45_000;
@@ -16,7 +13,7 @@ const SYNC_BUDGET_MS = 45_000;
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ websiteId: string }> }
+  { params }: { params: Promise<{ websiteId: string }> },
 ) {
   try {
     const { websiteId } = await params;
@@ -43,7 +40,7 @@ export async function POST(
     if (!stripeApiKey) {
       return NextResponse.json(
         { error: "Stripe is not connected for this website" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -60,9 +57,15 @@ export async function POST(
     // the same incremental + backfill run the cron does.
     const result =
       startDate || endDate
-        ? await syncStripePayments(websiteId, stripeApiKey, startDate, endDate, {
-            deadline,
-          })
+        ? await syncStripePayments(
+            websiteId,
+            stripeApiKey,
+            startDate,
+            endDate,
+            {
+              deadline,
+            },
+          )
         : await runStripeSync(website, { deadline });
     const failure = (result as { error?: string }).error;
     if (failure) {
@@ -89,7 +92,7 @@ export async function POST(
             ? "Invalid Stripe API key. Please check your key and try again."
             : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

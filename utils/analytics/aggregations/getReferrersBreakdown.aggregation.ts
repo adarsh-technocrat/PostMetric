@@ -1,6 +1,11 @@
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import Payment from "@/db/models/Payment";
+import {
+  getSiteCurrency,
+  revenueAmountStage,
+  sameSiteLookup,
+} from "../revenueAmount";
 import GoalEvent from "@/db/models/GoalEvent";
 import PageView from "@/db/models/PageView";
 import { Types } from "mongoose";
@@ -340,49 +345,33 @@ export async function getReferrersBreakdown(
   });
 
   // Step 3: Get revenue per referrer from Payment (via Session)
+  // Net of refunds (refunds carry their payment's session), in the site
+  // currency; sessions and pageviews from this website only.
+  const currency = await getSiteCurrency(websiteObjectId);
   const revenuePipeline = [
     {
       $match: {
         websiteId: websiteObjectId,
         timestamp: { $gte: startDate, $lte: endDate },
-        refunded: false,
+        sessionId: { $nin: [null, ""] },
       },
     },
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "session",
-      },
-    },
+    revenueAmountStage(currency),
+    sameSiteLookup("sessions", "session"),
     {
       $unwind: {
         path: "$session",
         preserveNullAndEmptyArrays: false,
       },
     },
-    {
-      $lookup: {
-        from: "pageviews",
-        localField: "sessionId",
-        foreignField: "sessionId",
-        as: "pageViews",
-      },
-    },
+    sameSiteLookup("pageviews", "pageViews", [
+      { $sort: { timestamp: 1 } },
+      { $limit: 1 },
+      { $project: { path: 1, timestamp: 1 } },
+    ]),
     {
       $addFields: {
-        firstPageView: {
-          $arrayElemAt: [
-            {
-              $sortArray: {
-                input: "$pageViews",
-                sortBy: { timestamp: 1 },
-              },
-            },
-            0,
-          ],
-        },
+        firstPageView: { $arrayElemAt: ["$pageViews", 0] },
         referrerDomain: {
           $cond: {
             if: { $ne: ["$session.referrer", null] },
@@ -445,8 +434,11 @@ export async function getReferrersBreakdown(
         utmSource: { $first: "$session.utmSource" },
         utmMedium: { $first: "$session.utmMedium" },
         firstPageViewPath: { $first: "$firstPageView.path" },
-        revenue: { $sum: "$amount" },
-        paymentCount: { $sum: 1 },
+        revenue: { $sum: "$netRevenueAmount" },
+        paymentCount: {
+          $sum: { $cond: [{ $eq: ["$refunded", true] }, 0, 1] },
+        },
+        converted: { $max: "$isConversion" },
       },
     },
   ];
@@ -615,7 +607,7 @@ export async function getReferrersBreakdown(
       const rev = revenueMap.get(domainKey);
       rev.revenue += item.revenue;
       rev.paymentCount += item.paymentCount;
-      rev.sessionIds.add(item.sessionId);
+      if (item.converted) rev.sessionIds.add(item.sessionId);
     }
 
     // Add revenue to param_ref entry
@@ -631,7 +623,7 @@ export async function getReferrersBreakdown(
       const rev = revenueMap.get(refKey);
       rev.revenue += item.revenue;
       rev.paymentCount += item.paymentCount;
-      rev.sessionIds.add(item.sessionId);
+      if (item.converted) rev.sessionIds.add(item.sessionId);
     }
 
     // Add revenue to param_via entry
@@ -647,7 +639,7 @@ export async function getReferrersBreakdown(
       const rev = revenueMap.get(viaKey);
       rev.revenue += item.revenue;
       rev.paymentCount += item.paymentCount;
-      rev.sessionIds.add(item.sessionId);
+      if (item.converted) rev.sessionIds.add(item.sessionId);
     }
 
     // Add revenue to utm_source entry
@@ -666,7 +658,7 @@ export async function getReferrersBreakdown(
       const rev = revenueMap.get(utmKey);
       rev.revenue += item.revenue;
       rev.paymentCount += item.paymentCount;
-      rev.sessionIds.add(item.sessionId);
+      if (item.converted) rev.sessionIds.add(item.sessionId);
     }
   });
 
@@ -734,7 +726,7 @@ export async function getReferrersBreakdown(
     const revenue = revenueInfo?.revenue || 0;
     const paymentCount = revenueInfo?.paymentCount || 0;
     const sessionsWithPayments = revenueInfo?.sessionIds?.size || 0;
-    const conversionRate = uv > 0 ? sessionsWithPayments / uv : 0;
+    const conversionRate = uv > 0 ? Math.min(1, sessionsWithPayments / uv) : 0;
     const goalCount = goalsInfo?.goalCount || 0;
     const uniqueVisitorsWithGoals = goalsInfo?.uniqueVisitors?.size || 0;
     const goalConversionRate = uv > 0 ? uniqueVisitorsWithGoals / uv : 0;
