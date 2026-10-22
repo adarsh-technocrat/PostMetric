@@ -63,6 +63,9 @@ export default function WebsiteAnalyticsPage({
     pathData,
     locationData,
     systemData,
+    breakdownStatus,
+    goals,
+    resolvedRangeLabel,
     visitorsNow,
     isConnected,
     handlePreviousPeriod,
@@ -97,6 +100,7 @@ export default function WebsiteAnalyticsPage({
               onNextPeriod={handleNextPeriod}
               onCustomDateRangeChange={setCustomDateRange}
               canGoNext={canGoNext}
+              rangeLabel={resolvedRangeLabel}
             />
             <GranularitySelector
               selectedGranularity={ui.selectedGranularity}
@@ -202,6 +206,8 @@ export default function WebsiteAnalyticsPage({
                 ui.selectedSourceTab === "Channel" ? "pie" : "horizontalBar"
               }
               colorScheme={colorScheme}
+              loading={breakdownStatus.source.loading}
+              error={breakdownStatus.source.error}
             />
           </div>
 
@@ -214,6 +220,8 @@ export default function WebsiteAnalyticsPage({
               onTabChange={setSelectedPathTab}
               chartType="horizontalBar"
               colorScheme={colorScheme}
+              loading={breakdownStatus.path.loading}
+              error={breakdownStatus.path.error}
             />
           </div>
 
@@ -228,6 +236,8 @@ export default function WebsiteAnalyticsPage({
                 ui.selectedLocationTab === "Map" ? "bar" : "horizontalBar"
               }
               colorScheme={colorScheme}
+              loading={breakdownStatus.location.loading}
+              error={breakdownStatus.location.error}
             />
           </div>
 
@@ -240,6 +250,8 @@ export default function WebsiteAnalyticsPage({
               onTabChange={setSelectedSystemTab}
               chartType="horizontalBar"
               colorScheme={colorScheme}
+              loading={breakdownStatus.system.loading}
+              error={breakdownStatus.system.error}
             />
           </div>
 
@@ -247,6 +259,9 @@ export default function WebsiteAnalyticsPage({
             <GoalsCard
               selectedTab={ui.selectedGoalTab}
               onTabChange={setSelectedGoalTab}
+              goals={goals.rows}
+              loading={goals.loading}
+              error={goals.error}
             />
           </div>
         </div>

@@ -9,10 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import {
-  useWebsiteAnalytics,
-  type WebsiteSettings,
-} from "@/hooks/use-website-analytics";
+import { useAppSelector } from "@/store/hooks";
+import { type WebsiteSettings } from "@/hooks/use-website-analytics";
 import { useConversionMetrics } from "@/hooks/use-conversion-metrics";
 import { InsightsFullView } from "@/components/dashboard/analytics/InsightsFullView";
 
@@ -23,7 +21,17 @@ interface InsightsDialogProps {
 }
 
 function InsightsDialogContent({ websiteId }: { websiteId: string }) {
-  const { website } = useWebsiteAnalytics({ websiteId });
+  // Read the already-loaded website; mounting the full analytics hook here
+  // would fire a second set of analytics requests.
+  const currentWebsite = useAppSelector(
+    (state) => state.websites.currentWebsite,
+  ) as {
+    _id: string;
+    domain?: string;
+    iconUrl?: string;
+    settings?: WebsiteSettings;
+  } | null;
+  const website = currentWebsite?._id === websiteId ? currentWebsite : null;
   const { conversionMetrics } = useConversionMetrics(websiteId);
   const currency = (website?.settings as WebsiteSettings)?.currency || "USD";
 

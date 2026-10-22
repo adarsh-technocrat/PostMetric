@@ -11,6 +11,11 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ error?: string }>) => {
+    // Keep cancellations recognisable (name "CanceledError") so callers can
+    // tell an aborted request apart from a real failure.
+    if (axios.isCancel(error as unknown)) {
+      return Promise.reject(error);
+    }
     if (error.response?.status === 401 && typeof window !== "undefined") {
       const returnPath = window.location.pathname || "/";
       window.location.href = `/login?redirect=${encodeURIComponent(returnPath)}`;
@@ -20,6 +25,8 @@ apiClient.interceptors.response.use(
       error.response?.data?.error ||
       error.message ||
       "An unexpected error occurred";
-    return Promise.reject(new Error(message));
+    const wrapped = new Error(message) as Error & { status?: number };
+    wrapped.status = error.response?.status;
+    return Promise.reject(wrapped);
   },
 );

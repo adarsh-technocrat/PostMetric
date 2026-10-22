@@ -4,40 +4,63 @@ import {
   type BreakdownKey,
 } from "@/lib/constants/analytics-breakdowns";
 import * as analyticsRepo from "@/lib/api/repositories/analyticsRepository";
+import { isAbortError } from "@/lib/api/repositories/analyticsRepository";
 
 export const ABORTED_PAYLOAD = "__analytics_aborted__";
 
 export { BREAKDOWN_KEYS };
 export type { BreakdownKey };
 
+export type Granularity = "hourly" | "daily" | "weekly" | "monthly";
+
+/**
+ * Stored analytics are keyed by the full query, not just the website, so the
+ * dashboard card ("today / hourly") and the site dashboard (any period /
+ * granularity / offset) can never read each other's data.
+ */
+export function analyticsQueryKey(q: {
+  websiteId: string;
+  period: string;
+  granularity: Granularity;
+  offset?: number;
+}): string {
+  return `${q.websiteId}|${q.period}|${q.granularity}|${q.offset ?? 0}`;
+}
+
+/** Breakdowns do not depend on granularity. */
+export function breakdownQueryKey(q: {
+  websiteId: string;
+  period: string;
+  offset?: number;
+}): string {
+  return `${q.websiteId}|${q.period}|${q.offset ?? 0}`;
+}
+
+export interface AnalyticsQueryArg {
+  websiteId: string;
+  /** API period: preset (e.g. "today") or `custom:YYYY-MM-DD:YYYY-MM-DD`. */
+  period: string;
+  granularity: Granularity;
+  /** Integer <= 0 (shift back N whole periods). */
+  offset?: number;
+  /** Fallback timezone for date labels when the response has no `range`. */
+  timezone?: string;
+  signal?: AbortSignal;
+}
+
 export const fetchAnalytics = createAsyncThunk(
   "analytics/fetchAnalytics",
-  async (
-    {
-      websiteId,
-      period,
-      granularity = "daily",
-      customDateRange,
-      signal,
-    }: {
-      websiteId: string;
-      period: string;
-      granularity?: "hourly" | "daily" | "weekly" | "monthly";
-      customDateRange?: { from: Date; to: Date };
-      signal?: AbortSignal;
-    },
-    { rejectWithValue },
-  ) => {
+  async (arg: AnalyticsQueryArg, { rejectWithValue }) => {
     try {
       return await analyticsRepo.getAnalytics({
-        websiteId,
-        period,
-        granularity,
-        customDateRange,
-        signal,
+        websiteId: arg.websiteId,
+        period: arg.period,
+        granularity: arg.granularity,
+        offset: arg.offset,
+        signal: arg.signal,
       });
     } catch (error: unknown) {
-      if (error instanceof Error && error.name === "AbortError") {
+      if (arg.signal?.aborted || isAbortError(error)) {
         return rejectWithValue(ABORTED_PAYLOAD);
       }
       return rejectWithValue(
@@ -50,30 +73,27 @@ export const fetchAnalytics = createAsyncThunk(
 export const fetchBreakdown = createAsyncThunk(
   "analytics/fetchBreakdown",
   async (
-    {
-      websiteId,
-      breakdown,
-      period,
-      customDateRange,
-      signal,
-    }: {
+    arg: {
       websiteId: string;
       breakdown: BreakdownKey;
       period: string;
-      customDateRange?: { from: Date; to: Date };
+      offset?: number;
       signal?: AbortSignal;
     },
     { rejectWithValue },
   ) => {
     try {
       return await analyticsRepo.getBreakdown({
-        websiteId,
-        breakdown,
-        period,
-        customDateRange,
-        signal,
+        websiteId: arg.websiteId,
+        breakdown: arg.breakdown,
+        period: arg.period,
+        offset: arg.offset,
+        signal: arg.signal,
       });
     } catch (error: unknown) {
+      if (arg.signal?.aborted || isAbortError(error)) {
+        return rejectWithValue(ABORTED_PAYLOAD);
+      }
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to fetch breakdown",
       );
@@ -85,6 +105,8 @@ interface ChartDataPoint {
   date: string;
   fullDate?: string;
   timestamp?: string;
+  granularity?: Granularity;
+  timezone?: string;
   visitors: number;
   revenue: number;
   revenueNew?: number;
@@ -100,7 +122,7 @@ interface ChartDataPoint {
   }>;
 }
 
-interface BreakdownData {
+export interface BreakdownData {
   name: string;
   uv: number;
   revenue?: number;
@@ -112,11 +134,31 @@ interface BreakdownData {
   hostname?: string;
 }
 
-export type PercentageChangeMap = Record<string, string | null>;
+/** Contract keys; null = no previous-period data (render "—"). */
+export type PercentageChangeKey =
+  | "visitors"
+  | "sessions"
+  | "pageViews"
+  | "bounceRate"
+  | "sessionDuration"
+  | "conversionRate"
+  | "revenue"
+  | "revenuePerVisitor";
+
+export type PercentageChangeMap = Partial<
+  Record<PercentageChangeKey, number | null>
+>;
+
+export interface ResolvedRange {
+  start: string;
+  end: string;
+  timezone: string;
+}
 
 export interface WebsiteAnalytics {
   chartData: ChartDataPoint[];
   metrics: {
+    /** Plain numeric strings (no currency symbol); formatted by the view. */
     visitors: string;
     revenue: string;
     conversionRate: string;
@@ -125,310 +167,293 @@ export interface WebsiteAnalytics {
     sessionTime: string;
     visitorsNow: string;
   } | null;
+  /** Raw numeric totals from the response. */
+  totals: {
+    /** Unique visitors over the whole period (never a sum of buckets). */
+    visitors: number;
+    /** Major currency units. */
+    revenue: number;
+  } | null;
   percentageChange: PercentageChangeMap | null;
   revenueBreakdown: {
     newRevenue: number;
     renewalRevenue: number;
     refundedRevenue: number;
   } | null;
-  breakdowns: {
-    source: {
-      channel: BreakdownData[];
-      referrer: BreakdownData[];
-      campaign: BreakdownData[];
-      keyword: BreakdownData[];
-      channels?: BreakdownData[];
-    };
-    path: {
-      pages: BreakdownData[];
-      hostnames: BreakdownData[];
-      entryPages: BreakdownData[];
-      exitLinks: BreakdownData[];
-    };
-    location: {
-      country: BreakdownData[];
-      region: BreakdownData[];
-      city: BreakdownData[];
-    };
-    system: {
-      browser: BreakdownData[];
-      os: BreakdownData[];
-      device: BreakdownData[];
-    };
-  } | null;
+  range: ResolvedRange | null;
+  currency: string | null;
   loading: boolean;
   error: string | null;
   lastFetched: string | null;
-  currentStartDate: string | null;
-  currentEndDate: string | null;
-  currentGranularity: "hourly" | "daily" | "weekly" | "monthly";
+  /** requestId of the latest request for this query; older ones are ignored. */
+  requestId: string | null;
+  granularity: Granularity;
+}
+
+export interface BreakdownEntry {
+  data: BreakdownData[];
+  loading: boolean;
+  error: string | null;
+  requestId: string | null;
 }
 
 interface AnalyticsState {
-  byWebsiteId: Record<string, WebsiteAnalytics>;
-  breakdownsByWebsiteId: Record<
+  byQueryKey: Record<string, WebsiteAnalytics>;
+  breakdownsByQueryKey: Record<
     string,
-    NonNullable<WebsiteAnalytics["breakdowns"]> | null
+    Partial<Record<BreakdownKey, BreakdownEntry>>
   >;
-  loading: boolean;
-  currentWebsiteId: string | null;
 }
 
-function getEmptyBreakdowns(): WebsiteAnalytics["breakdowns"] {
-  return {
-    source: {
-      channel: [],
-      referrer: [],
-      campaign: [],
-      keyword: [],
-      channels: [],
-    },
-    path: {
-      pages: [],
-      hostnames: [],
-      entryPages: [],
-      exitLinks: [],
-    },
-    location: {
-      country: [],
-      region: [],
-      city: [],
-    },
-    system: {
-      browser: [],
-      os: [],
-      device: [],
-    },
-  };
-}
-
-const createEmptyWebsiteAnalytics = (): WebsiteAnalytics => ({
+export const createEmptyWebsiteAnalytics = (
+  granularity: Granularity = "daily",
+): WebsiteAnalytics => ({
   chartData: [],
   metrics: null,
+  totals: null,
   percentageChange: null,
   revenueBreakdown: null,
-  breakdowns: null,
+  range: null,
+  currency: null,
   loading: false,
   error: null,
   lastFetched: null,
-  currentStartDate: null,
-  currentEndDate: null,
-  currentGranularity: "daily",
+  requestId: null,
+  granularity,
 });
 
 const initialState: AnalyticsState = {
-  byWebsiteId: {},
-  breakdownsByWebsiteId: {},
-  loading: false,
-  currentWebsiteId: null,
+  byQueryKey: {},
+  breakdownsByQueryKey: {},
 };
+
+function toPercentOrNull(value: unknown): number | null {
+  if (value == null) return null;
+  const n = typeof value === "number" ? value : parseFloat(String(value));
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizePercentageChange(raw: unknown): PercentageChangeMap | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  return {
+    visitors: toPercentOrNull(r.visitors),
+    sessions: toPercentOrNull(r.sessions),
+    pageViews: toPercentOrNull(r.pageViews),
+    bounceRate: toPercentOrNull(r.bounceRate),
+    sessionDuration: toPercentOrNull(r.sessionDuration),
+    conversionRate: toPercentOrNull(r.conversionRate),
+    revenue: toPercentOrNull(r.revenue),
+    revenuePerVisitor: toPercentOrNull(r.revenuePerVisitor),
+  };
+}
+
+function num(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
 
 const analyticsSlice = createSlice({
   name: "analytics",
   initialState,
   reducers: {
-    clearAnalytics: (state, action?: PayloadAction<string | undefined>) => {
-      if (action?.payload) {
-        delete state.byWebsiteId[action.payload];
-        delete state.breakdownsByWebsiteId[action.payload];
-      } else {
-        state.byWebsiteId = {};
-        state.breakdownsByWebsiteId = {};
+    clearAnalytics: (state, action: PayloadAction<string | undefined>) => {
+      const websiteId = action.payload;
+      if (!websiteId) {
+        state.byQueryKey = {};
+        state.breakdownsByQueryKey = {};
+        return;
       }
-      state.currentWebsiteId = null;
-    },
-    setGranularity: (
-      state,
-      action: PayloadAction<{
-        websiteId: string;
-        granularity: "hourly" | "daily" | "weekly" | "monthly";
-      }>,
-    ) => {
-      const websiteData = state.byWebsiteId[action.payload.websiteId];
-      if (websiteData) {
-        websiteData.currentGranularity = action.payload.granularity;
+      const prefix = `${websiteId}|`;
+      for (const key of Object.keys(state.byQueryKey)) {
+        if (key.startsWith(prefix)) delete state.byQueryKey[key];
+      }
+      for (const key of Object.keys(state.breakdownsByQueryKey)) {
+        if (key.startsWith(prefix)) delete state.breakdownsByQueryKey[key];
       }
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAnalytics.pending, (state, action) => {
-        const websiteId = action.meta.arg.websiteId;
-        if (!state.byWebsiteId[websiteId]) {
-          state.byWebsiteId[websiteId] = createEmptyWebsiteAnalytics();
+        const key = analyticsQueryKey(action.meta.arg);
+        if (!state.byQueryKey[key]) {
+          state.byQueryKey[key] = createEmptyWebsiteAnalytics(
+            action.meta.arg.granularity,
+          );
         }
-        state.byWebsiteId[websiteId].loading = true;
-        state.byWebsiteId[websiteId].error = null;
-        state.loading = Object.values(state.byWebsiteId).some(
-          (data) => data.loading,
-        );
+        const entry = state.byQueryKey[key];
+        entry.loading = true;
+        entry.error = null;
+        entry.requestId = action.meta.requestId;
       })
       .addCase(fetchAnalytics.fulfilled, (state, action) => {
-        const websiteId = action.meta.arg.websiteId;
-        if (!state.byWebsiteId[websiteId]) {
-          state.byWebsiteId[websiteId] = createEmptyWebsiteAnalytics();
-        }
+        const arg = action.meta.arg;
+        const key = analyticsQueryKey(arg);
+        const entry = state.byQueryKey[key];
+        // Stale (superseded) or cleared: ignore.
+        if (!entry || entry.requestId !== action.meta.requestId) return;
 
-        const websiteData = state.byWebsiteId[websiteId];
-        websiteData.loading = false;
-        websiteData.error = null;
-        websiteData.lastFetched = new Date().toISOString();
-        const processedData = action.payload.processedData || [];
+        const payload = action.payload ?? {};
+        const range: ResolvedRange | null =
+          payload.range && payload.range.start && payload.range.end
+            ? {
+                start: String(payload.range.start),
+                end: String(payload.range.end),
+                timezone: String(payload.range.timezone || arg.timezone || ""),
+              }
+            : null;
+        const timezone = range?.timezone || arg.timezone || undefined;
+        const granularity = arg.granularity;
 
-        websiteData.chartData = processedData.map((item: any) => {
+        entry.loading = false;
+        entry.error = null;
+        entry.requestId = null;
+        entry.lastFetched = new Date().toISOString();
+        entry.granularity = granularity;
+        entry.range = range;
+        entry.currency =
+          typeof payload.currency === "string" ? payload.currency : null;
+
+        const processedData: Array<Record<string, unknown>> = Array.isArray(
+          payload.processedData,
+        )
+          ? payload.processedData
+          : [];
+
+        entry.chartData = processedData.map((item) => {
+          const newRev = num(item.revenue);
+          const renewalRev = num(item.renewalRevenue);
+          const visitors = item.visitors as number;
+          const timestamp =
+            typeof item.timestamp === "string" ? item.timestamp : undefined;
           return {
-            date: item.name,
-            fullDate: formatFullDate(item.timestamp),
-            timestamp: item.timestamp,
-            visitors: item.visitors,
-            revenue: (item.revenue ?? 0) + (item.renewalRevenue ?? 0),
-            revenueNew: item.revenue,
-            revenueRenewal: item.renewalRevenue,
-            revenueRefund: item.refundedRevenue,
+            date: String(item.name ?? ""),
+            fullDate: timestamp
+              ? formatFullDate(timestamp, granularity, timezone)
+              : undefined,
+            timestamp,
+            granularity,
+            timezone,
+            visitors,
+            revenue: newRev + renewalRev,
+            revenueNew: item.revenue as number,
+            revenueRenewal: item.renewalRevenue as number,
+            revenueRefund: item.refundedRevenue as number,
             revenuePerVisitor:
-              (item.visitors ?? 0) > 0
-                ? ((item.revenue ?? 0) + (item.renewalRevenue ?? 0)) /
-                  (item.visitors ?? 1)
-                : 0,
+              num(visitors) > 0 ? (newRev + renewalRev) / num(visitors) : 0,
             conversionRate: 0,
           };
         });
 
-        websiteData.metrics = {
-          visitors: formatNumber(action.payload.totalVisitors || 0),
-          revenue: formatCurrency((action.payload.totalRevenue || 0) * 100),
-          conversionRate: action.payload.conversionRate
-            ? `${action.payload.conversionRate.toFixed(2)}%`
-            : "0%",
-          revenuePerVisitor: action.payload.revenuePerVisitor
-            ? formatCurrency((action.payload.revenuePerVisitor || 0) * 100)
-            : "$0.00",
-          bounceRate: action.payload.bounceRate
-            ? `${action.payload.bounceRate.toFixed(0)}%`
-            : "0%",
-          sessionTime: action.payload.sessionDuration
-            ? formatDuration(action.payload.sessionDuration)
-            : "0m 0s",
+        const totalVisitors = num(payload.totalVisitors);
+        const totalRevenue = num(payload.totalRevenue);
+
+        entry.totals = { visitors: totalVisitors, revenue: totalRevenue };
+        entry.metrics = {
+          visitors: String(totalVisitors),
+          revenue: String(totalRevenue),
+          conversionRate: `${num(payload.conversionRate).toFixed(2)}%`,
+          revenuePerVisitor: String(num(payload.revenuePerVisitor)),
+          bounceRate: `${num(payload.bounceRate).toFixed(0)}%`,
+          sessionTime: formatDuration(num(payload.sessionDuration)),
           visitorsNow: "0",
         };
 
-        websiteData.percentageChange = action.payload.percentageChange ?? null;
-
-        websiteData.revenueBreakdown = {
-          newRevenue: action.payload.totalNewRevenue || 0,
-          renewalRevenue: action.payload.totalRenewalRevenue || 0,
-          refundedRevenue: action.payload.totalRefundedRevenue || 0,
-        };
-
-        websiteData.currentStartDate = null;
-        websiteData.currentEndDate = null;
-        websiteData.currentGranularity = action.meta.arg.granularity || "daily";
-
-        state.currentWebsiteId = websiteId;
-        state.loading = Object.values(state.byWebsiteId).some(
-          (data) => data.loading,
+        entry.percentageChange = normalizePercentageChange(
+          payload.percentageChange,
         );
+
+        entry.revenueBreakdown = {
+          newRevenue: num(payload.totalNewRevenue),
+          renewalRevenue: num(payload.totalRenewalRevenue),
+          refundedRevenue: num(payload.totalRefundedRevenue),
+        };
       })
       .addCase(fetchAnalytics.rejected, (state, action) => {
-        const websiteId = action.meta.arg.websiteId;
-        if (!state.byWebsiteId[websiteId]) {
-          state.byWebsiteId[websiteId] = createEmptyWebsiteAnalytics();
-        }
-        state.byWebsiteId[websiteId].loading = false;
+        const key = analyticsQueryKey(action.meta.arg);
+        const entry = state.byQueryKey[key];
+        if (!entry || entry.requestId !== action.meta.requestId) return;
+        entry.loading = false;
+        entry.requestId = null;
         if (action.payload !== ABORTED_PAYLOAD) {
-          state.byWebsiteId[websiteId].error = action.payload as string;
+          entry.error =
+            (action.payload as string) ||
+            action.error.message ||
+            "Failed to fetch analytics";
         }
-        state.loading = Object.values(state.byWebsiteId).some(
-          (data) => data.loading,
-        );
+      })
+      .addCase(fetchBreakdown.pending, (state, action) => {
+        const { breakdown } = action.meta.arg;
+        const key = breakdownQueryKey(action.meta.arg);
+        const slot = (state.breakdownsByQueryKey[key] ??= {});
+        const entry = (slot[breakdown] ??= {
+          data: [],
+          loading: false,
+          error: null,
+          requestId: null,
+        });
+        entry.loading = true;
+        entry.error = null;
+        entry.requestId = action.meta.requestId;
       })
       .addCase(fetchBreakdown.fulfilled, (state, action) => {
-        const { websiteId, breakdown, data } = action.payload;
-        if (state.breakdownsByWebsiteId[websiteId] == null) {
-          state.breakdownsByWebsiteId[websiteId] = getEmptyBreakdowns();
-        }
-        const b = state.breakdownsByWebsiteId[websiteId]!;
-        const list = Array.isArray(data) ? data : [];
-        switch (breakdown) {
-          case "source-channel":
-            b.source.channel = list;
-            break;
-          case "source-referrer":
-            b.source.referrer = list;
-            break;
-          case "source-campaign":
-            b.source.campaign = list;
-            break;
-          case "source-keyword":
-            b.source.keyword = list;
-            break;
-          case "source-channels":
-            b.source.channels = list;
-            break;
-          case "path-pages":
-            b.path.pages = list;
-            break;
-          case "path-hostnames":
-            b.path.hostnames = list;
-            break;
-          case "path-entry-pages":
-            b.path.entryPages = list;
-            break;
-          case "path-exit-links":
-            b.path.exitLinks = list;
-            break;
-          case "location-country":
-            b.location.country = list;
-            break;
-          case "location-region":
-            b.location.region = list;
-            break;
-          case "location-city":
-            b.location.city = list;
-            break;
-          case "system-browser":
-            b.system.browser = list;
-            break;
-          case "system-os":
-            b.system.os = list;
-            break;
-          case "system-device":
-            b.system.device = list;
-            break;
+        const { breakdown } = action.meta.arg;
+        const key = breakdownQueryKey(action.meta.arg);
+        const entry = state.breakdownsByQueryKey[key]?.[breakdown];
+        if (!entry || entry.requestId !== action.meta.requestId) return;
+        entry.loading = false;
+        entry.error = null;
+        entry.requestId = null;
+        entry.data = Array.isArray(action.payload.data)
+          ? action.payload.data
+          : [];
+      })
+      .addCase(fetchBreakdown.rejected, (state, action) => {
+        const { breakdown } = action.meta.arg;
+        const key = breakdownQueryKey(action.meta.arg);
+        const entry = state.breakdownsByQueryKey[key]?.[breakdown];
+        if (!entry || entry.requestId !== action.meta.requestId) return;
+        entry.loading = false;
+        entry.requestId = null;
+        if (action.payload !== ABORTED_PAYLOAD) {
+          // Show the failure instead of silently keeping old rows.
+          entry.data = [];
+          entry.error =
+            (action.payload as string) ||
+            action.error.message ||
+            "Failed to fetch breakdown";
         }
       });
   },
 });
 
-function formatFullDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + "M";
+/**
+ * Tooltip date for a bucket, formatted in the website timezone. Daily/weekly
+ * buckets get a date only; monthly gets month + year; hourly is handled by
+ * `formatDateDisplay` (adds the hour).
+ */
+function formatFullDate(
+  timestamp: string,
+  granularity: Granularity,
+  timezone?: string,
+): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  const options: Intl.DateTimeFormatOptions =
+    granularity === "monthly"
+      ? { year: "numeric", month: "long" }
+      : { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+  let formatted: string;
+  try {
+    formatted = date.toLocaleDateString("en-US", {
+      ...options,
+      ...(timezone ? { timeZone: timezone } : {}),
+    });
+  } catch {
+    // Unknown timezone id: fall back to the browser timezone.
+    formatted = date.toLocaleDateString("en-US", options);
   }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "k";
-  }
-  return num.toString();
-}
-
-function formatCurrency(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1000000) {
-    return "$" + (dollars / 1000000).toFixed(1) + "M";
-  }
-  if (dollars >= 1000) {
-    return "$" + (dollars / 1000).toFixed(1) + "k";
-  }
-  return "$" + dollars.toFixed(2);
+  return granularity === "weekly" ? `Week of ${formatted}` : formatted;
 }
 
 function formatDuration(seconds: number): string {
@@ -437,5 +462,5 @@ function formatDuration(seconds: number): string {
   return `${mins}m ${secs}s`;
 }
 
-export const { clearAnalytics, setGranularity } = analyticsSlice.actions;
+export const { clearAnalytics } = analyticsSlice.actions;
 export default analyticsSlice.reducer;

@@ -34,6 +34,11 @@ interface PeriodSelectorProps {
   onNextPeriod: () => void;
   onCustomDateRangeChange: (range: DateRange | undefined) => void;
   canGoNext: boolean;
+  /**
+   * Server-resolved date range of the displayed data (website timezone).
+   * Shown instead of the preset name when navigating to previous periods.
+   */
+  rangeLabel?: string | null;
 }
 
 export function PeriodSelector({
@@ -45,6 +50,7 @@ export function PeriodSelector({
   onNextPeriod,
   onCustomDateRangeChange,
   canGoNext,
+  rangeLabel,
 }: PeriodSelectorProps) {
   const [customDatePickerOpen, setCustomDatePickerOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -145,15 +151,19 @@ export function PeriodSelector({
                   size="sm"
                   className="join-item h-8 inline-flex flex-nowrap items-center gap-2 whitespace-nowrap border-0 border-l border-borderColor bg-transparent text-textPrimary hover:bg-gray-50 px-3"
                 >
-                  <h3 className="text-base font-normal">
-                    {selectedPeriod === "Custom" &&
-                    customDateRange?.from &&
-                    customDateRange?.to
-                      ? `${formatDateForDisplay(
-                          customDateRange.from,
-                        )} → ${formatDateForDisplay(customDateRange.to)}`
-                      : periodOffset > 0
-                        ? `${selectedPeriod} (${periodOffset} ago)`
+                  <h3
+                    className="text-base font-normal"
+                    title={rangeLabel ?? undefined}
+                  >
+                    {periodOffset > 0
+                      ? rangeLabel ||
+                        `${selectedPeriod} (${periodOffset} ago)`
+                      : selectedPeriod === "Custom" &&
+                          customDateRange?.from &&
+                          customDateRange?.to
+                        ? `${formatDateForDisplay(
+                            customDateRange.from,
+                          )} → ${formatDateForDisplay(customDateRange.to)}`
                         : selectedPeriod}
                   </h3>
                   <ChevronDownIcon className="size-3.5 shrink-0 opacity-30 duration-200" />

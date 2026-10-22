@@ -351,6 +351,8 @@ export interface TeamMember {
 interface WebsitesState {
   websites: Website[];
   currentWebsite: Website | null;
+  /** requestId of the latest fetchWebsiteDetailsById; older responses are dropped. */
+  currentWebsiteRequestId: string | null;
   loading: boolean;
   error: string | null;
   apiKeys: ApiKey[];
@@ -373,6 +375,7 @@ interface WebsitesState {
 const initialState: WebsitesState = {
   websites: [],
   currentWebsite: null,
+  currentWebsiteRequestId: null,
   loading: false,
   error: null,
   apiKeys: [],
@@ -430,16 +433,28 @@ const websitesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchWebsiteDetailsById.pending, (state) => {
+      .addCase(fetchWebsiteDetailsById.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.currentWebsiteRequestId = action.meta.requestId;
+        // Switching to another site: drop the previous site's name/logo/
+        // currency/timezone instead of rendering them under the new id.
+        if (state.currentWebsite && state.currentWebsite._id !== action.meta.arg) {
+          state.currentWebsite = null;
+        }
       })
       .addCase(fetchWebsiteDetailsById.fulfilled, (state, action) => {
+        // Ignore responses from superseded requests (e.g. a slow response for
+        // the site the user just navigated away from).
+        if (action.meta.requestId !== state.currentWebsiteRequestId) return;
+        state.currentWebsiteRequestId = null;
         state.loading = false;
         state.currentWebsite = action.payload;
         state.error = null;
       })
       .addCase(fetchWebsiteDetailsById.rejected, (state, action) => {
+        if (action.meta.requestId !== state.currentWebsiteRequestId) return;
+        state.currentWebsiteRequestId = null;
         state.loading = false;
         state.error = action.payload as string;
       })

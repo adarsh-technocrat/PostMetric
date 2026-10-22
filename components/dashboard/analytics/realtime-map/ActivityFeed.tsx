@@ -21,10 +21,18 @@ interface ActivityFeedProps {
   onClearSelection?: () => void;
 }
 
+// Realtime payment events carry the raw provider amount in minor units.
 function formatPaymentAmount(amount: number, currency: string = "usd"): string {
-  const dollars = amount / 100;
-  const currencySymbol = currency.toUpperCase() === "USD" ? "$" : "";
-  return `${currencySymbol}${dollars.toFixed(2)}`;
+  const code = (currency || "usd").toUpperCase();
+  const major = amount / 100;
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+    }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${code}`;
+  }
 }
 
 export function ActivityFeed({

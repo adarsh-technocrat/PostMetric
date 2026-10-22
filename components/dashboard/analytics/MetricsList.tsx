@@ -15,23 +15,32 @@ import {
 function MetricVariation({
   variation,
   trend,
+  lowerIsBetter = false,
 }: {
   variation: string;
   trend: "up" | "down";
+  /** For metrics like bounce rate, where an increase is bad. */
+  lowerIsBetter?: boolean;
 }) {
-  const noChange = variation === "0%";
+  // "—" (or empty) = no previous-period data to compare against.
+  const noData = !variation || variation === "—";
+  const isZero = !noData && parseFloat(variation) === 0;
+  const isGood = lowerIsBetter ? trend === "down" : trend === "up";
   return (
     <div className="flex w-full flex-1 items-center gap-1 leading-none duration-150">
-      <span className="text-textSecondary text-xs opacity-80">
-        {noChange ? "—" : variation}
+      <span
+        className="text-textSecondary text-xs opacity-80"
+        title={noData ? "No data for the previous period" : undefined}
+      >
+        {noData ? "—" : variation}
       </span>
-      {!noChange && (
+      {!noData && !isZero && (
         <ChevronUpIcon
           className={`size-3 ${
-            trend === "down"
-              ? "text-red-500 dark:text-red-700"
-              : "text-green-500 dark:text-green-600 rotate-180"
-          }`}
+            isGood
+              ? "text-green-500 dark:text-green-600"
+              : "text-red-500 dark:text-red-700"
+          } ${trend === "up" ? "rotate-180" : ""}`}
         />
       )}
     </div>
@@ -343,6 +352,7 @@ export function MetricsList({
             <MetricVariation
               variation={bounceRate.variation}
               trend={bounceRate.trend}
+              lowerIsBetter
             />
           </div>
         </div>

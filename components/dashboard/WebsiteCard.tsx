@@ -5,6 +5,7 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import { ResponsiveContainer, Area, ComposedChart, Bar, YAxis } from "recharts";
 import NumberFlow from "@number-flow/react";
 import { DomainLogo } from "@/components/ui/domain-logo";
+import { toApiPeriod } from "@/lib/constants/periods";
 
 interface WebsiteCardProps {
   website: {
@@ -12,46 +13,50 @@ interface WebsiteCardProps {
     domain: string;
     name: string;
     iconUrl?: string;
-    settings?: { colorScheme?: string };
+    settings?: { colorScheme?: string; currency?: string; timezone?: string };
   };
 }
 
 const DEFAULT_COLOR_SCHEME = "#E78468";
 
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    // Invalid/unknown currency code: show the number with the code.
+    return `${Math.round(amount).toLocaleString("en-US")} ${currency}`;
+  }
+}
+
 export function WebsiteCard({ website }: WebsiteCardProps) {
   const colorScheme = website.settings?.colorScheme || DEFAULT_COLOR_SCHEME;
   const analytics = useAnalytics(website._id, {
-    period: "Today",
+    period: toApiPeriod("Today"),
     granularity: "hourly",
-    disableAutoFetch: false,
+    timezone: website.settings?.timezone,
   });
 
-  const chartData = analytics.chartData.map((point) => {
-    const newRev = point.revenueNew ?? 0;
-    const renewalRev = point.revenueRenewal ?? 0;
-    const refundRev = point.revenueRefund ?? 0;
-    const netRevenue = newRev + renewalRev - refundRev;
-    return {
-      visitors: point.visitors,
-      revenue: Math.max(0, netRevenue),
-      revenueNew: newRev,
-      revenueRenewal: renewalRev,
-      revenueRefund: refundRev,
-    };
-  });
+  // Same convention as the site dashboard chart: bars show gross revenue
+  // (new + renewal) per bucket.
+  const chartData = analytics.chartData.map((point) => ({
+    visitors: point.visitors,
+    revenue: (point.revenueNew ?? 0) + (point.revenueRenewal ?? 0),
+  }));
 
-  const totalVisitors = analytics.chartData.reduce(
-    (sum, point) => sum + (point.visitors ?? 0),
-    0,
-  );
-
-  const totalRevenue = chartData.reduce((sum, point) => sum + point.revenue, 0);
-  const formattedRevenue = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(totalRevenue);
+  // Unique visitors for the whole period from the API. Summing hourly buckets
+  // would count a visitor active in two hours twice.
+  const totalVisitors = analytics.totals?.visitors ?? 0;
+  // Same headline figure as the site dashboard (response totalRevenue,
+  // major units), in the website currency.
+  const totalRevenue = analytics.totals?.revenue ?? 0;
+  const currency =
+    website.settings?.currency || analytics.currency || "USD";
+  const formattedRevenue = formatCurrency(totalRevenue, currency);
 
   return (
     <li>
