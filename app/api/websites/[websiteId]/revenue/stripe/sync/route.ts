@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import connectDB from "@/db";
 import Website from "@/db/models/Website";
-import { syncStripePayments } from "@/utils/integrations/stripe";
+import {
+  runStripeSync,
+  syncStripePayments,
+} from "@/utils/integrations/stripe";
+
+export const maxDuration = 60;
+const SYNC_BUDGET_MS = 45_000;
 
 /**
  * POST /api/websites/[websiteId]/revenue/stripe/sync
@@ -48,14 +54,24 @@ export async function POST(
 
     const startDate = startDateStr ? new Date(startDateStr) : undefined;
     const endDate = endDateStr ? new Date(endDateStr) : undefined;
+    const deadline = Date.now() + SYNC_BUDGET_MS;
 
-    // Sync Stripe payments
-    const result = await syncStripePayments(
-      websiteId,
-      stripeApiKey,
-      startDate,
-      endDate
-    );
+    // With a range: re-read payments created in it (time-budgeted). Without:
+    // the same incremental + backfill run the cron does.
+    const result =
+      startDate || endDate
+        ? await syncStripePayments(websiteId, stripeApiKey, startDate, endDate, {
+            deadline,
+          })
+        : await runStripeSync(website, { deadline });
+    const failure = (result as { error?: string }).error;
+    if (failure) {
+      throw Object.assign(new Error(failure), {
+        type: /invalid api key|authentication/i.test(failure)
+          ? "StripeAuthenticationError"
+          : undefined,
+      });
+    }
 
     return NextResponse.json({
       success: true,

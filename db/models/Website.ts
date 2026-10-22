@@ -45,6 +45,24 @@ export interface IWebsite extends Document {
         frequency?: "realtime" | "hourly" | "every-6-hours" | "daily";
         lastSyncAt?: Date;
         nextSyncAt?: Date;
+        /** Newest Stripe Event `created` processed by the incremental sync. */
+        lastEventAt?: Date;
+        /** Last sync failure (cleared by a successful sync). */
+        lastError?: string | null;
+        /** Set when Stripe rejected the key; the cron skips the site until it changes. */
+        authFailedAt?: Date | null;
+        /** Resumable import of the account's history, a few pages per cron run. */
+        backfill?: {
+          status?: "pending" | "running" | "done" | "failed";
+          phase?: "payment_intents" | "refunds";
+          /** Last object id processed (Stripe list cursor). */
+          startingAfter?: string | null;
+          /** Upper `created` bound, fixed when the backfill starts. */
+          until?: Date;
+          startedAt?: Date;
+          finishedAt?: Date;
+          lastError?: string | null;
+        };
       };
     };
     lemonSqueezy?: { webhookSecret: string };
@@ -197,6 +215,24 @@ const WebsiteSchema = new Schema<IWebsite>(
           },
           lastSyncAt: Date,
           nextSyncAt: Date,
+          lastEventAt: Date,
+          lastError: String,
+          authFailedAt: Date,
+          backfill: {
+            status: {
+              type: String,
+              enum: ["pending", "running", "done", "failed"],
+            },
+            phase: {
+              type: String,
+              enum: ["payment_intents", "refunds"],
+            },
+            startingAfter: String,
+            until: Date,
+            startedAt: Date,
+            finishedAt: Date,
+            lastError: String,
+          },
         },
       },
       lemonSqueezy: {
