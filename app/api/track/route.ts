@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
+import type { Types } from "mongoose";
 import connectDB from "@/db";
 import Session from "@/db/models/Session";
 import PageView from "@/db/models/PageView";
+import ExitClick from "@/db/models/ExitClick";
 import {
   generateVisitorId,
   generateSessionId,
@@ -9,7 +12,11 @@ import {
   getSessionIdFromCookie,
   createVisitorIdCookie,
   createSessionIdCookie,
+  sanitizeTrackingId,
+  SESSION_TIMEOUT_MS,
 } from "@/utils/tracking/visitor";
+import { isBotUserAgent } from "@/utils/tracking/bot";
+import { isSelfReferrer } from "@/utils/tracking/referrer";
 import { parseUserAgent, type DeviceInfo } from "@/utils/tracking/device";
 import {
   getLocationFromIP,
@@ -21,6 +28,7 @@ import { getWebsiteByTrackingCode } from "@/utils/database/website";
 import {
   checkTrafficSpike,
   applyAttackModeProtections,
+  hashIp,
 } from "@/utils/security/attack-mode";
 import type { IWebsite } from "@/db/models/Website";
 import type { ISession } from "@/db/models/Session";
@@ -194,6 +202,19 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       });
     }
 
+    // Known crawlers, headless browsers and audit tools are not visitors.
+    if (isBotUserAgent(userAgent)) {
+      return pixelResponse();
+    }
+
+    // Ids from the request body are client input: accept only id-shaped values.
+    if (!sanitizeTrackingId(visitorId)) {
+      visitorId = generateVisitorId();
+    }
+    const candidateSessionId: string | null = isNewSession
+      ? null
+      : sanitizeTrackingId(sessionId);
+
     // Sanitize and validate inputs
     // Limit path length to prevent DoS
     if (path.length > 2048) {
@@ -210,7 +231,7 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       title = title.replace(/\0/g, "").replace(/[\x00-\x1F\x7F]/g, "");
     }
 
-    const referrer: string | null = clientReferrer || null;
+    let referrer: string | null = clientReferrer || null;
 
     let referrerDomain: string | null = null;
     if (referrer) {
@@ -222,6 +243,13 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
           ? referrer.split("://")[1]?.split("/")[0] || null
           : referrer;
       }
+    }
+
+    // A referrer on the website's own domain (or a subdomain / additional
+    // domain) is internal navigation, not a traffic source.
+    if (referrerDomain && isSelfReferrer(referrerDomain, website)) {
+      referrer = null;
+      referrerDomain = null;
     }
 
     let finalUtmParams: FinalUtmParams = {};
@@ -239,99 +267,77 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
 
     const location: LocationInfo = await getLocationFromIP(ip);
 
-    await checkTrafficSpike(website._id.toString());
+    const websiteIdStr: string = website._id.toString();
+    const ipHash: string = hashIp(ip, websiteIdStr);
 
-    // Apply attack mode protections
+    await checkTrafficSpike(websiteIdStr, website);
+
+    // Apply attack mode protections (per hashed IP)
     const protection: { allowed: boolean; reason?: string } =
-      await applyAttackModeProtections(website._id.toString(), ip);
+      await applyAttackModeProtections(websiteIdStr, ipHash, website);
 
     if (!protection.allowed) {
-      return new NextResponse(PIXEL, {
-        status: 200,
-        headers: {
-          "Content-Type": "image/gif",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
-      });
+      return pixelResponse();
     }
 
     // Check exclusion rules
     if (shouldExcludeVisit(website, ip, location.country, hostname, path)) {
-      return new NextResponse(PIXEL, {
-        status: 200,
-        headers: {
-          "Content-Type": "image/gif",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
-      });
+      return pixelResponse();
     }
 
     // Hash path if enabled
     if (website.settings?.hashPaths) {
-      // Simple hash implementation (in production, use crypto.createHash)
-      path = `#${Buffer.from(path).toString("base64").slice(0, 10)}`;
+      path = `#${createHash("sha256").update(path).digest("hex").slice(0, 16)}`;
     }
 
     const now: Date = new Date();
 
-    // Create or update session
-    let session: ISession | null = await Session.findOne({
+    // An exit-link click is not a page view: record it on its own and leave
+    // the session's page view / bounce counters alone.
+    if (eventType === "exit_link") {
+      const exitData = extraData as ExitLinkExtraData;
+      const exitUrl =
+        typeof exitData.exitUrl === "string"
+          ? exitData.exitUrl.substring(0, 2048)
+          : "";
+      if (exitUrl) {
+        await ExitClick.create({
+          websiteId: website._id,
+          sessionId: candidateSessionId || sessionId,
+          visitorId,
+          path,
+          exitUrl,
+          exitLinkText:
+            typeof exitData.exitLinkText === "string"
+              ? exitData.exitLinkText.substring(0, 255)
+              : undefined,
+          timestamp: now,
+        });
+      }
+      return pixelResponse();
+    }
+
+    sessionId = await resolveSessionId(
+      website._id,
+      visitorId,
+      candidateSessionId,
+      now,
+    );
+
+    await upsertSession({
       websiteId: website._id,
       sessionId,
-    });
-
-    if (isNewSession || !session) {
-      // Before creating a new session, check if there's an active session for this visitor
-      // This prevents duplicate sessions when cookies are lost but visitor is still active
-      const fiveMinutesAgo: Date = new Date(now.getTime() - 5 * 60 * 1000);
-      const existingActiveSession: ISession | null = await Session.findOne({
-        websiteId: website._id,
+      now,
+      insertFields: {
         visitorId,
-        lastSeenAt: { $gte: fiveMinutesAgo },
-      }).sort({ lastSeenAt: -1 });
-
-      if (existingActiveSession) {
-        // Reuse existing active session - keep its sessionId, just update it
-        // Update the sessionId cookie to match the existing session
-        sessionId = existingActiveSession.sessionId;
-        existingActiveSession.pageViews += 1;
-        existingActiveSession.bounce = false;
-        existingActiveSession.lastSeenAt = now;
-        existingActiveSession.duration = Math.floor(
-          (now.getTime() - existingActiveSession.firstVisitAt.getTime()) / 1000,
-        );
-        await existingActiveSession.save();
-        session = existingActiveSession;
-      } else {
-        // Create new session
-        session = new Session({
-          websiteId: website._id,
-          sessionId,
-          visitorId,
-          firstVisitAt: now,
-          referrer: referrer,
-          referrerDomain: referrerDomain,
-          ...finalUtmParams,
-          ...deviceInfo,
-          ...location,
-          pageViews: 1,
-          duration: 0,
-          bounce: true,
-          lastSeenAt: now,
-        });
-        await session.save();
-      }
-    } else {
-      // Update existing session
-      session.pageViews += 1;
-      session.bounce = false; // Multiple page views = not a bounce
-      session.lastSeenAt = now;
-      // Calculate session duration in seconds
-      session.duration = Math.floor(
-        (now.getTime() - session.firstVisitAt.getTime()) / 1000,
-      );
-      await session.save();
-    }
+        firstVisitAt: now,
+        referrer: referrer || undefined,
+        referrerDomain: referrerDomain || undefined,
+        ...finalUtmParams,
+        ...deviceInfo,
+        ...location,
+      },
+    });
 
     // Create page view
     const pageView: IPageView = new PageView({
@@ -354,14 +360,7 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
       ...finalUtmParams,
       ...deviceInfo,
       ...location,
-      exitUrl:
-        eventType === "exit_link" && "exitUrl" in extraData
-          ? extraData.exitUrl
-          : undefined,
-      exitLinkText:
-        eventType === "exit_link" && "exitLinkText" in extraData
-          ? extraData.exitLinkText
-          : undefined,
+      ipHash,
       timestamp: now,
     });
     await pageView.save();
@@ -384,6 +383,10 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
+        // The script adopts this id (the server may have started a new
+        // session after 30 minutes of inactivity).
+        "X-PM-Session-Id": sessionId,
+        "Access-Control-Expose-Headers": "X-PM-Session-Id",
       },
     });
     response.headers.append(
@@ -404,5 +407,125 @@ async function handleTrack(request: NextRequest, method: "GET" | "POST") {
         "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
+  }
+}
+
+function pixelResponse(): NextResponse {
+  return new NextResponse(PIXEL, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/gif",
+      "Cache-Control": "no-cache, no-store, must-revalidate, private",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
+
+/**
+ * Pick the session this hit belongs to.
+ * - A known session seen within the last 30 minutes continues.
+ * - A known but expired session is replaced: reuse the visitor's session
+ *   that already replaced it (if still active), else start a new one.
+ * - An unknown/missing id reuses the visitor's session active in the last
+ *   5 minutes (cookies lost), else uses the client's id or a new one.
+ */
+async function resolveSessionId(
+  websiteId: Types.ObjectId,
+  visitorId: string,
+  candidateSessionId: string | null,
+  now: Date,
+): Promise<string> {
+  const activeCutoff = new Date(now.getTime() - SESSION_TIMEOUT_MS);
+
+  if (candidateSessionId) {
+    const existing = await Session.findOne(
+      { websiteId, sessionId: candidateSessionId },
+      { lastSeenAt: 1 },
+    ).lean<{ lastSeenAt?: Date } | null>();
+
+    if (existing) {
+      if (existing.lastSeenAt && existing.lastSeenAt >= activeCutoff) {
+        return candidateSessionId;
+      }
+      const replacement = await Session.findOne(
+        {
+          websiteId,
+          visitorId,
+          sessionId: { $ne: candidateSessionId },
+          lastSeenAt: { $gte: activeCutoff },
+        },
+        { sessionId: 1 },
+      )
+        .sort({ lastSeenAt: -1 })
+        .lean<{ sessionId: string } | null>();
+      return replacement?.sessionId || generateSessionId();
+    }
+  }
+
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  const recent = await Session.findOne(
+    { websiteId, visitorId, lastSeenAt: { $gte: fiveMinutesAgo } },
+    { sessionId: 1 },
+  )
+    .sort({ lastSeenAt: -1 })
+    .lean<{ sessionId: string } | null>();
+
+  return recent?.sessionId || candidateSessionId || generateSessionId();
+}
+
+/**
+ * Create the session or count another page view on it, atomically.
+ * Relies on the unique {websiteId, sessionId} index; a concurrent insert
+ * that loses the race is retried as an update.
+ */
+async function upsertSession(args: {
+  websiteId: Types.ObjectId;
+  sessionId: string;
+  now: Date;
+  insertFields: Record<string, unknown>;
+}): Promise<void> {
+  const { websiteId, sessionId, now } = args;
+  const insertFields: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args.insertFields)) {
+    if (value !== undefined && value !== null) insertFields[key] = value;
+  }
+
+  let doc: ISession | null = null;
+  let updatedExisting = false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await Session.findOneAndUpdate(
+        { websiteId, sessionId },
+        {
+          $setOnInsert: { ...insertFields, bounce: true, duration: 0 },
+          $inc: { pageViews: 1 },
+          $set: { lastSeenAt: now },
+        },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: false,
+          includeResultMetadata: true,
+        },
+      );
+      doc = result?.value ?? null;
+      updatedExisting = Boolean(result?.lastErrorObject?.updatedExisting);
+      break;
+    } catch (error) {
+      const code = (error as { code?: number })?.code;
+      if (code === 11000 && attempt === 0) continue;
+      throw error;
+    }
+  }
+
+  if (doc && updatedExisting) {
+    const duration = Math.max(
+      0,
+      Math.floor((now.getTime() - new Date(doc.firstVisitAt).getTime()) / 1000),
+    );
+    await Session.updateOne(
+      { _id: doc._id },
+      { $set: { bounce: false }, $max: { duration } },
+    );
   }
 }

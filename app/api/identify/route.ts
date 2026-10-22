@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordPaymentHint } from "@/utils/revenue/linkPayment";
 import connectDB from "@/db";
-import Website from "@/db/models/Website";
+import { getWebsiteByTrackingCode } from "@/utils/database/website";
 import Session from "@/db/models/Session";
 
 /**
@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Get website by tracking code
-    const website = await Website.findOne({ trackingCode: site });
+    // Get website by tracking code (accepts the "pmid_" prefixed form too)
+    const website =
+      typeof site === "string" ? await getWebsiteByTrackingCode(site) : null;
 
     if (!website) {
       return NextResponse.json({ error: "Website not found" }, { status: 404 });

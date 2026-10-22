@@ -30,6 +30,9 @@ export interface IPageView extends Document {
   exitUrl?: string;
   exitLinkText?: string;
 
+  // sha256(ip + websiteId); used for per-IP rate limiting. Never the raw IP.
+  ipHash?: string;
+
   timestamp: Date;
   createdAt: Date;
 }
@@ -122,6 +125,9 @@ const PageViewSchema = new Schema<IPageView>(
     exitLinkText: {
       type: String,
     },
+    ipHash: {
+      type: String,
+    },
     timestamp: {
       type: Date,
       required: true,
@@ -139,6 +145,11 @@ PageViewSchema.index({ websiteId: 1, timestamp: -1 });
 PageViewSchema.index({ websiteId: 1, path: 1, timestamp: -1 });
 PageViewSchema.index({ websiteId: 1, country: 1, timestamp: -1 });
 PageViewSchema.index({ websiteId: 1, utmSource: 1, timestamp: -1 });
+// Per-IP rate limiting in attack mode
+PageViewSchema.index(
+  { websiteId: 1, ipHash: 1, timestamp: -1 },
+  { partialFilterExpression: { ipHash: { $exists: true } } },
+);
 
 // Prevent model re-compilation during hot reload in development
 const PageView: Model<IPageView> =
