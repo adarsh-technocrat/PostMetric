@@ -17,6 +17,9 @@ export default async function proxy(request: NextRequest) {
   // They accept shareId query param for public access or require session for authenticated access
   const isPublicApiRoute =
     pathname.startsWith("/api/track") ||
+    // The tracking script posts goals here from customers' sites; the rest
+    // of /api/goals is the dashboard's goal management and stays protected.
+    pathname.startsWith("/api/goals/track") ||
     pathname.startsWith("/api/identify") ||
     (pathname.startsWith("/api/websites") && pathname.includes("/public")) ||
     (pathname.startsWith("/api/websites") &&
