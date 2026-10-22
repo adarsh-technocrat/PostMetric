@@ -37,9 +37,12 @@ export async function authenticateApiRequest(
     apiKey.lastUsedAt = new Date();
     await apiKey.save();
 
+    // websiteId is populated, so take the id off the document rather than
+    // stringifying the whole thing.
+    const website = apiKey.websiteId as any;
     return {
       apiKey,
-      websiteId: apiKey.websiteId.toString(),
+      websiteId: (website?._id ?? website).toString(),
     };
   } catch (error) {
     return null;

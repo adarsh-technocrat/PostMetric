@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
       visitorId,
       sessionId,
       metadata,
+      renewal = false,
+      timestamp,
     } = body;
 
     if (!provider || !providerPaymentId || !amount) {
@@ -57,20 +59,32 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    // Webhook senders retry, so a payment we already have is a success.
+    const existing = await Payment.findOne({ provider, providerPaymentId });
+    if (existing) {
+      return NextResponse.json({
+        status: "success",
+        data: {
+          paymentId: existing._id.toString(),
+          message: "Payment already recorded",
+        },
+      });
+    }
+
     const payment = new Payment({
       websiteId,
       provider,
       providerPaymentId,
       amount: Math.round(amount * 100),
       currency,
-      renewal: false,
+      renewal: Boolean(renewal),
       refunded: false,
       customerEmail,
       customerId,
       sessionId,
       visitorId,
       metadata,
-      timestamp: new Date(),
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
 
     if (!visitorId && !sessionId) {
