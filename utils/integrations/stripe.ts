@@ -1193,6 +1193,7 @@ export async function validateStripeApiKey(
     await stripe.balance.retrieve();
     await stripe.customers.list({ limit: 1 });
     await stripe.checkout.sessions.list({ limit: 1 });
+    await stripe.events.list({ limit: 1 });
   } catch (error: any) {
     if (error.type === "StripeAuthenticationError") {
       return {
