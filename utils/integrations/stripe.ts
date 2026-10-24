@@ -1217,6 +1217,15 @@ export async function validateStripeApiKey(
       errorCode === "api_key_expired" ||
       statusCode === 403
     ) {
+      // Stripe names the missing permission, e.g. "Having the 'rak_event_read'
+      // permission would allow this request to continue."
+      const missing = (error.message || "").match(/'(rak_[a-z_]+)'/)?.[1];
+      if (missing) {
+        return {
+          error: `Your Stripe key is missing the ${missing} permission. Edit the key in your Stripe dashboard to grant it, then connect again.`,
+          statusCode: 400,
+        };
+      }
       return {
         error:
           "Stripe API key doesn't have the required permissions. Please create a restricted API key with Core (Read), Billing (Read), Checkout (Read), Events (Read), and Webhook (Write) permissions.",
