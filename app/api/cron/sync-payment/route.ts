@@ -3,8 +3,10 @@ import connectDB from "@/db";
 import Website from "@/db/models/Website";
 import {
   runStripeSync,
+  startStripeBackfill,
   type StripeSiteSyncResult,
 } from "@/utils/integrations/stripe";
+import { dropLegacyPaymentIndex } from "@/utils/database/payment";
 
 export const maxDuration = 60;
 
@@ -25,6 +27,17 @@ function isCronAuthorized(request: NextRequest): boolean {
 async function runSync() {
   const runDeadline = Date.now() + RUN_BUDGET_MS;
   await connectDB();
+
+  // Payments the legacy global index rejected were counted as errors and
+  // skipped, so once it is gone every connected site re-imports its history.
+  if (await dropLegacyPaymentIndex()) {
+    const connected = await Website.find({
+      "paymentProviders.stripe.apiKey": { $exists: true, $nin: [null, ""] },
+    }).select("_id");
+    for (const site of connected) {
+      await startStripeBackfill(site._id.toString());
+    }
+  }
 
   // Least recently synced first, so sites a short run didn't reach go first
   // next time. Sites whose key Stripe rejected wait until the key changes.

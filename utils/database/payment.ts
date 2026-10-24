@@ -105,6 +105,37 @@ export function paymentKey(
   };
 }
 
+/**
+ * Payments were once unique per {provider, providerPaymentId} across all
+ * websites. Mongoose creates the website-scoped index but never drops the old
+ * one, so a site connected to a Stripe account another (e.g. deleted) site
+ * already synced hit a duplicate-key error on every payment. Drops the legacy
+ * index; resolves true when it was present, so callers can re-import.
+ */
+const LEGACY_PAYMENT_INDEX = "provider_1_providerPaymentId_1";
+let legacyIndexGone = false;
+
+export async function dropLegacyPaymentIndex(): Promise<boolean> {
+  if (legacyIndexGone) return false;
+  await connectDB();
+  const indexes = await Payment.collection.indexes();
+  if (!indexes.some((index) => index.name === LEGACY_PAYMENT_INDEX)) {
+    legacyIndexGone = true;
+    return false;
+  }
+  await Payment.createIndexes();
+  try {
+    await Payment.collection.dropIndex(LEGACY_PAYMENT_INDEX);
+  } catch (error: any) {
+    // IndexNotFound: a concurrent run dropped it (and re-imports).
+    if (error?.code !== 27) throw error;
+    legacyIndexGone = true;
+    return false;
+  }
+  legacyIndexGone = true;
+  return true;
+}
+
 export async function createPayment(data: NewPayment) {
   await connectDB();
 
